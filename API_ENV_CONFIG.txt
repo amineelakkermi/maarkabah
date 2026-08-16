@@ -1,0 +1,7 @@
+# API Configuration for Maarkbh
+# Copy this content to a .env.local file in the root directory
+
+# API Base URL - Point to your Maarkbh.API backend
+# Example: http://localhost:5000 for local development
+# Example: https://api.maarkbh.com for production
+NEXT_PUBLIC_API_URL=http://139.59.140.232

@@ -1,0 +1,12 @@
+Remplacer dans chacune :
+
+
+
+'Authorization': request.headers.get('Authorization') || ''
+
+
+par :
+
+
+'Authorization': [Bearer ${request.cookies.get('mk_access_token')?.value || ''}](cci:1://file:///c:/Users/HP%20ELITEBOOK%20855%20G8/Desktop/maarkbh-main/lib/api-client.ts:239:2-242:3)
+

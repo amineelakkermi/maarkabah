@@ -1,0 +1,1107 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Maarkbh — Design System Tokens
+   Single source of truth for all visual properties.
+   ============================================================ */
+
+/* ---------- Web Fonts ---------------------------------------- */
+@font-face {
+  font-family: "Madani Arabic";
+  src: url("/fonts/Madani-Arabic-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Madani Arabic";
+  src: url("/fonts/Madani-Arabic-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Madani Arabic";
+  src: url("/fonts/Madani-Arabic-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- Tailwind v4 Theme Tokens ------------------------- */
+@theme inline {
+  /* Colors — Brand (proxied to CSS variables to support runtime overrides) */
+  --color-mk-blue-50: var(--blue-50);
+  --color-mk-blue-100: var(--blue-100);
+  --color-mk-blue-500: var(--blue-500);
+  --color-mk-blue-600: var(--blue-600);
+  --color-mk-blue-700: var(--blue-700);
+  --color-mk-blue-surface: var(--blue-surface);
+
+  --color-mk-violet-100: var(--violet-100);
+  --color-mk-violet-500: var(--violet-500);
+  --color-mk-violet-600: var(--violet-600);
+
+  --color-mk-mint-100: var(--mint-100);
+  --color-mk-mint-500: var(--mint-500);
+  --color-mk-mint-600: var(--mint-600);
+
+  --color-mk-midnight: var(--midnight);
+  --color-mk-navy: var(--navy);
+  --color-mk-white: var(--white);
+
+  /* Colors — Ink scale (proxied to CSS variables to support runtime overrides) */
+  --color-mk-ink-900: var(--ink-900);
+  --color-mk-ink-800: var(--ink-800);
+  --color-mk-ink-700: var(--ink-700);
+  --color-mk-ink-600: var(--ink-600);
+  --color-mk-ink-500: var(--ink-500);
+  --color-mk-ink-400: var(--ink-400);
+  --color-mk-ink-350: var(--ink-350);
+  --color-mk-ink-300: var(--ink-300);
+  --color-mk-ink-200: var(--ink-200);
+  --color-mk-ink-100: var(--ink-100);
+  --color-mk-ink-50: var(--ink-50);
+
+  /* Colors — Semantic (base) */
+  --color-mk-success: var(--success);
+  --color-mk-warning: var(--warning);
+  --color-mk-warning-soft: var(--warning-soft);
+  --color-mk-danger: var(--danger);
+  --color-mk-info: var(--info);
+
+  /* Colors — Semantic light/dark pairs (proxied to CSS variables to support runtime overrides) */
+  --color-mk-success-100: var(--success-100);
+  --color-mk-success-700: var(--success-700);
+  --color-mk-warning-100: var(--warning-100);
+  --color-mk-warning-700: var(--warning-700);
+  --color-mk-danger-100: var(--danger-100);
+  --color-mk-danger-700: var(--danger-700);
+  --color-mk-violet-700: var(--violet-700);
+
+  /* Font families */
+  --font-display: "Madani Arabic", "Inter", system-ui, -apple-system, sans-serif;
+  --font-body: "Madani Arabic", "Inter", system-ui, -apple-system, sans-serif;
+  --font-arabic: "Madani Arabic", "Geeza Pro", "Tahoma", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+
+  /* ── Font Sizes — Semantic scale (Tailwind v4 --text-* consumed by utilities) ── */
+  --text-display-xl: 72px;
+  --text-display-lg: 56px;
+  --text-display: 44px;
+  --text-h1: 36px;
+  --text-h2: 28px;
+  --text-h3: 22px;
+  --text-h4: 16px;
+  --text-body-lg: 18px;
+  --text-body: 16px;
+  --text-body-sm: 14px;
+  --text-label: 13px;
+  --text-caption: 12px;
+  --text-overline: 11px;
+  --text-mono: 14px;
+
+  /* ── Font Sizes — Internal aliases (--fs-*) used in utility classes below ── */
+  --fs-display-xl: 72px;
+  --lh-display-xl: 1.05;
+  --fs-display-lg: 56px;
+  --lh-display-lg: 1.08;
+  --fs-display: 44px;
+  --lh-display: 1.1;
+  --fs-h1: 36px;
+  --lh-h1: 1.15;
+  --fs-h2: 28px;
+  --lh-h2: 1.2;
+  --fs-h3: 22px;
+  --lh-h3: 1.3;
+  --fs-h4: 16px;
+  --lh-h4: 1.35;
+  --fs-body-lg: 18px;
+  --lh-body-lg: 1.55;
+  --fs-body: 16px;
+  --lh-body: 1.55;
+  --fs-body-sm: 14px;
+  --lh-body-sm: 1.5;
+  --fs-label: 13px;
+  --lh-label: 1.45;
+  --fs-caption: 12px;
+  --lh-caption: 1.4;
+  --fs-overline: 11px;
+  --lh-overline: 1.3;
+  --fs-mono: 14px;
+
+  /* ── Font Weights ────────────────────────────────────────────────────────── */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ── Letter Spacing ──────────────────────────────────────────────────────── */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.06em;
+  --tracking-widest: 0.08em;
+
+  /* ── Spacing — Semantic T-shirt scale ─────────────────────────────────────────────── */
+  /* Named --space-* (not --spacing-*) so these don't collide with Tailwind's own
+     reserved xs/sm/md/lg/xl/2xl/... keys, which back w-*, max-w-*, gap-*, p-*, etc. */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+  --space-5xl: 48px;
+  --space-6xl: 64px;
+  --space-7xl: 80px;
+  --space-8xl: 96px;
+
+
+
+  /* ── Border Radius ───────────────────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-pill: 999px;
+  --radius-stadium: 999px;
+  /* alias of pill — used for buttons */
+  --radius-card: var(--radius-lg);
+  /* semantic: card corners  */
+  --radius-badge: var(--radius-pill);
+  /* semantic: badge/chip    */
+  --radius-input: var(--radius-sm);
+  /* semantic: input fields  */
+
+  /* ── Box Shadows ─────────────────────────────────────────────────────────── */
+  --shadow-card: 0 1px 2px rgba(15, 20, 48, 0.04);
+  --shadow-card-lift: 0 8px 20px -8px rgba(15, 20, 48, 0.12);
+  --shadow-xs: 0 1px 2px rgba(15, 20, 48, 0.06);
+  --shadow-sm: 0 2px 6px rgba(15, 20, 48, 0.08);
+  --shadow-md: 0 8px 24px rgba(15, 20, 48, 0.10);
+  --shadow-lg: 0 18px 48px rgba(15, 20, 48, 0.14);
+  --shadow-xl: 0 32px 80px rgba(15, 20, 48, 0.18);
+  --shadow-glow-blue: 0 12px 40px -8px rgba(65, 113, 226, 0.45);
+  --shadow-glow-mint: 0 12px 40px -8px rgba(105, 218, 209, 0.5);
+  --shadow-focus: 0 0 0 3px rgba(65, 113, 226, 0.20);
+  /* blue/20 focus ring */
+  --shadow-urgent: 0 1px 2px rgba(15, 20, 48, 0.04), inset 3px 0 0 var(--color-mk-danger);
+  --shadow-thumb: 0 1px 2px rgba(15, 20, 48, 0.20);
+  /* toggle thumb */
+
+  /* Semantic aliases — proxy to :root vars so dark-mode overrides apply */
+  --color-mk-fg-1: var(--fg-1);
+  --color-mk-fg-2: var(--fg-2);
+  --color-mk-fg-3: var(--fg-3);
+  --color-mk-fg-disabled: var(--fg-disabled);
+  --color-mk-bg: var(--bg);
+  --color-mk-bg-muted: var(--bg-muted);
+  --color-mk-bg-elevated: var(--bg-elevated);
+  --color-mk-border: var(--border);
+  --color-mk-border-strong: var(--border-strong);
+  --color-mk-accent: var(--accent);
+
+  /* Easing curves */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Transition Durations ────────────────────────────────────────────────── */
+  --dur-instant: 80ms;
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 360ms;
+  --dur-slower: 500ms;
+}
+
+/* ---------- CSS Variables (semantic aliases) ------------------ */
+:root {
+  --bg: #f4f5f7;
+  --bg-muted: #f4f5f7;
+  --bg-elevated: #FFFFFF;
+  --bg-inverse: #180D44;
+
+  --fg-1: #0F1430;
+  --fg-2: #2D335A;
+  --fg-3: #6E738F;
+  --fg-disabled: #BCBFCC;
+  --fg-on-brand: #FFFFFF;
+  --fg-on-inverse: #FFFFFF;
+
+  --border: #DEDFE6;
+  --border-strong: #BCBFCC;
+  --border-focus: #4171E2;
+
+  --accent: #4171E2;
+  --accent-hover: #2E59BF;
+  --accent-soft: #E1E9FB;
+
+  /* Brand and layout colors (light mode) */
+  --blue-50: #F1F5FE;
+  --blue-100: #E1E9FB;
+  --blue-500: #4171E2;
+  --blue-600: #2E59BF;
+  --blue-700: #1F3F95;
+  --blue-surface: #EEF3FC;
+
+  --violet-100: #ECDFFB;
+  --violet-500: #7F43DD;
+  --violet-600: #6730BF;
+
+  --mint-100: #DDF6F3;
+  --mint-500: #69DAD1;
+  --mint-600: #3FB6AC;
+
+  --midnight: #180D44;
+  --navy: #1C2C63;
+  --white: #FFFFFF;
+
+  /* Ink scale (light mode values) */
+  --ink-900: #0F1430;
+  --ink-800: #1F2547;
+  --ink-700: #2D335A;
+  --ink-600: #4A4F73;
+  --ink-500: #6E738F;
+  /* Darkened from #9296AB (2.93:1 on white, fails WCAG AA) to 4.48:1 —
+     ink-400 is used as real caption/meta text (timestamps, phone/plate
+     numbers) in ~220 places app-wide, not just decoration. */
+  --ink-400: #71768F;
+  --ink-350: #C9CCDD;
+  --ink-300: #BCBFCC;
+  --ink-200: #DEDFE6;
+  --ink-100: #EFF0F4;
+  --ink-50: #f4f5f7;
+
+  /* Semantic scale (light mode values) */
+  --success: #3FB6AC;
+  --warning: #E2A341;
+  --warning-soft: rgba(226, 163, 65, 0.18);
+  --danger: #E24171;
+  --info: #4171E2;
+
+  --success-100: #DDF6F3;
+  --success-700: #1F4F4A;
+  --warning-100: #FBEFD8;
+  --warning-700: #7A5316;
+  --danger-100: #FBE0E8;
+  --danger-700: #8B1A3B;
+  --violet-700: #4F1F8B;
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --bg: #0F1430;
+  --bg-muted: #1F2547;
+  --bg-elevated: #1F2547;
+  --bg-inverse: #FFFFFF;
+
+  --fg-1: #FFFFFF;
+  --fg-2: #C9CCDD;
+  --fg-3: #9296AB;
+  --fg-disabled: #4A4F73;
+  --fg-on-inverse: #0F1430;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  --accent: #5D8BF4;
+  --accent-hover: #7DA4FC;
+  --accent-soft: rgba(65, 113, 226, 0.18);
+
+  /* Override ink scale variables for dark mode */
+  --ink-900: #FFFFFF;
+  --ink-800: #EFF0F4;
+  --ink-700: #DEDFE6;
+  --ink-600: #BCBFCC;
+  --ink-500: #9296AB;
+  --ink-400: #8A8FAB;
+  --ink-350: #6E738F;
+  --ink-300: #4A4F73;
+  --ink-200: rgba(255, 255, 255, 0.15);
+  --ink-100: rgba(255, 255, 255, 0.08);
+  --ink-50: #0F1430;
+
+  /* Overrides for brand and layout colors (dark mode accessibility optimization) */
+  --blue-50: rgba(65, 113, 226, 0.10);
+  --blue-100: rgba(65, 113, 226, 0.18);
+  --blue-500: #5D8BF4;
+  /* Brighter blue for dark mode contrast */
+  --blue-600: #4A7AF0;
+  /* Brighter blue for dark mode contrast */
+  --blue-700: #8CAFFC;
+  /* Light blue for accessibility */
+  --blue-surface: rgba(65, 113, 226, 0.18);
+
+  --violet-100: rgba(127, 67, 221, 0.15);
+  --violet-500: #9E6DF2;
+  /* Brighter violet for dark mode contrast */
+  --violet-600: #B08FF5;
+  /* Brighter violet for dark mode contrast */
+
+  --mint-100: rgba(105, 218, 209, 0.15);
+  --mint-500: #5EEAD4;
+  /* Brighter mint */
+  --mint-600: #2DD4BF;
+  /* Brighter teal/mint for accessibility */
+
+  --midnight: #FFFFFF;
+  --navy: #C9CCDD;
+  --white: #FFFFFF;
+
+  /* Overrides for semantic variables (dark mode accessibility optimization) */
+  --success: #2DD4BF;
+  /* Brighter mint/green */
+  --warning: #F59E0B;
+  /* Brighter amber */
+  --warning-soft: rgba(245, 158, 11, 0.18);
+  --danger: #F87171;
+  /* Brighter red */
+  --info: #5D8BF4;
+
+  --success-100: rgba(63, 182, 172, 0.15);
+  --success-700: #A7F3D0;
+  /* High contrast text on dark success badges */
+  --warning-100: rgba(226, 163, 65, 0.15);
+  --warning-700: #FDE68A;
+  /* High contrast text on dark warning badges */
+  --danger-100: rgba(226, 65, 113, 0.15);
+  --danger-700: #FECDD3;
+  /* High contrast text on dark danger badges */
+  --violet-700: #DDD6FE;
+  /* High contrast text on dark violet badges */
+}
+
+/* Map .bg-white to card background in dark mode */
+:root[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-white {
+  background-color: var(--bg-elevated);
+}
+
+/* Map .mk-surface to elevated background in dark mode */
+:root[data-theme="dark"] .mk-surface,
+[data-theme="dark"] .mk-surface {
+  background-color: var(--bg-elevated);
+}
+
+/* Map .mk-drawer to elevated background in dark mode */
+:root[data-theme="dark"] .mk-drawer,
+[data-theme="dark"] .mk-drawer {
+  background-color: var(--bg-elevated);
+}
+
+/* Map .bg-mk-midnight to dark navy background in dark mode */
+:root[data-theme="dark"] .bg-mk-midnight,
+[data-theme="dark"] .bg-mk-midnight {
+  background-color: #16224F;
+}
+
+/* Fix view-toggle in dark mode — match the navy+blue-icon reference */
+:root[data-theme="dark"] .mk-view-btn,
+[data-theme="dark"] .mk-view-btn {
+  color: var(--color-mk-ink-400);
+}
+
+/* Fix Chip active state in dark mode — ink-900 becomes white, causing white-on-white */
+:root[data-theme="dark"] .mk-chip--active,
+[data-theme="dark"] .mk-chip--active {
+  background: rgba(65, 113, 226, 0.18) !important;
+  color: #7FAAF5 !important;
+  border-color: rgba(65, 113, 226, 0.35) !important;
+}
+
+/* Fix QA card white background in dark mode */
+:root[data-theme="dark"] .mk-qa-card,
+[data-theme="dark"] .mk-qa-card {
+  background: var(--bg-elevated);
+}
+
+/* ── Dark mode "well" surfaces ─────────────────────────────────────────
+   In light mode bg-mk-ink-50 = very light gray (fine).
+   In dark mode --ink-50 resolves to #0F1430 (page bg), which is the same
+   or darker than the --bg-elevated (#1F2547) cards it's nested inside —
+   producing a flat, too-dark "hole" wherever it's used as an inner panel
+   (info rows, drawer sections, edit-form wells, spec grids). Override to
+   a subtle white overlay so nested surfaces lighten instead of darken. */
+:root[data-theme="dark"] .bg-mk-ink-50,
+[data-theme="dark"] .bg-mk-ink-50 {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .hover\:bg-mk-ink-50:hover,
+[data-theme="dark"] .hover\:bg-mk-ink-50:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Dark mode nested row surfaces ───────────────────────────────────────
+   List rows / search inputs inside a .bg-mk-ink-50 well use bg-white,
+   which maps to --bg-elevated in dark mode — the same color as the card
+   behind the well, so rows blend into it with only a near-invisible
+   border. Give them their own raised tone. */
+.mk-row-bg {
+  background-color: #FFFFFF;
+}
+
+.mk-row-bg:hover {
+  background-color: var(--ink-50);
+}
+
+:root[data-theme="dark"] .mk-row-bg,
+[data-theme="dark"] .mk-row-bg {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .mk-row-bg:hover,
+[data-theme="dark"] .mk-row-bg:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Dark mode shadow tokens ──────────────────────────────────────────
+   Light-mode shadows use dark-navy RGBA which are invisible on dark
+   surfaces. Override with black-based shadows + subtle border glow. */
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --shadow-card: none;
+  --shadow-card-lift: none;
+  --shadow-glow-blue: none;
+  --shadow-glow-mint: none;
+  --shadow-urgent: inset 3px 0 0 var(--color-mk-danger);
+}
+
+
+/* ---------- Base styles -------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+input,
+select,
+textarea {
+  color: inherit;
+  font-family: inherit;
+}
+
+select option {
+  background-color: var(--bg-elevated);
+  color: var(--fg-1);
+}
+
+/* Hide native number-input spinner buttons app-wide — the browser-default
+   arrows render in a plain white box that clashes with the app's dark theme. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg-1);
+  font-family: "Madani Arabic", "Inter", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+[dir="rtl"] {
+  font-family: "Madani Arabic", "Geeza Pro", "Tahoma", sans-serif;
+}
+
+/* ---------- Sidebar nav active indicator bar ----------------- */
+.mk-nav-item {
+  position: relative;
+}
+
+.mk-nav-item.mk-nav-active::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 22px;
+  background: var(--color-mk-blue-500);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+}
+
+[dir="rtl"] .mk-nav-item.mk-nav-active::before {
+  border-radius: 4px 0 0 4px;
+}
+
+/* ---------- Pulse animation for live indicators -------------- */
+@keyframes mk-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.mk-pulse {
+  animation: mk-pulse 1.6s infinite cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* ---------- Typography utility classes -----------------------
+   Font-family / weight / size / line-height / tracking only —
+   color is intentionally NOT set here. These classes live outside
+   any @layer, so an unlayered color declaration would always beat
+   a layered Tailwind text-mk-* color utility regardless of class
+   order, silently overriding any non-default heading/text color
+   (e.g. text-mk-blue-700, text-mk-danger). Color stays owned by
+   the Tailwind color utility already present on the element. ---- */
+.mk-display-xl {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-display-xl);
+  line-height: var(--lh-display-xl);
+  letter-spacing: var(--tracking-tight);
+}
+
+.mk-display-lg {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-display-lg);
+  line-height: var(--lh-display-lg);
+  letter-spacing: var(--tracking-tight);
+}
+
+.mk-display {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  letter-spacing: var(--tracking-tight);
+}
+
+.mk-h1 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--tracking-tight);
+}
+
+.mk-h2 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+}
+
+.mk-h3 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.mk-h4 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+}
+
+.mk-body-lg {
+  font-family: var(--font-body);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-body-lg);
+  line-height: var(--lh-body-lg);
+}
+
+.mk-body {
+  font-family: var(--font-body);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.mk-body-sm {
+  font-family: var(--font-body);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-body-sm);
+}
+
+/* mk-label — 13px semibold: form labels, table cell data, sidebar items */
+.mk-label {
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+}
+
+/* mk-label-muted — 13px regular: secondary labels, supporting data */
+.mk-label-muted {
+  font-family: var(--font-body);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+}
+
+/* mk-caption — 12px: metadata, timestamps. No forced uppercase —
+   callers already mix sentence-case and label-case content. */
+.mk-caption {
+  font-family: var(--font-body);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  letter-spacing: var(--tracking-wide);
+}
+
+/* mk-overline — 11px +tracking: nav section headers, sidebar group labels.
+   No forced uppercase — callers opt into text-transform explicitly
+   where an all-caps eyebrow is actually wanted. */
+.mk-overline {
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-overline);
+  line-height: var(--lh-overline);
+  letter-spacing: var(--tracking-widest);
+}
+
+.mk-mono {
+  font-family: var(--font-mono);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-mono);
+  line-height: 1.5;
+}
+
+/* ── Layout utilities ───────────────────────────────────────────── */
+.mk-grid-queue {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+}
+
+/* ── Design system showcase utilities ──────────────────────────── */
+.mk-hero-gradient {
+  background: linear-gradient(135deg, var(--color-mk-blue-500) 0%, var(--color-mk-violet-500) 100%);
+}
+
+.font-arabic {
+  font-family: var(--font-arabic);
+}
+
+/* ── Contract Drawer ────────────────────────────────────────────── */
+.mk-drawer {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+  width: 480px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 24px 64px -12px rgba(15, 20, 48, 0.28);
+  z-index: 100;
+  padding: 24px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+/* ── Hide scrollbar (Firefox) — pair with a webkit ::-webkit-scrollbar
+   rule if needed; used on scroll containers that shouldn't show a rail ── */
+.mk-scrollbar-none {
+  scrollbar-width: none;
+}
+
+.mk-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 13, 68, 0.38);
+  backdrop-filter: blur(6px);
+  z-index: 99;
+}
+
+[dir="rtl"] .mk-drawer {
+  right: auto;
+  left: 18px;
+}
+
+@media (max-width: 640px) {
+  .mk-drawer {
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    padding: 16px !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .mk-drawer {
+    top: 12px;
+    bottom: 12px;
+    width: 420px;
+    max-width: calc(100vw - 24px);
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  [dir="rtl"] .mk-drawer {
+    left: 12px;
+  }
+
+  [dir="ltr"] .mk-drawer {
+    right: 12px;
+  }
+}
+
+/* ── Contract Stepper ───────────────────────────────────────────── */
+.mk-stepper {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+@media (max-width: 1023px) {
+  .mk-stepper {
+    display: none !important;
+  }
+}
+
+.mk-step {
+  flex: 1;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: var(--fs-label);
+  box-shadow: var(--shadow-card);
+  color: var(--fg-2);
+}
+
+.mk-step.active {
+  background: var(--color-mk-blue-500);
+  color: white;
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-glow-blue);
+}
+
+.mk-step.done {
+  color: var(--success);
+}
+
+.mk-step-num {
+  width: var(--space-2xl);
+  height: var(--space-2xl);
+  border-radius: var(--radius-pill);
+  background: var(--ink-100);
+  display: grid;
+  place-items: center;
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-caption);
+  color: var(--fg-2);
+  flex-shrink: 0;
+}
+
+.mk-step.active .mk-step-num {
+  background: rgba(255, 255, 255, 0.22);
+  color: white;
+}
+
+.mk-step.done .mk-step-num {
+  background: var(--success);
+  color: white;
+}
+
+/* ── Grid column utilities ──────────────────────────────────────── */
+/* Use alongside Tailwind `grid` + `gap-*` classes                  */
+.mk-cols-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.mk-cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.mk-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mk-cols-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.mk-cols-8-4 {
+  grid-template-columns: 8fr 4fr;
+}
+
+.mk-cols-2-1 {
+  grid-template-columns: 2fr 1fr;
+}
+
+/* ── Letter-spacing utilities ───────────────────────────────────────────── */
+.mk-tracking-eyebrow {
+  letter-spacing: var(--tracking-widest);
+}
+
+/* 0.08em */
+.mk-tracking-wide {
+  letter-spacing: var(--tracking-wider);
+}
+
+/* 0.06em */
+.mk-tracking-brand {
+  letter-spacing: var(--tracking-wide);
+}
+
+/* 0.04em */
+
+/* ── Selection / option card ────────────────────────────────────── */
+/* Wraps add-on toggles, car-picker cards, payment-method buttons   */
+.mk-option {
+  background: var(--color-mk-ink-50);
+  box-shadow: inset 0 0 0 1px var(--color-mk-ink-100);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-standard);
+}
+
+.mk-option--on {
+  background: var(--color-mk-blue-surface);
+  box-shadow: inset 0 0 0 2px var(--color-mk-blue-500);
+}
+
+.mk-option--on-glow {
+  background: var(--color-mk-blue-surface);
+  box-shadow: inset 0 0 0 2px var(--color-mk-blue-500),
+    0 4px 16px -8px rgba(65, 113, 226, 0.25);
+}
+
+/* Hover feedback for unselected .mk-option rows — a plain unlayered rule
+   is required here (not a Tailwind hover: utility) since .mk-option's own
+   unlayered background declaration would otherwise always win the cascade
+   over a layered Tailwind utility, hiding the hover state. */
+.mk-option:not(.mk-option--on):not(.mk-option--on-glow):hover {
+  background: var(--color-mk-ink-100);
+}
+
+/* ── Vehicle selector cards (unselected) — opaque surface with a visible
+   ring + hover feedback, same unlayered-cascade reasoning as .mk-option. */
+.mk-vehicle-card {
+  background: var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--color-mk-ink-100), 0 2px 10px rgba(15, 20, 48, 0.07);
+  transition: background 0.15s var(--ease-standard), box-shadow 0.15s var(--ease-standard);
+}
+
+.mk-vehicle-card:hover {
+  background: var(--color-mk-ink-50);
+  box-shadow: inset 0 0 0 1px var(--color-mk-blue-500), 0 2px 10px rgba(15, 20, 48, 0.07);
+}
+
+/* ── Surface panel (white card + card shadow) ───────────────────── */
+.mk-surface {
+  background: white;
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Surface shadow overrides — pair with .mk-surface to bump elevation.
+   Plain (unlayered) rules so they reliably beat .mk-surface's own
+   box-shadow via source order; a Tailwind shadow-[...] utility would lose
+   that fight since Tailwind utilities live in @layer utilities, which is
+   always outranked by unlayered CSS regardless of class order. ── */
+.mk-shadow-4 {
+  box-shadow: 0 1px 4px rgba(15, 20, 48, 0.06);
+}
+
+.mk-shadow-8 {
+  box-shadow: 0 2px 8px rgba(15, 20, 48, 0.07);
+}
+
+.mk-shadow-10 {
+  box-shadow: 0 2px 10px rgba(15, 20, 48, 0.07);
+}
+
+.mk-shadow-12 {
+  box-shadow: 0 2px 12px rgba(15, 20, 48, 0.07);
+}
+
+/* ── Dropdown / overflow-menu shadow — pair with .mk-surface ── */
+.mk-shadow-menu {
+  box-shadow: 0 8px 32px -4px rgba(15, 20, 48, 0.18), 0 1px 4px rgba(15, 20, 48, 0.08);
+}
+
+/* ── Car photo placeholder tint — brand-blue/violet wash over ink-100 ── */
+.mk-car-thumb-bg {
+  background: linear-gradient(135deg, rgba(65, 113, 226, 0.06), rgba(127, 67, 221, 0.06)), var(--color-mk-ink-100);
+}
+
+.mk-car-thumb-bg-sm {
+  background: linear-gradient(135deg, rgba(65, 113, 226, 0.08), rgba(127, 67, 221, 0.08)), var(--color-mk-ink-100);
+}
+
+/* ── Table base ─────────────────────────────────────────────────── */
+/* mk-table-th — shared column header: overline caps, muted bg     */
+.mk-table-th {
+  text-align: start;
+  padding: var(--space-md) var(--space-md);
+  font-size: var(--fs-overline);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-overline);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--ink-500);
+  background-color: var(--ink-50);
+  border-bottom: 1px solid var(--ink-100);
+}
+
+/* mk-table-td — shared row cell: consistent padding + border      */
+.mk-table-td {
+  padding: 14px var(--space-md);
+  border-bottom: 1px solid var(--ink-100);
+}
+
+.mk-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* ── Quick-action card (dashboard) ─────────────────────────────── */
+.mk-qa-card {
+  background: white;
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-emphasis),
+    box-shadow var(--dur-fast) var(--ease-emphasis);
+}
+
+.mk-qa-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-lift);
+}
+
+/* ── Contract page — view-toggle wrapper ─────────────────────────── */
+/* Ink-50 tray + a subtle inset ring — reads as a distinct recessed control
+   against whatever it's sitting on (bare page or an elevated card), in
+   both light and dark, without depending on a background-contrast guess. */
+.mk-view-toggle {
+  background: var(--color-mk-ink-50);
+}
+
+/* ── Contract page — view-toggle button ─────────────────────────── */
+.mk-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  color: var(--color-mk-ink-400);
+  background: transparent;
+  transition: all 0.15s var(--ease-standard);
+}
+
+/* Light mode: white pill lifted off the ink-50 tray with a soft shadow —
+   the raised-segment look, not a blue tint. */
+.mk-view-btn--active {
+  background: var(--color-mk-white);
+  color: var(--color-mk-blue-500);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Dark mode: blue-surface tint instead of white, no shadow — the surface
+   swap alone reads clearly against the dark ink-50 tray. */
+:root[data-theme="dark"] .mk-view-btn--active,
+[data-theme="dark"] .mk-view-btn--active {
+  background: var(--color-mk-blue-surface);
+  color: var(--color-mk-blue-500);
+  box-shadow: none;
+}
+
+/* ── Fixed-tone variants ──────────────────────────────────────────
+   Same visual language as .mk-view-toggle/.mk-view-btn, but hardcoded
+   to one literal palette instead of the var(--color-mk-*) tokens —
+   those tokens flip value under [data-theme="dark"], so a control that
+   must always render "dark style" regardless of the page's own theme
+   (e.g. an overlay control sitting on a map) can't use the token-based
+   classes: nesting data-theme="light" locally does not stop an
+   ancestor's [data-theme="dark"] selector from still matching. These
+   classes never key off data-theme at all, so the requested tone is
+   guaranteed regardless of what the surrounding page is doing. */
+/* Literal white — same surface .mk-surface resolves to in light mode. */
+.mk-view-toggle--light {
+  background: #FFFFFF;
+}
+
+.mk-view-btn--light {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  color: #71768F;
+  background: transparent;
+  transition: all 0.15s var(--ease-standard);
+}
+
+.mk-view-btn--light.mk-view-btn--tone-active {
+  background: #EEF3FC;
+  color: #4171E2;
+}
+
+/* Literal elevated navy — same surface .mk-surface resolves to in dark mode. */
+.mk-view-toggle--dark {
+  background: #1F2547;
+}
+
+.mk-view-btn--dark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  color: #8A8FAB;
+  background: transparent;
+  transition: all 0.15s var(--ease-standard);
+}
+
+.mk-view-btn--dark.mk-view-btn--tone-active {
+  background: rgba(65, 113, 226, 0.18);
+  color: #5D8BF4;
+}
+
+/* ── Hero / gradient header ─────────────────────────────────────── */
+.mk-page-hero {
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  margin-bottom: 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-mk-midnight) 0%, #1c2a63 100%);
+}
