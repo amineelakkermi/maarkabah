@@ -44,18 +44,14 @@ function baseCookieOptions(): CookieOptions {
   };
 }
 
-function serializeCookie(name: string, value: string, options: CookieOptions): string {
-  const parts = [`${name}=${encodeURIComponent(value)}`];
-  if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
-  parts.push(`Path=${options.path}`);
-  if (options.httpOnly) parts.push('HttpOnly');
-  if (options.secure) parts.push('Secure');
-  parts.push(`SameSite=${options.sameSite}`);
-  return parts.join('; ');
-}
-
 function appendCookie(res: NextResponse, name: string, value: string, options: CookieOptions) {
-  res.headers.append('Set-Cookie', serializeCookie(name, value, options));
+  res.cookies.set(name, value, {
+    httpOnly: options.httpOnly,
+    secure: options.secure,
+    sameSite: options.sameSite,
+    path: options.path,
+    maxAge: options.maxAge,
+  });
 }
 
 function getSessionIdFromRequest(request: NextRequest): string | null {

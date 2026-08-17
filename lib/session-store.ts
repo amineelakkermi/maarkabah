@@ -69,10 +69,10 @@ export async function getSession(id: string | null | undefined): Promise<Session
   let data: SessionData | null | undefined;
 
   if (redis) {
-    const json = await redis.get<string>(`mk:session:${id}`);
-    if (!json) return null;
+    const raw = await redis.get<string>(`mk:session:${id}`);
+    if (!raw) return null;
     try {
-      data = JSON.parse(json) as SessionData;
+      data = typeof raw === 'string' ? (JSON.parse(raw) as SessionData) : (raw as unknown as SessionData);
     } catch {
       return null;
     }
