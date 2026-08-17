@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Search, UserPlus, ChevronRight, CheckCircle, Phone, CreditCard, X, User, FileSignature, Loader2, FileWarning, Plus, Trash2,
+  Search, UserPlus, ChevronRight, CheckCircle, Phone, CreditCard, X, User, FileSignature, Loader2, FileWarning, Plus, Trash2, Ban,
 } from "lucide-react";
 import { Avatar, Badge, HijriDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -162,6 +162,11 @@ export default function CustomerListPage() {
   // Delete customer state
   const [customerToDelete, setCustomerToDelete] = useState<ClientProfile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Blacklist customer state
+  const [customerToBlacklist, setCustomerToBlacklist] = useState<ClientProfile | null>(null);
+  const [blacklistReason, setBlacklistReason] = useState("");
+  const [isBlacklisting, setIsBlacklisting] = useState(false);
 
   useEffect(() => {
     customerService
@@ -374,6 +379,25 @@ export default function CustomerListPage() {
     }
   }
 
+  async function handleBlacklistCustomer() {
+    if (!customerToBlacklist) return;
+    try {
+      setIsBlacklisting(true);
+      await customerService.addToBlacklist(Number(customerToBlacklist.id), { reason: blacklistReason });
+      showToast(T("Customer added to blacklist", "تمت إضافة العميل إلى القائمة السوداء", ar));
+      await loadCustomers();
+      customerEvents.reload();
+      setCustomerToBlacklist(null);
+      setBlacklistReason("");
+    } catch (err: any) {
+      console.error("Error blacklisting customer:", err);
+      const msg = err?.message || T("Failed to blacklist customer", "فشل في إضافة العميل إلى القائمة السوداء", ar);
+      showToast(msg);
+    } finally {
+      setIsBlacklisting(false);
+    }
+  }
+
   return (
     <div>
       {/* Toolbar */}
@@ -419,13 +443,14 @@ export default function CustomerListPage() {
       {/* Customers table */}
       <div className="rounded-xl overflow-hidden mk-surface">
         <div
-          className="grid px-5 py-3 mk-overline uppercase text-mk-ink-400 tracking-wider border-b border-mk-ink-100 bg-mk-ink-50 grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_40px_40px_36px]"
+          className="grid px-5 py-3 mk-overline uppercase text-mk-ink-400 tracking-wider border-b border-mk-ink-100 bg-mk-ink-50 grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_40px_40px_40px_36px]"
         >
           <span>{T("Customer", "العميل", ar)}</span>
           <span>{T("Phone", "الهاتف", ar)}</span>
           <span>{T("National ID", "الهوية", ar)}</span>
           <span>{T("Contracts", "العقود", ar)}</span>
           <span>{T("Status", "الحالة", ar)}</span>
+          <span />
           <span />
           <span />
           <span />
@@ -459,7 +484,7 @@ export default function CustomerListPage() {
               tabIndex={0}
               onClick={() => router.push(`/customers/${c.id}`)}
               onKeyDown={(e) => { if (e.key === "Enter") router.push(`/customers/${c.id}`); }}
-              className="grid items-center px-5 py-4 cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_40px_40px_36px]"
+              className="grid items-center px-5 py-4 cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_40px_40px_40px_36px]"
               style={{
                 borderBottom: idx < filtered.length - 1 ? "1px solid var(--color-mk-border)" : "none",
                 borderInlineStart: c.blacklisted ? "3px solid var(--color-mk-danger)" : "none",
@@ -514,6 +539,18 @@ export default function CustomerListPage() {
                     <FileSignature size={13} />
                   </Link>
                 )}
+              </div>
+              {/* Blacklist */}
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  title={c.blacklisted ? T("Already blacklisted", "موجود في القائمة السوداء", ar) : T("Blacklist customer", "إضافة إلى القائمة السوداء", ar)}
+                  disabled={c.blacklisted}
+                  onClick={(e) => { e.stopPropagation(); if (!c.blacklisted) setCustomerToBlacklist(c); }}
+                  className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-warning/10 text-mk-warning hover:bg-mk-warning/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Ban size={13} />
+                </button>
               </div>
               {/* Delete */}
               <div className="flex justify-center">
@@ -689,6 +726,43 @@ export default function CustomerListPage() {
           </DrawerFooter>
         </div>
       </Drawer>
+
+      {/* Blacklist confirmation modal */}
+      <Modal
+        open={!!customerToBlacklist}
+        onClose={() => { if (!isBlacklisting) { setCustomerToBlacklist(null); setBlacklistReason(""); } }}
+        variant="centered"
+        size="sm"
+        title={T("Blacklist customer?", "إضافة إلى القائمة السوداء؟", ar)}
+      >
+        <div className="flex flex-col gap-5 p-2">
+          <p className="mk-body text-mk-ink-700">
+            {T(
+              `Are you sure you want to blacklist ${customerToBlacklist?.name || customerToBlacklist?.nameAr || "this customer"}? They will be restricted from new bookings.`,
+              `هل أنت متأكد من إضافة ${customerToBlacklist?.nameAr || customerToBlacklist?.name || "هذا العميل"} إلى القائمة السوداء؟ سيتم منعهم من الحجوزات الجديدة.`,
+              ar
+            )}
+          </p>
+          <div className="flex flex-col gap-2">
+            <label className="mk-caption text-mk-ink-700">{T("Reason (optional)", "السبب (اختياري)", ar)}</label>
+            <Input
+              variant="muted"
+              placeholder={T("Enter reason...", "أدخل السبب...", ar)}
+              value={blacklistReason}
+              onChange={(e) => setBlacklistReason(e.target.value)}
+              disabled={isBlacklisting}
+            />
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setCustomerToBlacklist(null); setBlacklistReason(""); }} disabled={isBlacklisting}>
+              {T("Cancel", "إلغاء", ar)}
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleBlacklistCustomer} disabled={isBlacklisting}>
+              {isBlacklisting ? <><Loader2 size={13} className="animate-spin" /> {T("Adding...", "جارٍ الإضافة...", ar)}</> : <><Ban size={13} /> {T("Blacklist", "إضافة", ar)}</>}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Delete confirmation modal */}
       <Modal

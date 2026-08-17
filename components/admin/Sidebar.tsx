@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Map, CalendarDays, Car,
   ShieldCheck, ClockAlert, Ban,
@@ -8,55 +9,85 @@ import {
 } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shared/SidebarShell";
-
-const NAV_SECTIONS = [
-  {
-    title: "Operations",
-    titleAr: "العمليات",
-    items: [
-      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية" },
-      { href: "/fleet-map", icon: Map, label: "Fleet Map", labelAr: "خريطة الأسطول" },
-      { href: "/bookings", icon: CalendarDays, label: "Contracts", labelAr: "العقود" },
-      { href: "/fleet", icon: Car, label: "Fleet", labelAr: "الأسطول" },
-    ],
-  },
-  {
-    title: "Customer",
-    titleAr: "العملاء",
-    items: [
-      { href: "/customers", icon: Users, label: "Client List", labelAr: "قائمة العملاء" },
-      { href: "/kyc-queue", icon: ShieldCheck, label: "KYC Queue", labelAr: "مراجعة الهوية", badge: 4 },
-      { href: "/late-returns", icon: ClockAlert, label: "Late Returns", labelAr: "الإرجاع المتأخر", badge: 2 },
-      { href: "/blacklist", icon: Ban, label: "Blacklist", labelAr: "القائمة السوداء" },
-    ],
-  },
-  {
-    title: "Finance",
-    titleAr: "المالية",
-    items: [
-      { href: "/revenue", icon: BarChart3, label: "Revenue", labelAr: "الإيرادات" },
-      { href: "/refunds", icon: Undo2, label: "Refunds", labelAr: "المستردات" },
-      { href: "/pricing", icon: Tag, label: "Pricing", labelAr: "الأسعار" },
-    ],
-  },
-  {
-    title: "System",
-    titleAr: "النظام",
-    items: [
-      { href: "/branches", icon: Building, label: "Branches", labelAr: "الفروع" },
-      { href: "/roles", icon: Shield, label: "Roles", labelAr: "الأدوار" },
-      { href: "/staff", icon: Users, label: "Staff", labelAr: "الفريق" },
-    ],
-  },
-];
+import { customerService, customerEvents } from "@/lib/api-services";
+import { VerificationStatus } from "@/lib/api-types";
 
 export function Sidebar() {
   const path = usePathname();
   const { dir, toggleDir, role, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout } = useAdmin();
   const ar = dir === "rtl";
+  const [kycCount, setKycCount] = useState(0);
 
   const FRONTDESK_ROUTES = new Set(["/dashboard", "/bookings", "/fleet", "/kyc-queue", "/late-returns", "/branches", "/roles"]);
   const handleNavClick = () => setSidebarOpen(false);
+
+  useEffect(() => {
+    const loadKycCount = async () => {
+      try {
+        const response = await customerService.search({
+          verificationStatus: VerificationStatus.Pending,
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        const items = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
+        const total =
+          response?.totalCount ??
+          response?.data?.totalCount ??
+          response?.total ??
+          response?.data?.total ??
+          (Array.isArray(items) ? items.length : 0);
+        setKycCount(total);
+      } catch (err) {
+        console.error("Error loading KYC queue count:", err);
+        setKycCount(0);
+      }
+    };
+
+    loadKycCount();
+    const unsubscribe = customerEvents.onReload(loadKycCount);
+    return () => unsubscribe();
+  }, []);
+
+  const NAV_SECTIONS = [
+    {
+      title: "Operations",
+      titleAr: "العمليات",
+      items: [
+        { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية" },
+        { href: "/fleet-map", icon: Map, label: "Fleet Map", labelAr: "خريطة الأسطول" },
+        { href: "/bookings", icon: CalendarDays, label: "Contracts", labelAr: "العقود" },
+        { href: "/fleet", icon: Car, label: "Fleet", labelAr: "الأسطول" },
+      ],
+    },
+    {
+      title: "Customer",
+      titleAr: "العملاء",
+      items: [
+        { href: "/customers", icon: Users, label: "Client List", labelAr: "قائمة العملاء" },
+        { href: "/kyc-queue", icon: ShieldCheck, label: "KYC Queue", labelAr: "مراجعة الهوية", badge: kycCount || undefined },
+        { href: "/late-returns", icon: ClockAlert, label: "Late Returns", labelAr: "الإرجاع المتأخر", badge: 2 },
+        { href: "/blacklist", icon: Ban, label: "Blacklist", labelAr: "القائمة السوداء" },
+      ],
+    },
+    {
+      title: "Finance",
+      titleAr: "المالية",
+      items: [
+        { href: "/revenue", icon: BarChart3, label: "Revenue", labelAr: "الإيرادات" },
+        { href: "/refunds", icon: Undo2, label: "Refunds", labelAr: "المستردات" },
+        { href: "/pricing", icon: Tag, label: "Pricing", labelAr: "الأسعار" },
+      ],
+    },
+    {
+      title: "System",
+      titleAr: "النظام",
+      items: [
+        { href: "/branches", icon: Building, label: "Branches", labelAr: "الفروع" },
+        { href: "/roles", icon: Shield, label: "Roles", labelAr: "الأدوار" },
+        { href: "/staff", icon: Users, label: "Staff", labelAr: "الفريق" },
+      ],
+    },
+  ];
 
   return (
     <SidebarShell

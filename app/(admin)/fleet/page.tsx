@@ -49,7 +49,7 @@ export default function FleetPage() {
   // Load vehicles from API
   useEffect(() => {
     loadVehicles();
-  }, [tab, search]);
+  }, [tab]);
 
   const resetForm = () => {
     setForm(emptyVehicleForm());
@@ -207,9 +207,6 @@ export default function FleetPage() {
         pageNumber: 1,
         pageSize: 100,
       };
-      if (search) {
-        searchRequest.search = search;
-      }
       if (tab !== "all") {
         const statusMap: Record<CarStatus, number> = {
           available: 1,

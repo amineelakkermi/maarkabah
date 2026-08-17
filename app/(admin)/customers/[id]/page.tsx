@@ -187,6 +187,9 @@ export default function CustomerDetailPage() {
   const [expandedDebts, setExpandedDebts] = useState<Record<number, boolean>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showBlacklistModal, setShowBlacklistModal] = useState(false);
+  const [blacklistReason, setBlacklistReason] = useState("");
+  const [isBlacklisting, setIsBlacklisting] = useState(false);
 
   async function handleDelete() {
     if (!client) return;
@@ -199,6 +202,24 @@ export default function CustomerDetailPage() {
       console.error("Error deleting customer:", err);
       alert(T("Failed to delete customer.", "فشل حذف العميل.", ar));
       setDeleting(false);
+    }
+  }
+
+  async function handleBlacklist() {
+    if (!client) return;
+    try {
+      setIsBlacklisting(true);
+      await customerService.addToBlacklist(Number(client.id), { reason: blacklistReason });
+      setClient((prev) => prev ? { ...prev, blacklisted: true } : prev);
+      customerEvents.reload();
+      setShowBlacklistModal(false);
+      setBlacklistReason("");
+      alert(T("Customer added to blacklist.", "تمت إضافة العميل إلى القائمة السوداء.", ar));
+    } catch (err) {
+      console.error("Error blacklisting customer:", err);
+      alert(T("Failed to add customer to blacklist.", "فشل إضافة العميل إلى القائمة السوداء.", ar));
+    } finally {
+      setIsBlacklisting(false);
     }
   }
 
@@ -568,6 +589,11 @@ export default function CustomerDetailPage() {
                 <Button variant="ghost" size="sm" onClick={startEditing}>
                   <Pencil size={12} /> {T("Edit", "تعديل", ar)}
                 </Button>
+                {!client.blacklisted && (
+                  <Button variant="ghost" size="sm" className="text-mk-warning hover:bg-mk-warning/10" onClick={() => setShowBlacklistModal(true)}>
+                    <Ban size={12} /> {T("Blacklist", "قائمة سوداء", ar)}
+                  </Button>
+                )}
                 <Button variant="ghost" size="sm" className="text-mk-danger hover:bg-mk-danger/10" onClick={() => setShowDeleteModal(true)}>
                   <Trash2 size={12} /> {T("Delete", "حذف", ar)}
                 </Button>
@@ -793,6 +819,38 @@ export default function CustomerDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Blacklist confirmation modal */}
+      <Modal open={showBlacklistModal} onClose={() => !isBlacklisting && setShowBlacklistModal(false)} variant="centered" size="sm" title={T("Blacklist customer?", "إضافة إلى القائمة السوداء؟", ar)}>
+        <div className="flex flex-col gap-5 p-2">
+          <p className="mk-body text-mk-ink-700">
+            {T(
+              `Are you sure you want to blacklist ${client?.name || client?.nameAr || "this customer"}? They will be restricted from new bookings.`,
+              `هل أنت متأكد من إضافة ${client?.nameAr || client?.name || "هذا العميل"} إلى القائمة السوداء؟ سيتم منعهم من الحجوزات الجديدة.`,
+              ar
+            )}
+          </p>
+          <div className="flex flex-col gap-2">
+            <label className="mk-caption text-mk-ink-700">{T("Reason (optional)", "السبب (اختياري)", ar)}</label>
+            <input
+              type="text"
+              className="px-3 h-10 rounded-md mk-body-sm outline-none bg-white border border-mk-ink-200 text-mk-ink-900 focus:border-mk-blue-500 focus:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all w-full"
+              placeholder={T("Enter reason...", "أدخل السبب...", ar)}
+              value={blacklistReason}
+              onChange={(e) => setBlacklistReason(e.target.value)}
+              disabled={isBlacklisting}
+            />
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setShowBlacklistModal(false); setBlacklistReason(""); }} disabled={isBlacklisting}>
+              {T("Cancel", "إلغاء", ar)}
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleBlacklist} disabled={isBlacklisting}>
+              {isBlacklisting ? <><Loader2 size={13} className="animate-spin" /> {T("Adding...", "جارٍ الإضافة...", ar)}</> : <><Ban size={13} /> {T("Blacklist", "إضافة", ar)}</>}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Delete confirmation modal */}
       <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} variant="centered" size="sm" title={T("Delete customer?", "حذف العميل؟", ar)}>
