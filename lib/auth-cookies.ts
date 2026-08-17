@@ -1,13 +1,13 @@
 // ─────────────────────────────────────────────────────────────
 //  Maarkbh · مركبة — Server-side Auth Cookie Helpers
-//  Centralizes HttpOnly cookie handling for the BFF auth pattern.
-//  Tokens NEVER reach client-side JavaScript: they live server-side in
-//  the session store (see lib/session-store.ts), and the browser only
-//  ever holds a small opaque session-id cookie.
+//  Tokens NEVER reach client-side JavaScript: they live server-side
+//  in Redis (or in-memory when REDIS_URL is not set). The actual token
+//  values are injected into request headers by middleware.ts so that
+//  all API route handlers can read them synchronously.
 // ─────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession, deleteSession, getSession } from './session-store';
+import { createSession, deleteSession } from './session-store';
 
 export const COOKIE_SESSION = 'mk_session';
 
@@ -70,13 +70,13 @@ function getSessionIdFromRequest(request: NextRequest): string | null {
  * If `request` is provided, any existing session tied to that request's
  * cookie is invalidated first (e.g. replacing the session on refresh).
  */
-export function setAuthCookies(res: NextResponse, tokens: TokenSet, request?: NextRequest) {
+export async function setAuthCookies(res: NextResponse, tokens: TokenSet, request?: NextRequest) {
   if (request) {
-    deleteSession(getSessionIdFromRequest(request));
+    await deleteSession(getSessionIdFromRequest(request));
   }
 
   const accessMaxAge = tokens.expiresIn && tokens.expiresIn > 0 ? tokens.expiresIn : DEFAULT_ACCESS_TOKEN_MAX_AGE_SECONDS;
-  const sessionId = createSession({
+  const sessionId = await createSession({
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
     idToken: tokens.idToken,
@@ -90,15 +90,15 @@ export function setAuthCookies(res: NextResponse, tokens: TokenSet, request?: Ne
  * Clears the auth session on the given response. Call this on logout,
  * or whenever a refresh attempt fails (session considered dead).
  */
-export function clearAuthCookies(res: NextResponse, request?: NextRequest) {
+export async function clearAuthCookies(res: NextResponse, request?: NextRequest) {
   if (request) {
-    deleteSession(getSessionIdFromRequest(request));
+    await deleteSession(getSessionIdFromRequest(request));
   }
   appendCookie(res, COOKIE_SESSION, '', { ...baseCookieOptions(), maxAge: 0 });
 }
 
 /**
- * Reads the access token for the incoming request's session.
+ * Reads the access token injected by middleware.ts.
  * Use this in every proxy route instead of `request.headers.get('Authorization')`.
  *
  * Example:
@@ -106,15 +106,15 @@ export function clearAuthCookies(res: NextResponse, request?: NextRequest) {
  *   headers: { Authorization: token ? `Bearer ${token}` : '' }
  */
 export function getAccessTokenFromRequest(request: NextRequest): string | null {
-  return getSession(getSessionIdFromRequest(request))?.accessToken || null;
+  return request.headers.get('x-mk-access-token') || null;
 }
 
 export function getRefreshTokenFromRequest(request: NextRequest): string | null {
-  return getSession(getSessionIdFromRequest(request))?.refreshToken || null;
+  return request.headers.get('x-mk-refresh-token') || null;
 }
 
 export function getIdTokenFromRequest(request: NextRequest): string | null {
-  return getSession(getSessionIdFromRequest(request))?.idToken || null;
+  return request.headers.get('x-mk-id-token') || null;
 }
 
 /**

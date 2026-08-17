@@ -32,13 +32,13 @@ export async function POST(request: NextRequest) {
       // Refresh token is dead (expired/revoked): clear cookies so the client
       // guard treats the user as logged out instead of retrying forever.
       const res = NextResponse.json(data, { status: response.status });
-      clearAuthCookies(res, request);
+      await clearAuthCookies(res, request);
       return res;
     }
 
     const user = data.id_token ? decodeJwtPayload(data.id_token) : null;
     const res = NextResponse.json({ success: true, user });
-    setAuthCookies(res, {
+    await setAuthCookies(res, {
       accessToken: data.access_token,
       refreshToken: data.refresh_token || refreshToken,
       idToken: data.id_token,

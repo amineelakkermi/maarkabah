@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // and only return the decoded (non-sensitive) user claims.
     const user = data.id_token ? decodeJwtPayload(data.id_token) : null;
     const res = NextResponse.json({ success: true, user });
-    setAuthCookies(res, {
+    await setAuthCookies(res, {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
       idToken: data.id_token,

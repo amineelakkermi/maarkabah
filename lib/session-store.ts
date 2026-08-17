@@ -1,22 +1,13 @@
 // ─────────────────────────────────────────────────────────────
 //  Maarkbh · مركبة — Server-side Session Store
-//  This backend issues encrypted (JWE) access/refresh tokens that are
-//  routinely 4-5KB each — far beyond the ~4096-byte per-cookie limit
-//  enforced by browsers (and even beyond what some HTTP clients will
-//  reliably send back in a single Cookie header once split across
-//  multiple cookies). Storing the raw tokens in cookies is not viable.
 //
-//  Instead we keep the real tokens server-side in this in-memory store,
-//  keyed by an opaque session id, and only ever put that small id in
-//  the browser's HttpOnly cookie.
-//
-//  Note: this is an in-memory store, so sessions are lost on server
-//  restart (or across serverless instances). That's an acceptable
-//  trade-off for this app's current single-instance deployment model;
-//  swap this for Redis/a database if that changes.
+//  Uses Redis when REDIS_URL is configured (required for serverless
+//  platforms like Vercel), otherwise falls back to an in-memory Map
+//  suitable for single-instance local/dev deployments.
 // ─────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'crypto';
+import Redis from 'ioredis';
 
 export interface SessionData {
   accessToken: string;
@@ -25,30 +16,77 @@ export interface SessionData {
   expiresAt: number;
 }
 
+const redisUrl = process.env.REDIS_URL;
+const redis = redisUrl ? new Redis(redisUrl) : null;
+
+// Survive Next.js dev-mode hot reloads by stashing the store on globalThis.
+const LOCAL_STORE_KEY = '__mkSessionStore';
+
 declare global {
   // eslint-disable-next-line no-var
   var __mkSessionStore: Map<string, SessionData> | undefined;
 }
 
-// Survive Next.js dev-mode hot reloads by stashing the store on globalThis.
-const store: Map<string, SessionData> = globalThis.__mkSessionStore ?? new Map();
-globalThis.__mkSessionStore = store;
+const memoryStore: Map<string, SessionData> = globalThis.__mkSessionStore ?? new Map();
+globalThis.__mkSessionStore = memoryStore;
 
-export function createSession(data: SessionData): string {
+const REDIS_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+function isExpired(data: SessionData): boolean {
+  return Date.now() > data.expiresAt;
+}
+
+export async function createSession(data: SessionData): Promise<string> {
   const id = randomUUID();
-  store.set(id, data);
+  if (redis) {
+    await redis.setex(`mk:session:${id}`, REDIS_TTL_SECONDS, JSON.stringify(data));
+  } else {
+    memoryStore.set(id, data);
+  }
   return id;
 }
 
-export function getSession(id: string | null | undefined): SessionData | null {
+export async function getSession(id: string | null | undefined): Promise<SessionData | null> {
   if (!id) return null;
-  return store.get(id) ?? null;
+
+  let data: SessionData | null | undefined;
+
+  if (redis) {
+    const json = await redis.get(`mk:session:${id}`);
+    if (!json) return null;
+    try {
+      data = JSON.parse(json) as SessionData;
+    } catch {
+      return null;
+    }
+  } else {
+    data = memoryStore.get(id);
+  }
+
+  if (!data) return null;
+
+  if (isExpired(data)) {
+    await deleteSession(id);
+    return null;
+  }
+
+  return data;
 }
 
-export function updateSession(id: string, data: SessionData): void {
-  store.set(id, data);
+export async function updateSession(id: string, data: SessionData): Promise<void> {
+  if (!id) return;
+  if (redis) {
+    await redis.setex(`mk:session:${id}`, REDIS_TTL_SECONDS, JSON.stringify(data));
+  } else {
+    memoryStore.set(id, data);
+  }
 }
 
-export function deleteSession(id: string | null | undefined): void {
-  if (id) store.delete(id);
+export async function deleteSession(id: string | null | undefined): Promise<void> {
+  if (!id) return;
+  if (redis) {
+    await redis.del(`mk:session:${id}`);
+  } else {
+    memoryStore.delete(id);
+  }
 }
