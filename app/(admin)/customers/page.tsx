@@ -164,9 +164,10 @@ export default function CustomerListPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Blacklist customer state
-  const [customerToBlacklist, setCustomerToBlacklist] = useState<ClientProfile | null>(null);
+  const [customerToToggleBlacklist, setCustomerToToggleBlacklist] = useState<ClientProfile | null>(null);
+  const [blacklistAction, setBlacklistAction] = useState<"add" | "remove" | null>(null);
   const [blacklistReason, setBlacklistReason] = useState("");
-  const [isBlacklisting, setIsBlacklisting] = useState(false);
+  const [isTogglingBlacklist, setIsTogglingBlacklist] = useState(false);
 
   useEffect(() => {
     customerService
@@ -379,22 +380,40 @@ export default function CustomerListPage() {
     }
   }
 
-  async function handleBlacklistCustomer() {
-    if (!customerToBlacklist) return;
+  async function handleToggleBlacklist() {
+    if (!customerToToggleBlacklist || !blacklistAction) return;
     try {
-      setIsBlacklisting(true);
-      await customerService.addToBlacklist(Number(customerToBlacklist.id), { reason: blacklistReason });
-      showToast(T("Customer added to blacklist", "تمت إضافة العميل إلى القائمة السوداء", ar));
+      setIsTogglingBlacklist(true);
+      const isAdd = blacklistAction === "add";
+      if (isAdd) {
+        await customerService.addToBlacklist(Number(customerToToggleBlacklist.id), { reason: blacklistReason });
+      } else {
+        await customerService.removeFromBlacklist(Number(customerToToggleBlacklist.id));
+      }
+      showToast(
+        T(
+          isAdd ? "Customer added to blacklist" : "Customer removed from blacklist",
+          isAdd ? "تمت إضافة العميل إلى القائمة السوداء" : "تمت إزالة العميل من القائمة السوداء",
+          ar
+        )
+      );
       await loadCustomers();
       customerEvents.reload();
-      setCustomerToBlacklist(null);
+      setCustomerToToggleBlacklist(null);
+      setBlacklistAction(null);
       setBlacklistReason("");
     } catch (err: any) {
-      console.error("Error blacklisting customer:", err);
-      const msg = err?.message || T("Failed to blacklist customer", "فشل في إضافة العميل إلى القائمة السوداء", ar);
+      console.error("Error toggling blacklist status:", err);
+      const msg =
+        err?.message ||
+        T(
+          blacklistAction === "add" ? "Failed to blacklist customer" : "Failed to remove customer from blacklist",
+          blacklistAction === "add" ? "فشل في إضافة العميل إلى القائمة السوداء" : "فشل في إزالة العميل من القائمة السوداء",
+          ar
+        );
       showToast(msg);
     } finally {
-      setIsBlacklisting(false);
+      setIsTogglingBlacklist(false);
     }
   }
 
@@ -540,17 +559,27 @@ export default function CustomerListPage() {
                   </Link>
                 )}
               </div>
-              {/* Blacklist */}
+              {/* Blacklist / Remove from blacklist */}
               <div className="flex justify-center">
-                <button
-                  type="button"
-                  title={c.blacklisted ? T("Already blacklisted", "موجود في القائمة السوداء", ar) : T("Blacklist customer", "إضافة إلى القائمة السوداء", ar)}
-                  disabled={c.blacklisted}
-                  onClick={(e) => { e.stopPropagation(); if (!c.blacklisted) setCustomerToBlacklist(c); }}
-                  className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-warning/10 text-mk-warning hover:bg-mk-warning/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Ban size={13} />
-                </button>
+                {c.blacklisted ? (
+                  <button
+                    type="button"
+                    title={T("Remove from blacklist", "إزالة من القائمة السوداء", ar)}
+                    onClick={(e) => { e.stopPropagation(); setCustomerToToggleBlacklist(c); setBlacklistAction("remove"); }}
+                    className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-mint-600/10 text-mk-mint-600 hover:bg-mk-mint-600/20 transition-colors"
+                  >
+                    <CheckCircle size={13} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    title={T("Blacklist customer", "إضافة إلى القائمة السوداء", ar)}
+                    onClick={(e) => { e.stopPropagation(); setCustomerToToggleBlacklist(c); setBlacklistAction("add"); }}
+                    className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-warning/10 text-mk-warning hover:bg-mk-warning/20 transition-colors"
+                  >
+                    <Ban size={13} />
+                  </button>
+                )}
               </div>
               {/* Delete */}
               <div className="flex justify-center">
@@ -727,38 +756,46 @@ export default function CustomerListPage() {
         </div>
       </Drawer>
 
-      {/* Blacklist confirmation modal */}
+      {/* Blacklist / Remove from blacklist confirmation modal */}
       <Modal
-        open={!!customerToBlacklist}
-        onClose={() => { if (!isBlacklisting) { setCustomerToBlacklist(null); setBlacklistReason(""); } }}
+        open={!!customerToToggleBlacklist}
+        onClose={() => { if (!isTogglingBlacklist) { setCustomerToToggleBlacklist(null); setBlacklistAction(null); setBlacklistReason(""); } }}
         variant="centered"
         size="sm"
-        title={T("Blacklist customer?", "إضافة إلى القائمة السوداء؟", ar)}
+        title={blacklistAction === "remove" ? T("Remove from blacklist?", "إزالة من القائمة السوداء؟", ar) : T("Blacklist customer?", "إضافة إلى القائمة السوداء؟", ar)}
       >
         <div className="flex flex-col gap-5 p-2">
           <p className="mk-body text-mk-ink-700">
-            {T(
-              `Are you sure you want to blacklist ${customerToBlacklist?.name || customerToBlacklist?.nameAr || "this customer"}? They will be restricted from new bookings.`,
-              `هل أنت متأكد من إضافة ${customerToBlacklist?.nameAr || customerToBlacklist?.name || "هذا العميل"} إلى القائمة السوداء؟ سيتم منعهم من الحجوزات الجديدة.`,
-              ar
-            )}
+            {blacklistAction === "remove"
+              ? T(
+                  `Are you sure you want to remove ${customerToToggleBlacklist?.name || customerToToggleBlacklist?.nameAr || "this customer"} from the blacklist?`,
+                  `هل أنت متأكد من إزالة ${customerToToggleBlacklist?.nameAr || customerToToggleBlacklist?.name || "هذا العميل"} من القائمة السوداء؟`,
+                  ar
+                )
+              : T(
+                  `Are you sure you want to blacklist ${customerToToggleBlacklist?.name || customerToToggleBlacklist?.nameAr || "this customer"}? They will be restricted from new bookings.`,
+                  `هل أنت متأكد من إضافة ${customerToToggleBlacklist?.nameAr || customerToToggleBlacklist?.name || "هذا العميل"} إلى القائمة السوداء؟ سيتم منعهم من الحجوزات الجديدة.`,
+                  ar
+                )}
           </p>
-          <div className="flex flex-col gap-2">
-            <label className="mk-caption text-mk-ink-700">{T("Reason (optional)", "السبب (اختياري)", ar)}</label>
-            <Input
-              variant="muted"
-              placeholder={T("Enter reason...", "أدخل السبب...", ar)}
-              value={blacklistReason}
-              onChange={(e) => setBlacklistReason(e.target.value)}
-              disabled={isBlacklisting}
-            />
-          </div>
+          {blacklistAction === "add" && (
+            <div className="flex flex-col gap-2">
+              <label className="mk-caption text-mk-ink-700">{T("Reason (optional)", "السبب (اختياري)", ar)}</label>
+              <Input
+                variant="muted"
+                placeholder={T("Enter reason...", "أدخل السبب...", ar)}
+                value={blacklistReason}
+                onChange={(e) => setBlacklistReason(e.target.value)}
+                disabled={isTogglingBlacklist}
+              />
+            </div>
+          )}
           <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => { setCustomerToBlacklist(null); setBlacklistReason(""); }} disabled={isBlacklisting}>
+            <Button variant="outline" size="sm" onClick={() => { setCustomerToToggleBlacklist(null); setBlacklistAction(null); setBlacklistReason(""); }} disabled={isTogglingBlacklist}>
               {T("Cancel", "إلغاء", ar)}
             </Button>
-            <Button variant="danger" size="sm" onClick={handleBlacklistCustomer} disabled={isBlacklisting}>
-              {isBlacklisting ? <><Loader2 size={13} className="animate-spin" /> {T("Adding...", "جارٍ الإضافة...", ar)}</> : <><Ban size={13} /> {T("Blacklist", "إضافة", ar)}</>}
+            <Button variant={blacklistAction === "remove" ? "primary" : "danger"} size="sm" onClick={handleToggleBlacklist} disabled={isTogglingBlacklist}>
+              {isTogglingBlacklist ? <><Loader2 size={13} className="animate-spin" /> {T("Processing...", "جارٍ المعالجة...", ar)}</> : blacklistAction === "remove" ? <><CheckCircle size={13} /> {T("Remove", "إزالة", ar)}</> : <><Ban size={13} /> {T("Blacklist", "إضافة", ar)}</>}
             </Button>
           </div>
         </div>

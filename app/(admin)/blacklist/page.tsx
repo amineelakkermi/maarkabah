@@ -6,6 +6,7 @@ import { Badge, Button, Input, Table, Th, Td } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { customerService, customerEvents } from "@/lib/api-services";
 import { formatPhone } from "@/lib/formatting";
+import { VerificationStatus } from "@/lib/api-types";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -16,6 +17,8 @@ const ID_TYPE_AR: Record<string, string> = {
   "GCC ID": "هوية خليجية",
 };
 
+type VerificationDisplay = "pending" | "verified" | "rejected";
+
 interface BlacklistItem {
   id: number;
   name: string;
@@ -23,9 +26,10 @@ interface BlacklistItem {
   phone: string;
   idType: string;
   idNumber: string;
+  branch: string;
   reason?: string;
   date: string;
-  verified?: boolean;
+  verificationStatus: VerificationDisplay;
 }
 
 interface ApiCustomerItem {
@@ -40,13 +44,30 @@ interface ApiCustomerItem {
   beneficiaryIdNumber?: string;
   visitor?: { passportNumber?: string; idNumber?: string };
   idNumber?: string;
+  // Branch that reported the blacklist entry
+  branchName?: string;
+  branchNameAr?: string;
+  branchNameEn?: string;
+  branch?: string | { name?: string; nameAr?: string; nameEn?: string };
+  reportedByBranch?: string | { name?: string; nameAr?: string; nameEn?: string };
+  reportedBy?: string;
+  office?: string;
+  officeName?: string;
+  // Reason / date
   blacklistReason?: string;
+  blackListReason?: string;
   reason?: string;
+  cause?: string;
+  description?: string;
+  notes?: string;
+  comment?: string;
   blacklistedAt?: string;
+  blacklistDate?: string;
   joinedAt?: string;
   creationTime?: string;
-  isBlacklistedVerified?: boolean;
-  blacklistVerified?: boolean;
+  // Verification status
+  verificationStatus?: number | string;
+  isVerified?: boolean;
 }
 
 function getIdTypeLabel(code: number | undefined): string {
@@ -62,7 +83,51 @@ function maskId(value: string): string {
   return `${value.slice(0, 4)}••${value.slice(-4)}`;
 }
 
-function mapCustomerToBlacklistItem(item: ApiCustomerItem): BlacklistItem {
+function parseVerificationStatus(item: ApiCustomerItem): VerificationDisplay {
+  const status = item.verificationStatus;
+  if (typeof status === "string") {
+    const lower = status.toLowerCase();
+    if (lower === "verified" || lower === "2") return "verified";
+    if (lower === "rejected" || lower === "3") return "rejected";
+    return "pending";
+  }
+  if (status === VerificationStatus.Verified) return "verified";
+  if (status === VerificationStatus.Rejected) return "rejected";
+  if (item.isVerified === true) return "verified";
+  return "pending";
+}
+
+function parseBranch(item: ApiCustomerItem, ar: boolean): string {
+  const candidates = [
+    item.branchName,
+    item.branchNameEn,
+    item.branchNameAr,
+    typeof item.branch === "string" ? item.branch : undefined,
+    typeof item.branch === "object" ? (ar ? item.branch?.nameAr : item.branch?.nameEn) || item.branch?.name : undefined,
+    typeof item.reportedByBranch === "string" ? item.reportedByBranch : undefined,
+    typeof item.reportedByBranch === "object" ? (ar ? item.reportedByBranch?.nameAr : item.reportedByBranch?.nameEn) || item.reportedByBranch?.name : undefined,
+    item.reportedBy,
+    item.office,
+    item.officeName,
+  ];
+  for (const value of candidates) {
+    if (value && typeof value === "string" && value.trim() !== "") return value.trim();
+  }
+  return ar ? "غير معروف" : "Unknown";
+}
+
+function formatGregorianDate(value: string | undefined, ar: boolean): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(ar ? "en-GB" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function mapCustomerToBlacklistItem(item: ApiCustomerItem, ar: boolean): BlacklistItem {
   const idTypeCode = item.identityType ?? item.idType;
   const idType = getIdTypeLabel(idTypeCode);
   const rawId =
@@ -72,6 +137,16 @@ function mapCustomerToBlacklistItem(item: ApiCustomerItem): BlacklistItem {
     item.idNumber ||
     "";
 
+  const reason =
+    item.blacklistReason ||
+    item.blackListReason ||
+    item.reason ||
+    item.cause ||
+    item.description ||
+    item.notes ||
+    item.comment;
+  const date = item.blacklistedAt || item.blacklistDate || item.joinedAt || item.creationTime;
+
   return {
     id: Number(item.id),
     name: item.fullNameEn || item.name || "",
@@ -79,9 +154,10 @@ function mapCustomerToBlacklistItem(item: ApiCustomerItem): BlacklistItem {
     phone: formatPhone(item.phoneNumber),
     idType,
     idNumber: maskId(rawId),
-    reason: item.blacklistReason || item.reason || undefined,
-    date: item.blacklistedAt || item.joinedAt || item.creationTime || new Date().toISOString(),
-    verified: item.isBlacklistedVerified ?? item.blacklistVerified ?? undefined,
+    branch: parseBranch(item, ar),
+    reason: reason?.trim() || undefined,
+    date: formatGregorianDate(date, ar),
+    verificationStatus: parseVerificationStatus(item),
   };
 }
 
@@ -111,7 +187,7 @@ export default function BlacklistPage() {
         console.log("[Blacklist] API response:", response);
         const items = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
         const mapped = Array.isArray(items)
-          ? items.map((item) => mapCustomerToBlacklistItem(item as ApiCustomerItem))
+          ? items.map((item) => mapCustomerToBlacklistItem(item as ApiCustomerItem, ar))
           : [];
         if (active) setEntries(mapped);
       } catch (err) {
@@ -138,6 +214,7 @@ export default function BlacklistPage() {
       b.nameAr.toLowerCase().includes(q) ||
       b.phone.toLowerCase().includes(q) ||
       b.idNumber.toLowerCase().includes(q) ||
+      b.branch.toLowerCase().includes(q) ||
       (b.reason?.toLowerCase() ?? "").includes(q)
     );
   });
@@ -166,6 +243,12 @@ export default function BlacklistPage() {
     },
   ];
 
+  const VERIFICATION_BADGE: Record<VerificationDisplay, { variant: "success" | "warning" | "danger"; label: [string, string] }> = {
+    verified: { variant: "success", label: ["Verified", "موثق"] },
+    pending: { variant: "warning", label: ["Pending", "في الانتظار"] },
+    rejected: { variant: "danger", label: ["Rejected", "مرفوض"] },
+  };
+
   return (
     <div>
       {/* Network card */}
@@ -192,7 +275,7 @@ export default function BlacklistPage() {
         <Input
           variant="search"
           icon={<Search size={14} />}
-          placeholder={T("Search by name, ID, or reason…", "ابحث بالاسم، الهوية، أو السبب…", ar)}
+          placeholder={T("Search by ID, branch, or reason…", "ابحث بالهوية، المكتب، أو السبب…", ar)}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -204,8 +287,8 @@ export default function BlacklistPage() {
           <thead>
             <tr>
               {[
-                T("Customer", "العميل", ar),
                 T("ID type · Number", "نوع الهوية · الرقم", ar),
+                T("Reported by", "أبلغ عنه", ar),
                 T("Reason", "السبب", ar),
                 T("Date", "التاريخ", ar),
                 T("Verification", "التحقق", ar),
@@ -242,32 +325,33 @@ export default function BlacklistPage() {
                 </Td>
               </tr>
             ) : (
-              filtered.map((b) => (
-                <tr key={b.id} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50">
-                  <Td>
-                    <div className="mk-label text-mk-ink-900">{ar ? b.nameAr : b.name}</div>
-                    <div className="mk-caption mt-1 text-mk-ink-500">{b.phone}</div>
-                  </Td>
-                  <Td>
-                    <div className="font-mono mk-label text-mk-ink-900">{b.idNumber}</div>
-                    <div className="mk-caption mt-1 text-mk-ink-500">
-                      {ar ? ID_TYPE_AR[b.idType] ?? b.idType : b.idType}
-                    </div>
-                  </Td>
-                  <Td className="mk-label text-mk-ink-700">{b.reason || "—"}</Td>
-                  <Td className="mk-caption text-mk-ink-500">{new Date(b.date).toLocaleDateString(ar ? "ar-SA" : "en-US")}</Td>
-                  <Td>
-                    {b.verified ? (
-                      <Badge variant="success"><ShieldCheck size={12} /> {T("Verified", "موثق", ar)}</Badge>
-                    ) : (
-                      <Badge variant="warning"><ShieldAlert size={12} /> {T("Awaiting", "في الانتظار", ar)}</Badge>
-                    )}
-                  </Td>
-                  <Td>
-                    <Button variant="outline" size="sm">{T("Details", "التفاصيل", ar)}</Button>
-                  </Td>
-                </tr>
-              ))
+              filtered.map((b) => {
+                const status = VERIFICATION_BADGE[b.verificationStatus];
+                return (
+                  <tr key={b.id} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50">
+                    <Td className="flex flex-col items-start">
+                      <div className="mk-label text-mk-ink-900">
+                        {ar ? ID_TYPE_AR[b.idType] ?? b.idType : b.idType}
+                      </div>
+                      <div dir="ltr" className="font-mono mk-caption mt-1 text-mk-ink-500" style={{ unicodeBidi: "embed" }}>
+                        {b.idNumber}
+                      </div>
+                    </Td>
+                    <Td className="mk-label text-mk-ink-700">{b.branch}</Td>
+                    <Td className="mk-label text-mk-ink-700">{b.reason || "—"}</Td>
+                    <Td className="mk-caption text-mk-ink-500">{b.date}</Td>
+                    <Td>
+                      <Badge variant={status.variant} dot>
+                        {status.variant === "success" ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                        {T(...status.label, ar)}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <Button variant="outline" size="sm">{T("Details", "التفاصيل", ar)}</Button>
+                    </Td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </Table>

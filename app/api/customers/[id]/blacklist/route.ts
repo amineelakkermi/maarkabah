@@ -23,12 +23,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         });
 
         if(!response.ok){
-            const errorData = await response.json().catch(() => null);
-            return NextResponse.json({ error: errorData?.error || 'Failed to add customer to blacklist' }, { status: response.status });
+            const errorText = await response.text().catch(() => '');
+            const errorData = errorText ? JSON.parse(errorText) : null;
+            return NextResponse.json({ error: errorData?.error || errorData?.title || 'Failed to add customer to blacklist' }, { status: response.status });
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        const text = await response.text().catch(() => '');
+        return NextResponse.json(text ? JSON.parse(text) : { success: true });
 
     } catch(error){
         console.error('Error adding customer to blacklist:', error);
@@ -58,12 +59,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         });
 
         if(!response.ok){
-            const errorData = await response.json().catch(() => null);
-            return NextResponse.json({ error: errorData?.error || 'Failed to remove customer from blacklist' }, { status: response.status });
+            const errorText = await response.text().catch(() => '');
+            const errorData = errorText ? JSON.parse(errorText) : null;
+            return NextResponse.json({ error: errorData?.error || errorData?.title || 'Failed to remove customer from blacklist' }, { status: response.status });
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        const text = await response.text().catch(() => '');
+        return NextResponse.json(text ? JSON.parse(text) : { success: true });
 
     } catch(error){
         console.error('Error removing customer from blacklist:', error);
