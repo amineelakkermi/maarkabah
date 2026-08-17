@@ -1,15 +1,19 @@
 // ─────────────────────────────────────────────────────────────
-//  Maarkbh · مركبة — Edge Middleware
+//  Maarkbh · مركبة — Middleware
 //
 //  Resolves the opaque mk_session cookie to the actual tokens and
 //  injects them as internal request headers. This keeps all API route
 //  handlers synchronous while still supporting async Redis lookups.
+//
+//  This file must stay Edge-compatible: it only imports Edge-safe
+//  modules (lib/session-store.ts uses @upstash/redis and Web Crypto).
 // ─────────────────────────────────────────────────────────────
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { COOKIE_SESSION } from '@/lib/auth-cookies';
 import { getSession } from '@/lib/session-store';
+
+const COOKIE_SESSION = 'mk_session';
 
 export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);

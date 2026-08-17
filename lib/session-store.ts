@@ -1,13 +1,15 @@
 // ─────────────────────────────────────────────────────────────
-//  Maarkbh · مركبة — Server-side Session Store
+//  Maarkbh · مركبة — Session Store
 //
-//  Uses Redis when REDIS_URL is configured (required for serverless
-//  platforms like Vercel), otherwise falls back to an in-memory Map
-//  suitable for single-instance local/dev deployments.
+//  Uses Upstash Redis (or Vercel KV) when the REST credentials are
+//  configured, otherwise falls back to an in-memory Map for local dev.
+//
+//  This file is imported by both API route handlers (Node runtime) and
+//  the Edge middleware, so it must stay Edge-compatible: no Node-only
+//  modules like 'crypto' or 'ioredis' may be imported at the top level.
 // ─────────────────────────────────────────────────────────────
 
-import { randomUUID } from 'crypto';
-import Redis from 'ioredis';
+import { Redis } from '@upstash/redis';
 
 export interface SessionData {
   accessToken: string;
@@ -16,10 +18,14 @@ export interface SessionData {
   expiresAt: number;
 }
 
-const redisUrl = process.env.REDIS_URL;
-const redis = redisUrl ? new Redis(redisUrl) : null;
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
-// Survive Next.js dev-mode hot reloads by stashing the store on globalThis.
+const redis = UPSTASH_URL && UPSTASH_TOKEN
+  ? new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN })
+  : null;
+
+// Fallback in-memory store for local dev without Redis.
 const LOCAL_STORE_KEY = '__mkSessionStore';
 
 declare global {
@@ -32,6 +38,17 @@ globalThis.__mkSessionStore = memoryStore;
 
 const REDIS_TTL_SECONDS = 7 * 24 * 60 * 60;
 
+function randomUUID(): string {
+  const bytes = new Uint8Array(16);
+  (globalThis as any).crypto.getRandomValues(bytes);
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10
+
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
 function isExpired(data: SessionData): boolean {
   return Date.now() > data.expiresAt;
 }
@@ -39,7 +56,7 @@ function isExpired(data: SessionData): boolean {
 export async function createSession(data: SessionData): Promise<string> {
   const id = randomUUID();
   if (redis) {
-    await redis.setex(`mk:session:${id}`, REDIS_TTL_SECONDS, JSON.stringify(data));
+    await redis.set(`mk:session:${id}`, JSON.stringify(data), { ex: REDIS_TTL_SECONDS });
   } else {
     memoryStore.set(id, data);
   }
@@ -52,7 +69,7 @@ export async function getSession(id: string | null | undefined): Promise<Session
   let data: SessionData | null | undefined;
 
   if (redis) {
-    const json = await redis.get(`mk:session:${id}`);
+    const json = await redis.get<string>(`mk:session:${id}`);
     if (!json) return null;
     try {
       data = JSON.parse(json) as SessionData;
@@ -76,7 +93,7 @@ export async function getSession(id: string | null | undefined): Promise<Session
 export async function updateSession(id: string, data: SessionData): Promise<void> {
   if (!id) return;
   if (redis) {
-    await redis.setex(`mk:session:${id}`, REDIS_TTL_SECONDS, JSON.stringify(data));
+    await redis.set(`mk:session:${id}`, JSON.stringify(data), { ex: REDIS_TTL_SECONDS });
   } else {
     memoryStore.set(id, data);
   }
