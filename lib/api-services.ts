@@ -1031,3 +1031,99 @@ export const lookupService = {
     });
   },
 };
+
+// ─── Customer Warehouse Service ─────────────────────────────────
+
+export const customerWarehouseService = {
+  /**
+   * Search the shared customer warehouse (masked results)
+   * POST /api/customer-warehouse/inquiry
+   */
+  async inquiry(request: Types.CustomerWarehouseInquiryRequest): Promise<any> {
+    return apiClient.request('/customer-warehouse/inquiry', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get warehouse customer summary with per-office risk records
+   * GET /api/customer-warehouse/{id}
+   */
+  async getSummary(warehouseCustomerId: number | string): Promise<any> {
+    return apiClient.request(`/customer-warehouse/${warehouseCustomerId}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Import a warehouse identity as a local customer
+   * POST /api/customer-warehouse/{id}/import
+   */
+  async importCustomer(warehouseCustomerId: number | string): Promise<any> {
+    return apiClient.request(`/customer-warehouse/${warehouseCustomerId}/import`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Get admin warehouse stats (SuperAdmin)
+   * GET /api/admin/customer-warehouse/stats
+   */
+  async getAdminStats(): Promise<any> {
+    return apiClient.request('/admin/customer-warehouse/stats', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Search warehouse with unmasked IDs (SuperAdmin)
+   * POST /api/admin/customer-warehouse/search
+   */
+  async adminSearch(request: Types.CustomerWarehouseInquiryRequest): Promise<any> {
+    return apiClient.request('/admin/customer-warehouse/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Download the blank Excel import template (SuperAdmin)
+   * GET /api/admin/customer-warehouse/import/template
+   */
+  async downloadImportTemplate(): Promise<Blob> {
+    const response = await fetch('/api/admin/customer-warehouse/import/template', {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error || 'Failed to download template');
+    }
+    return response.blob();
+  },
+
+  /**
+   * Upload a filled Excel import template (SuperAdmin)
+   * POST /api/admin/customer-warehouse/import/excel
+   */
+  async importExcel(file: File, sourceName?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (sourceName) formData.append('sourceName', sourceName);
+
+    const response = await fetch('/api/admin/customer-warehouse/import/excel', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+
+    if (!response.ok) {
+      throw new Error(data?.error || data?.message || 'Failed to import Excel file');
+    }
+    return data;
+  },
+};

@@ -25,6 +25,7 @@ export async function GET(request: NextRequest, {params}: {params: Promise<{id: 
     }
 
     const data = await response.json();
+    console.log(`[DEBUG] GET /api/customers/${customerId} backend response:`, JSON.stringify(data, null, 2));
     return NextResponse.json(data);
 
     } catch(error){

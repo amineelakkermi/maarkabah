@@ -585,8 +585,10 @@ export default function CustomerDetailPage() {
               <div className="flex gap-2 mt-2 flex-wrap">
                 {client.blacklisted ? (
                   <Badge variant="danger" dot>{T("Blacklisted", "قائمة سوداء", ar)}</Badge>
-                ) : phoneVerified || emailVerified ? (
+                ) : client.kycStatus === "verified" ? (
                   <Badge variant="success" dot>{T("Verified", "موثّق", ar)}</Badge>
+                ) : client.kycStatus === "rejected" ? (
+                  <Badge variant="danger" dot>{T("Rejected", "مرفوض", ar)}</Badge>
                 ) : (
                   <Badge variant="warning" dot>{T("Awaiting Verification", "بانتظار التحقق", ar)}</Badge>
                 )}

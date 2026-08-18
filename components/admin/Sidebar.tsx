@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Map, CalendarDays, Car,
-  ShieldCheck, ClockAlert, Ban,
+  ShieldCheck, ClockAlert, Ban, Search, Globe,
   BarChart3, Undo2, Tag, Users, Building, Shield,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -18,7 +18,7 @@ export function Sidebar() {
   const ar = dir === "rtl";
   const [kycCount, setKycCount] = useState(0);
 
-  const FRONTDESK_ROUTES = new Set(["/dashboard", "/bookings", "/fleet", "/kyc-queue", "/late-returns", "/branches", "/roles"]);
+  const FRONTDESK_ROUTES = new Set(["/dashboard", "/bookings", "/fleet", "/kyc-queue", "/late-returns", "/branches", "/roles", "/customers/inquiry"]);
   const handleNavClick = () => setSidebarOpen(false);
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export function Sidebar() {
       titleAr: "العملاء",
       items: [
         { href: "/customers", icon: Users, label: "Client List", labelAr: "قائمة العملاء" },
+        { href: "/customers/inquiry", icon: Search, label: "Inquiry", labelAr: "الاستعلام" },
         { href: "/kyc-queue", icon: ShieldCheck, label: "KYC Queue", labelAr: "مراجعة الهوية", badge: kycCount || undefined },
         { href: "/late-returns", icon: ClockAlert, label: "Late Returns", labelAr: "الإرجاع المتأخر", badge: 2 },
         { href: "/blacklist", icon: Ban, label: "Blacklist", labelAr: "القائمة السوداء" },
@@ -85,6 +86,7 @@ export function Sidebar() {
         { href: "/branches", icon: Building, label: "Branches", labelAr: "الفروع" },
         { href: "/roles", icon: Shield, label: "Roles", labelAr: "الأدوار" },
         { href: "/staff", icon: Users, label: "Staff", labelAr: "الفريق" },
+        { href: "/admin/customer-warehouse", icon: Globe, label: "Warehouse Admin", labelAr: "إدارة المستودع" },
       ],
     },
   ];

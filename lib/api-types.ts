@@ -426,3 +426,20 @@ export interface UpdateVehicleLookupRequest {
   sortOrder?: number;
   isActive?: boolean;
 }
+
+// ─── Customer Warehouse ─────────────────────────────────────────
+
+export interface CustomerWarehouseInquiryRequest {
+  search?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface CustomerWarehouseReportRequest {
+  identityType?: IdentityType;
+  idNumber?: string;
+  reason?: string;
+  phoneNumber?: string;
+  fullNameAr?: string;
+  fullNameEn?: string;
+}

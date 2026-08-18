@@ -1,18 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search, X, UserSearch, Phone, CreditCard, Star, Ban, ShieldCheck,
   ShieldAlert, Wallet, FileWarning, ExternalLink, Building2,
   UserPlus, CheckCircle2, Loader2, CheckCircle, FileSignature,
 } from "lucide-react";
-import { Avatar, Badge, Input, Button, IconButton } from "@/components/ui";
+import { Avatar, Badge, Button, Input, IconButton, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
-import {
-  CLIENTS, DYNAMICS_LOOKUP,
-  type ClientProfile, type ClientDebt, type ClientDispute, type DynamicsLookupRecord,
-} from "@/lib/data";
+import { customerService, customerWarehouseService } from "@/lib/api-services";
+import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
+import type { ClientProfile, ClientDebt, ClientDispute, DynamicsLookupRecord } from "@/lib/data";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -28,68 +28,316 @@ const DEBT_BADGE: Record<"unpaid" | "overdue" | "paid", { variant: "success" | "
   paid: { variant: "success", label: ["Paid", "مسدد"] },
 };
 
-// Unified shape so the result list & detail panel can render either a
-// registered Maarkbh customer or a Dynamics-only (unregistered) identity.
+const ID_TYPE_LABELS: Record<number, { en: string; ar: string }> = {
+  1: { en: "Saudi ID", ar: "هوية وطنية" },
+  2: { en: "Iqama", ar: "إقامة" },
+  3: { en: "Passport", ar: "جواز سفر" },
+  4: { en: "GCC ID", ar: "هوية خليجية" },
+};
+
 type InquiryMatch =
   | { kind: "local"; client: ClientProfile }
-  | { kind: "external"; record: DynamicsLookupRecord };
+  | { kind: "external"; record: DynamicsLookupRecord; warehouseId?: number | string };
+
+function idTypeLabel(code: number | undefined | null, ar: boolean): string {
+  const label = code ? ID_TYPE_LABELS[code] : undefined;
+  return ar ? label?.ar ?? "وثيقة هوية" : label?.en ?? "ID Document";
+}
+
+function maskId(value: string | undefined | null): string {
+  if (!value) return "—";
+  const clean = String(value).trim();
+  if (clean.length < 6) return clean;
+  if (/[\*•]/.test(clean)) return clean;
+  return `${clean.slice(0, 4)}••${clean.slice(-4)}`;
+}
+
+function normalizePhone(value: string | undefined | null): string {
+  if (!value) return "—";
+  return formatPhone(value) ?? value;
+}
+
+function mapLocalCustomer(item: any): ClientProfile {
+  const idTypeCode = item.identityType ?? item.idType;
+  const idType = idTypeLabel(idTypeCode, false);
+  return {
+    id: String(item.id ?? ""),
+    name: item.fullNameEn || item.name || "",
+    nameAr: item.fullNameAr || item.nameAr || "",
+    phone: normalizePhone(item.phoneNumber),
+    email: item.email,
+    idType,
+    idNumber: maskId(item.beneficiaryIdNumber || item.visitor?.passportNumber || item.visitor?.idNumber || item.idNumber || ""),
+    idExpiryDate: item.idExpiryDate || item.identityExpiryDate || item.national?.identityExpiryDate || item.residence?.identityExpiryDate || item.visitor?.identityExpiryDate || item.gulf?.identityExpiryDate,
+    birthDate: item.birthDate || item.national?.birthDate || item.residence?.birthDate || item.visitor?.birthDate || item.gulf?.birthDate,
+    hijriBirthDate: item.national?.hijriBirthDate ?? item.residence?.hijriBirthDate,
+    nationality: item.nationality || item.national?.nationality || item.residence?.nationality || item.visitor?.nationality || item.gulf?.nationality,
+    personAddress: item.address,
+    idCopyNumber: item.idCopyNumber || item.identityCopyNumber || item.national?.idCopyNumber || item.residence?.idCopyNumber || item.visitor?.identityCopyNumber || item.gulf?.identityCopyNumber,
+    licenseIssuePlace: item.licenseIssuePlace || item.national?.licenseIssuePlace || item.residence?.licenseIssuePlace || item.visitor?.licenseIssuePlace || item.gulf?.licenseIssuePlace,
+    borderNumber: item.visitor?.borderNumber,
+    licenseNumber: item.licenseNumber || item.national?.licenseNumber || item.residence?.licenseNumber || item.visitor?.licenseNumber || item.gulf?.licenseNumber || "",
+    licenseExpiryDate: item.licenseExpiryDate || item.national?.licenseExpiryDate || item.residence?.licenseExpiryDate || item.visitor?.licenseExpiryDate || item.gulf?.licenseExpiryDate,
+    contracts: item.contracts || 0,
+    rating: item.rating || 0,
+    kycStatus: normalizeKycStatus(item.verificationStatus),
+    yakeenStatus: item.yakeenStatus === 1 ? "verified" : item.yakeenStatus === 2 ? "pending" : "not_verified",
+    blacklisted: item.isBlacklisted || false,
+    joinDate: item.joinedAt || item.creationTime ? new Date(item.joinedAt || item.creationTime).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    history: [],
+    debts: [],
+    disputes: [],
+  };
+}
+
+function parseOfficeName(office: any, ar: boolean): string {
+  if (!office) return ar ? "مكتب آخر" : "Other office";
+  if (typeof office === "string") return office;
+  return (ar ? office.nameAr || office.name : office.nameEn || office.name) || office.name || (ar ? "مكتب آخر" : "Other office");
+}
+
+function mapWarehouseRiskRecords(records: any[] | undefined, ar: boolean): { debts: ClientDebt[]; disputes: ClientDispute[] } {
+  const debts: ClientDebt[] = [];
+  const disputes: ClientDispute[] = [];
+
+  if (!Array.isArray(records)) return { debts, disputes };
+
+  for (const record of records) {
+    const office = parseOfficeName(record.office ?? record.reportedByOffice ?? record.branch, ar);
+    const officeAr = parseOfficeName(record.office ?? record.reportedByOffice ?? record.branch, true);
+
+    const debtItems = Array.isArray(record.debts) ? record.debts : [];
+    const disputeItems = Array.isArray(record.disputes) ? record.disputes : [];
+
+    for (const d of debtItems) {
+      const status = String(d.status ?? "unpaid").toLowerCase();
+      const mappedStatus: "unpaid" | "overdue" | "paid" = status === "paid" || status === "2" ? "paid" : status === "overdue" ? "overdue" : "unpaid";
+      debts.push({
+        id: String(d.id ?? `debt-${debts.length}`),
+        type: d.type || d.reason || "Debt",
+        typeAr: d.typeAr || d.type || d.reason || "مديونية",
+        date: d.date || d.createdAt || d.debtDate || new Date().toISOString().split("T")[0],
+        dueDate: d.dueDate,
+        amount: Number(d.amount ?? 0),
+        status: mappedStatus,
+        statusAr: mappedStatus === "paid" ? "مسدد" : mappedStatus === "overdue" ? "متأخر السداد" : "غير مسدد",
+        contractRef: d.contractRef,
+        notes: d.notes || d.reason || "",
+        notesAr: d.notesAr || d.notes || d.reason || "",
+        office,
+        officeAr,
+      });
+    }
+
+    for (const d of disputeItems) {
+      const status = String(d.status ?? "open").toLowerCase();
+      const mappedStatus: "open" | "resolved" = status === "resolved" || status === "2" || status === "closed" ? "resolved" : "open";
+      disputes.push({
+        id: String(d.id ?? `dispute-${disputes.length}`),
+        type: d.type || d.reason || "Dispute",
+        typeAr: d.typeAr || d.type || d.reason || "نزاع",
+        date: d.date || d.createdAt || d.disputeDate || new Date().toISOString().split("T")[0],
+        amount: d.amount != null ? Number(d.amount) : undefined,
+        status: mappedStatus,
+        statusAr: mappedStatus === "resolved" ? "تمت تسويته" : "نشط",
+        notes: d.notes || d.reason || "",
+        notesAr: d.notesAr || d.notes || d.reason || "",
+        office,
+        officeAr,
+      });
+    }
+  }
+
+  return { debts, disputes };
+}
+
+function mapWarehouseRecord(item: any, summary: any | null, ar: boolean): DynamicsLookupRecord {
+  const idTypeCode = item.identityType ?? item.idType;
+  const rawId = item.idNumber ?? item.maskedIdNumber ?? item.beneficiaryIdNumber ?? item.visitor?.passportNumber ?? item.visitor?.idNumber ?? "";
+  const idNumber = /[\*•]/.test(String(rawId ?? "")) ? rawId : maskId(rawId);
+
+  const records = summary?.officeRecords ?? summary?.riskRecords ?? summary?.records ?? item.officeRecords ?? item.riskRecords;
+  const { debts, disputes } = mapWarehouseRiskRecords(records, ar);
+
+  return {
+    idNumber,
+    name: item.fullNameEn || item.name || "",
+    nameAr: item.fullNameAr || item.nameAr || "",
+    phone: normalizePhone(item.phoneNumber ?? item.phone),
+    idType: idTypeLabel(idTypeCode, false),
+    idExpiryDate: item.idExpiryDate || item.identityExpiryDate,
+    nationality: item.nationality,
+    licenseNumber: item.licenseNumber ?? item.visitor?.licenseNumber ?? "",
+    blacklisted: item.isNetworkBlacklisted ?? item.isBlacklisted ?? item.blacklisted ?? false,
+    isNetworkBlacklisted: item.isNetworkBlacklisted ?? false,
+    hasNetworkCircular: item.hasNetworkCircular ?? false,
+    isRegisteredLocally: item.isRegisteredLocally ?? false,
+    localCustomerId: item.localCustomerId != null ? String(item.localCustomerId) : undefined,
+    debts,
+    disputes,
+  };
+}
 
 export default function CustomerInquiryPage() {
-  const { dir } = useAdmin();
+  const { dir, role } = useAdmin();
   const ar = dir === "rtl";
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  const customerProfilePath = (id: string | number | null | undefined) =>
+    role === "owner" ? `/customers/${id ?? ""}` : `/employee/customer/${id ?? ""}`;
 
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [matches, setMatches] = useState<InquiryMatch[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [registeringKey, setRegisteringKey] = useState<string | null>(null);
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-  const matches: InquiryMatch[] = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) return [];
-    const norm = (s: string) => s.replace(/[\s•]/g, "").toLowerCase();
+  const abortRef = useRef<AbortController | null>(null);
 
-    const local: InquiryMatch[] = CLIENTS.filter((c) =>
-      c.name.toLowerCase().includes(q) ||
-      c.nameAr.includes(q) ||
-      norm(c.phone).includes(norm(q)) ||
-      norm(c.idNumber).includes(norm(q)) ||
-      norm(c.licenseNumber).includes(norm(q))
-    ).map((client) => ({ kind: "local" as const, client }));
+  const search = async (rawQuery: string) => {
+    const q = rawQuery.trim();
+    if (q.length < 2) {
+      setMatches([]);
+      setError(null);
+      return;
+    }
 
-    const external: InquiryMatch[] = DYNAMICS_LOOKUP.filter((r) =>
-      r.name.toLowerCase().includes(q) ||
-      r.nameAr.includes(q) ||
-      norm(r.phone).includes(norm(q)) ||
-      norm(r.idNumber).includes(norm(q))
-    ).map((record) => ({ kind: "external" as const, record }));
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-    return [...local, ...external].slice(0, 8);
+    setLoading(true);
+    setError(null);
+    setSelectedKey(null);
+
+    try {
+      const [localRes, warehouseRes] = await Promise.all([
+        customerService.search({ search: q, pageNumber: 1, pageSize: 20 }).catch(() => null),
+        customerWarehouseService.inquiry({ search: q, pageNumber: 1, pageSize: 20 }).catch(() => null),
+      ]);
+
+      if (controller.signal.aborted) return;
+
+      const localItems = (localRes?.items ?? localRes?.data?.items ?? localRes?.data ?? localRes ?? []) as any[];
+      const warehouseItems = (warehouseRes?.items ?? warehouseRes?.data?.items ?? warehouseRes?.data ?? warehouseRes ?? []) as any[];
+
+      const local: InquiryMatch[] = (Array.isArray(localItems) ? localItems : [])
+        .filter((item: any) => item && (item.id != null || item.phoneNumber || item.fullNameAr))
+        .map((item: any) => ({ kind: "local" as const, client: mapLocalCustomer(item) }));
+
+      const external: InquiryMatch[] = (Array.isArray(warehouseItems) ? warehouseItems : [])
+        .filter((item: any) => item && (item.id != null || item.idNumber || item.phoneNumber || item.fullNameAr) && !item.isRegisteredLocally)
+        .map((item: any) => ({
+          kind: "external" as const,
+          record: mapWarehouseRecord(item, null, ar),
+          warehouseId: item.id ?? item.warehouseCustomerId,
+        }));
+
+      setMatches([...local, ...external]);
+    } catch (err) {
+      console.error("Inquiry search error:", err);
+      if (!controller.signal.aborted) {
+        setError(err instanceof Error ? err.message : T("Search failed", "فشل البحث", ar));
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => search(query), 350);
+    return () => clearTimeout(timer);
   }, [query]);
 
-  const keyOf = (m: InquiryMatch) => (m.kind === "local" ? `local:${m.client.id}` : `external:${m.record.idNumber}`);
   const selected = matches.find((m) => keyOf(m) === selectedKey) ?? null;
+  const [selectedSummary, setSelectedSummary] = useState<Record<string, any> | null>(null);
 
-  // Normalize the fields the detail panel needs regardless of source.
-  const view = selected
-    ? selected.kind === "local"
-      ? {
-        name: selected.client.name, nameAr: selected.client.nameAr, phone: selected.client.phone,
-        idType: selected.client.idType, idNumber: selected.client.idNumber, licenseNumber: selected.client.licenseNumber,
-        blacklisted: selected.client.blacklisted, rating: selected.client.rating, contracts: selected.client.contracts,
-        kycStatus: selected.client.kycStatus as ClientProfile["kycStatus"] | null,
-        yakeenStatus: selected.client.yakeenStatus,
-        debts: selected.client.debts ?? [], disputes: selected.client.disputes ?? [],
-        isLocal: true, localId: selected.client.id,
+  useEffect(() => {
+    setSelectedSummary(null);
+    setDetailError(null);
+    if (!selected || selected.kind !== "external" || selected.warehouseId == null) return;
+
+    let active = true;
+    setDetailLoading(true);
+    customerWarehouseService
+      .getSummary(selected.warehouseId)
+      .then((summary) => {
+        if (active) {
+          setSelectedSummary(summary);
+          const idx = matches.findIndex((m) => keyOf(m) === selectedKey);
+          if (idx >= 0 && matches[idx].kind === "external") {
+            const updated: InquiryMatch = {
+              ...matches[idx],
+              record: mapWarehouseRecord(matches[idx].record as unknown as any, summary, ar),
+            };
+            setMatches((prev) => prev.map((m, i) => (i === idx ? updated : m)));
+          }
+        }
+      })
+      .catch((err) => {
+        if (active) setDetailError(err instanceof Error ? err.message : T("Failed to load details", "فشل تحميل التفاصيل", ar));
+      })
+      .finally(() => {
+        if (active) setDetailLoading(false);
+      });
+    return () => { active = false; };
+  }, [selectedKey, ar]);
+
+  function keyOf(m: InquiryMatch) {
+    return m.kind === "local" ? `local:${m.client.id}` : `external:${(m.record as DynamicsLookupRecord).idNumber}:${m.warehouseId ?? ""}`;
+  }
+
+  async function handleRegister(match: InquiryMatch) {
+    if (match.kind !== "external" || match.warehouseId == null || registeringKey) return;
+    const key = keyOf(match);
+    setRegisteringKey(key);
+    try {
+      const result = await customerWarehouseService.importCustomer(match.warehouseId);
+      const customerId = result?.customerId ?? result?.id;
+      if (customerId) {
+        setRegisteredIds((prev) => new Set(prev).add((match.record as DynamicsLookupRecord).idNumber));
+        showToast(T("Customer imported. The identity has been added to your local customer list.", "تم استيراد العميل. تمت إضافة الهوية إلى قائمة العملاء المحلية.", ar));
+      } else {
+        throw new Error(T("Import returned no customer id", "لم يُرجع الاستيراد معرف عميل", ar));
       }
-      : {
-        name: selected.record.name, nameAr: selected.record.nameAr, phone: selected.record.phone,
-        idType: selected.record.idType, idNumber: selected.record.idNumber, licenseNumber: selected.record.licenseNumber ?? "—",
-        blacklisted: selected.record.blacklisted, rating: 0, contracts: 0,
-        kycStatus: null, yakeenStatus: undefined,
-        debts: selected.record.debts, disputes: selected.record.disputes,
-        isLocal: false, localId: null,
-      }
-    : null;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : T("Import failed. Please try again.", "فشل الاستيراد. يُرجى المحاولة مرة أخرى.", ar));
+    } finally {
+      setRegisteringKey(null);
+    }
+  }
+
+  const view = useMemo(() => {
+    if (!selected) return null;
+    if (selected.kind === "local") {
+      const c = selected.client;
+      return {
+        name: c.name, nameAr: c.nameAr, phone: c.phone,
+        idType: c.idType, idNumber: c.idNumber, licenseNumber: c.licenseNumber,
+        blacklisted: c.blacklisted, rating: c.rating, contracts: c.contracts,
+        kycStatus: c.kycStatus, yakeenStatus: c.yakeenStatus,
+        debts: c.debts ?? [], disputes: c.disputes ?? [],
+        isLocal: true, localId: c.id,
+      };
+    }
+    const r = selected.record;
+    return {
+      name: r.name, nameAr: r.nameAr, phone: r.phone,
+      idType: r.idType, idNumber: r.idNumber, licenseNumber: r.licenseNumber ?? "—",
+      blacklisted: r.blacklisted, rating: 0, contracts: 0,
+      kycStatus: null, yakeenStatus: undefined,
+      debts: r.debts, disputes: r.disputes,
+      isLocal: r.isRegisteredLocally ?? false,
+      localId: r.localCustomerId ?? null,
+    };
+  }, [selected]);
 
   const outstandingDebt = view ? view.debts.reduce((s: number, d: ClientDebt) => s + (d.status !== "paid" ? d.amount : 0), 0) : 0;
   const openDisputes = view ? view.disputes.filter((d: ClientDispute) => d.status === "open").length : 0;
@@ -97,20 +345,8 @@ export default function CustomerInquiryPage() {
     ? new Set([...view.debts, ...view.disputes].filter((r) => r.office !== "Maarkbh").map((r) => r.office)).size
     : 0;
 
-  function handleRegister(idNumber: string, key: string) {
-    if (registeringKey) return;
-    setRegisteringKey(key);
-    setTimeout(() => {
-      setRegisteringKey(null);
-      setRegisteredIds((prev) => new Set(prev).add(idNumber));
-    }, 1100);
-  }
-
   return (
     <div>
-
-
-
       {/* Search bar */}
       <div className="mb-5 max-w-[520px]">
         <Input
@@ -136,7 +372,17 @@ export default function CustomerInquiryPage() {
           {query.trim().length < 2 ? (
             <div className="rounded-xl p-10 mk-surface flex flex-col items-center justify-center gap-3 text-center text-mk-ink-400">
               <UserSearch size={30} strokeWidth={1.5} />
-              <span className="mk-label">{T("Start typing to query the Dynamics network", "ابدأ الكتابة للاستعلام من شبكة دينامكس", ar)}</span>
+              <span className="mk-label">{T("Start typing to query the warehouse network", "ابدأ الكتابة للاستعلام من شبكة المستودع", ar)}</span>
+            </div>
+          ) : loading ? (
+            <div className="rounded-xl p-10 mk-surface flex flex-col items-center justify-center gap-3 text-center text-mk-ink-400">
+              <Loader2 size={30} className="animate-spin" />
+              <span className="mk-label">{T("Searching…", "جاري البحث…", ar)}</span>
+            </div>
+          ) : error ? (
+            <div className="rounded-xl p-10 mk-surface flex flex-col items-center justify-center gap-3 text-center text-mk-danger">
+              <FileWarning size={30} strokeWidth={1.5} />
+              <span className="mk-label">{error}</span>
             </div>
           ) : matches.length === 0 ? (
             <div className="rounded-xl p-10 mk-surface flex flex-col items-center justify-center gap-3 text-center text-mk-ink-400">
@@ -154,7 +400,8 @@ export default function CustomerInquiryPage() {
                 const idNumber = m.kind === "local" ? m.client.idNumber : m.record.idNumber;
                 const blacklisted = m.kind === "local" ? m.client.blacklisted : m.record.blacklisted;
                 const kyc = m.kind === "local" ? KYC_BADGE[m.client.kycStatus] : null;
-                const alreadyRegistered = m.kind === "local" || registeredIds.has(idNumber);
+                const warehouseRegistered = m.kind === "external" && m.record.isRegisteredLocally && m.record.localCustomerId;
+                const alreadyRegistered = m.kind === "local" || warehouseRegistered || registeredIds.has(m.record.idNumber);
                 const isRegistering = registeringKey === key;
                 const canContract = m.kind === "local" && !m.client.blacklisted && m.client.kycStatus === "verified";
                 return (
@@ -182,11 +429,21 @@ export default function CustomerInquiryPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="flex flex-col items-end gap-1">
-                        <Badge variant={blacklisted ? "danger" : kyc?.variant ?? "neutral"} dot>
-                          {blacklisted ? T("Blacklisted", "قائمة سوداء", ar) : kyc ? T(...kyc.label, ar) : T("Not registered", "غير مسجل", ar)}
-                        </Badge>
+                        {m.kind === "external" && warehouseRegistered ? (
+                          <Badge variant="success" dot>
+                            {T("In customer list", "موجود في قائمة العملاء", ar)}
+                          </Badge>
+                        ) : (
+                          <Badge variant={blacklisted ? "danger" : kyc?.variant ?? "neutral"} dot>
+                            {blacklisted ? T("Blacklisted", "قائمة سوداء", ar) : kyc ? T(...kyc.label, ar) : T("Not registered", "غير مسجل", ar)}
+                          </Badge>
+                        )}
                         {m.kind === "external" && (
-                          <span className="mk-overline text-mk-warning">{T("Dynamics only", "من دينامكس فقط", ar)}</span>
+                          <span className={`mk-overline ${warehouseRegistered ? "text-mk-success" : "text-mk-warning"}`}>
+                            {warehouseRegistered
+                              ? T("Warehouse + local", "مستودع + محلي", ar)
+                              : T("Warehouse only", "من المستودع فقط", ar)}
+                          </span>
                         )}
                       </div>
                       {canContract && m.kind === "local" && (
@@ -212,7 +469,7 @@ export default function CustomerInquiryPage() {
                           variant="active"
                           className="bg-mk-blue-500 text-white hover:bg-mk-blue-500 disabled:opacity-70"
                           title={T("Add to customer list", "إضافة إلى قائمة العملاء", ar)}
-                          onClick={(e) => { e.stopPropagation(); handleRegister(idNumber, key); }}
+                          onClick={(e) => { e.stopPropagation(); handleRegister(m); }}
                           disabled={isRegistering}
                         >
                           {isRegistering ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
@@ -232,6 +489,11 @@ export default function CustomerInquiryPage() {
             <div className="rounded-xl p-10 mk-surface flex flex-col items-center justify-center gap-3 text-center text-mk-ink-400 h-full">
               <ShieldCheck size={30} strokeWidth={1.5} />
               <span className="mk-label">{T("Select a result to view the network summary", "اختر نتيجة لعرض ملخص الشبكة", ar)}</span>
+            </div>
+          ) : detailLoading ? (
+            <div className="rounded-xl p-10 mk-surface flex flex-col items-center justify-center gap-3 text-center text-mk-ink-400 h-full">
+              <Loader2 size={30} className="animate-spin" />
+              <span className="mk-label">{T("Loading details…", "جاري تحميل التفاصيل…", ar)}</span>
             </div>
           ) : (
             <div className="rounded-xl p-6 mk-surface flex flex-col gap-4">
@@ -265,17 +527,20 @@ export default function CustomerInquiryPage() {
                         <FileSignature size={13} /> {T("Create contract", "إنشاء عقد", ar)}
                       </Link>
                     )
-                  ) : registeredIds.has(view.idNumber) ? (
-                    <span className="flex items-center gap-2 px-3 py-2 rounded-full mk-caption text-white bg-mk-mint-500">
-                      <CheckCircle size={13} /> {T("Added", "تمت الإضافة", ar)}
-                    </span>
+                  ) : selected && selected.kind === "external" && (registeredIds.has(selected.record.idNumber) || selected.record.isRegisteredLocally) ? (
+                    <Link
+                      href={customerProfilePath(selected.record.localCustomerId)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full mk-caption text-white bg-mk-mint-500 no-underline"
+                    >
+                      <CheckCircle size={13} /> {T("View customer", "عرض العميل", ar)}
+                    </Link>
                   ) : (
-                    <Button variant="primary" size="sm" disabled={!!registeringKey} onClick={() => handleRegister(view.idNumber, selectedKey!)}>
+                    <Button variant="primary" size="sm" disabled={!!registeringKey || selected?.kind !== "external"} onClick={() => selected && handleRegister(selected)}>
                       {registeringKey === selectedKey ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
                       {T("Add to customer list", "إضافة إلى قائمة العملاء", ar)}
                     </Button>
                   )}
-                  {view.isLocal && (
+                  {(view.isLocal || (selected?.kind === "external" && selected.record.isRegisteredLocally)) && (
                     <span className="flex items-center gap-1 mk-overline text-mk-mint-600">
                       <CheckCircle size={11} /> {T("Already in customer list", "موجود في قائمة العملاء", ar)}
                     </span>
@@ -287,6 +552,13 @@ export default function CustomerInquiryPage() {
                 <div className="flex items-center gap-2 p-3 rounded-xl border border-mk-danger/20 bg-mk-danger/5 mk-caption text-mk-danger">
                   <Ban size={14} className="shrink-0" />
                   {T("This identity is flagged across the network — proceed with caution", "هذه الهوية موقوفة عبر الشبكة - يُرجى التعامل بحذر", ar)}
+                </div>
+              )}
+
+              {detailError && (
+                <div className="flex items-center gap-2 p-3 rounded-xl border border-mk-warning/20 bg-mk-warning/5 mk-caption text-mk-warning">
+                  <FileWarning size={14} className="shrink-0" />
+                  {detailError}
                 </div>
               )}
 
@@ -394,7 +666,7 @@ export default function CustomerInquiryPage() {
 
               {view.isLocal && (
                 <Link
-                  href={`/employee/customer/${view.localId}`}
+                  href={customerProfilePath(view.localId)}
                   className="flex items-center justify-center gap-2 py-3 rounded-full mk-label text-mk-blue-600 border border-mk-blue-100 bg-mk-blue-50 no-underline mt-1"
                 >
                   {T("View full customer profile", "عرض الملف الكامل للعميل", ar)} <ExternalLink size={14} />

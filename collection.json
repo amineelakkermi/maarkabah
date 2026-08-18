@@ -93,6 +93,18 @@
       "value": "1"
     },
     {
+      "key": "customerId",
+      "value": "1"
+    },
+    {
+      "key": "driverId",
+      "value": "1"
+    },
+    {
+      "key": "warehouseCustomerId",
+      "value": "1"
+    },
+    {
       "key": "roleName",
       "value": "Sales Lead"
     },
@@ -154,7 +166,7 @@
               ]
             },
             "url": "{{baseUrl}}/connect/token",
-            "description": "OpenIddict password grant. Body MUST be x-www-form-urlencoded (not JSON).\n\nID2082 = wrong Content-Type\nID2029 = missing grant_type in form body"
+            "description": "OpenIddict password grant. Body MUST be x-www-form-urlencoded (not JSON).\n\n`username` accepts username or email.\n\nID2082 = wrong Content-Type\nID2029 = missing grant_type in form body"
           }
         },
         {
@@ -389,42 +401,6 @@
       "name": "Customers",
       "item": [
         {
-          "name": "Customer identity types",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/customers/identity-types",
-            "description": "Requires authenticated user only. Returns IdentityType options (value/name/localized label) for the create form dropdown."
-          }
-        },
-        {
-          "name": "Customer verification statuses",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/customers/verification-statuses",
-            "description": "Requires authenticated user only. Returns VerificationStatus options (1=Pending, 2=Verified, 3=Rejected) with localized labels for filter/status dropdowns."
-          }
-        },
-        {
-          "name": "Customer tajeer statuses",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/customers/tajeer-statuses",
-            "description": "Requires authenticated user only. Returns TajeerStatus options (1=NotVerified, 2=Pending, 3=Verified, 4=Failed) with localized labels."
-          }
-        },
-        {
-          "name": "Customer document types",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/customers/document-types",
-            "description": "Requires authenticated user only. Returns CustomerDocumentType options (1=IdentityDocument, 2=DrivingLicense, 3=Passport, 4=Other) with localized labels."
-          }
-        },
-        {
           "name": "Search customers",
           "request": {
             "method": "POST",
@@ -471,7 +447,7 @@
               "raw": "{\n  \"fullNameEn\": \"Ahmed Al-Mutairi\",\n  \"fullNameAr\": \"أحمد المطيري\",\n  \"phoneNumber\": \"501234567\",\n  \"identityType\": 1,\n  \"address\": \"Riyadh, Saudi Arabia\",\n  \"isActive\": true,\n  \"national\": {\n    \"beneficiaryIdNumber\": \"1234567890\",\n    \"hijriBirthDate\": 14100521,\n    \"isHijriBirthDate\": true,\n    \"email\": null\n  },\n  \"documents\": [\n    { \"documentType\": 1, \"fileId\": 1, \"sortOrder\": 0 }\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/customers",
-            "description": "Requires Permissions.Customers.Create. fullNameAr is required; fullNameEn is optional. documents is optional: array of { documentType (1=IdentityDocument, 2=DrivingLicense, 3=Passport, 4=Other), fileId (from POST /api/attachments/upload), sortOrder }. identityType: 1=National, 2=Residence, 3=Visitor, 4=Gulf. Send the nested object matching identityType: national/residence = { beneficiaryIdNumber, hijriBirthDate?, birthDate?, isHijriBirthDate, email? } (isHijriBirthDate defaults true for National, false for Residence; when true send hijriBirthDate as an Umm al-Qura yyyymmdd integer, when false send Gregorian birthDate); visitor = { email, birthDate, borderNumber, passportNumber, licenseNumber, licenseExpiryDate, licenseIssuePlace, countryId, identityCopyNumber, identityExpiryDate }; gulf = same as visitor but with beneficiaryIdNumber instead of border/passport. birthDate is Gregorian and required for visitor/gulf (Tajeer requirement)."
+            "description": "Requires Permissions.Customers.Create. fullNameAr is required; fullNameEn is optional. documents is optional: array of { documentType (1=IdentityDocument, 2=DrivingLicense, 3=Passport, 4=Other), fileId (from POST /api/attachments/upload), sortOrder }. identityType: 1=National, 2=Residence, 3=Visitor, 4=Gulf. Send the nested object matching identityType: national/residence = { beneficiaryIdNumber, hijriBirthDate?, birthDate?, isHijriBirthDate, email? } (isHijriBirthDate defaults true for National, false for Residence; when true send hijriBirthDate as an Umm al-Qura yyyymmdd integer, when false send Gregorian birthDate); visitor = { email, birthDate, borderNumber, passportNumber, licenseNumber, licenseExpiryDate, licenseIssuePlace, countryId, identityCopyNumber, identityExpiryDate }; gulf = same as visitor but with beneficiaryIdNumber instead of border/passport. birthDate is Gregorian and required for visitor/gulf (Tajeer requirement). After identity map, create calls POST /api/blacklist/check (best-effort). A verified network hit (2+ offices) auto-sets local IsBlacklisted with reason Blacklist.NetworkMatchReason; awaiting (1 office) does not. Response stays { id } — check GET customer for the flag."
           }
         },
         {
@@ -489,7 +465,7 @@
               "raw": "{\n  \"fullNameEn\": \"John Smith\",\n  \"fullNameAr\": \"جون سميث\",\n  \"phoneNumber\": \"555555555\",\n  \"identityType\": 3,\n  \"address\": \"Jeddah\",\n  \"isActive\": true,\n  \"visitor\": {\n    \"email\": \"john@example.com\",\n    \"birthDate\": \"1985-06-15\",\n    \"borderNumber\": \"BRD123\",\n    \"passportNumber\": \"P1234567\",\n    \"licenseNumber\": \"LIC123\",\n    \"licenseExpiryDate\": \"2030-01-01\",\n    \"licenseIssuePlace\": \"USA\",\n    \"countryId\": {{countryId}},\n    \"identityCopyNumber\": \"IDC123\",\n    \"identityExpiryDate\": \"2030-01-01\"\n  }\n}"
             },
             "url": "{{baseUrl}}/api/customers",
-            "description": "Requires Permissions.Customers.Create. Visitor requires border/passport/license/country/identity-copy fields, Gregorian birthDate, and email."
+            "description": "Requires Permissions.Customers.Create. Visitor requires border/passport/license/country/identity-copy fields, Gregorian birthDate, and email. Same best-effort network blacklist check as National create (auto-flag only when verified)."
           }
         },
         {
@@ -570,7 +546,7 @@
               "raw": "{\n  \"reason\": \"Repeated late returns and unpaid fines\"\n}"
             },
             "url": "{{baseUrl}}/api/customers/{{customerId}}/blacklist",
-            "description": "Requires Permissions.Customers.Edit. Flags the customer as blacklisted with a required reason."
+            "description": "Requires Permissions.Customers.Edit. Local office flag + reason. Syncs this tenant's warehouse record (best-effort). This is not the network Blacklist screen — use POST /api/blacklist/report to flag a renter on the shared list without a local customer."
           }
         },
         {
@@ -580,6 +556,302 @@
             "header": [],
             "url": "{{baseUrl}}/api/customers/{{customerId}}/blacklist",
             "description": "Requires Permissions.Customers.Edit. Clears the blacklist flag and reason."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Drivers",
+      "item": [
+        {
+          "name": "Search drivers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"identityType\": null,\n  \"verificationStatus\": null,\n  \"isBlacklisted\": null,\n  \"isActive\": null,\n  \"customerId\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/drivers/search",
+            "description": "Requires Permissions.Drivers.View"
+          }
+        },
+        {
+          "name": "Get driver stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/stats",
+            "description": "Requires Permissions.Drivers.View. Returns { total, verified, pending, blacklisted }."
+          }
+        },
+        {
+          "name": "Driver picker",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"identityType\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 12\n}"
+            },
+            "url": "{{baseUrl}}/api/drivers/picker",
+            "description": "Requires authenticated user only. Returns active, non-blacklisted drivers for contract authorized/extra driver selection."
+          }
+        },
+        {
+          "name": "Create driver (National ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('driverId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullNameEn\": \"Khaled Al-Harbi\",\n  \"fullNameAr\": \"خالد الحربي\",\n  \"phoneNumber\": \"509876543\",\n  \"identityType\": 1,\n  \"address\": \"Riyadh, Saudi Arabia\",\n  \"customerId\": null,\n  \"isActive\": true,\n  \"national\": {\n    \"beneficiaryIdNumber\": \"1098002244\",\n    \"hijriBirthDate\": 14100521,\n    \"isHijriBirthDate\": true,\n    \"email\": null,\n    \"licenseNumber\": \"LIC-10001\",\n    \"licenseExpiryDate\": \"2030-01-01\",\n    \"licenseIssuePlace\": null\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/drivers",
+            "description": "Requires Permissions.Drivers.Create. fullNameAr is required; fullNameEn is optional. optional customerId links the driver to a customer. identityType: 1=National, 2=Residence, 3=Visitor, 4=Gulf. national/residence support optional licenseNumber/licenseExpiryDate/licenseIssuePlace. national/residence birth: when isHijriBirthDate is true send hijriBirthDate as Umm al-Qura yyyymmdd integer. After identity map, create calls POST /api/blacklist/check by id/phone (drivers are not warehouse-synced). A verified network hit auto-sets local IsBlacklisted; awaiting does not. Response stays { id }."
+          }
+        },
+        {
+          "name": "Create driver (Visitor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullNameEn\": \"John Driver\",\n  \"fullNameAr\": \"جون درايفر\",\n  \"phoneNumber\": \"555111222\",\n  \"identityType\": 3,\n  \"address\": \"Jeddah\",\n  \"customerId\": null,\n  \"isActive\": true,\n  \"visitor\": {\n    \"email\": \"john.driver@example.com\",\n    \"birthDate\": \"1985-06-15\",\n    \"borderNumber\": \"BRD999\",\n    \"passportNumber\": \"P9876543\",\n    \"licenseNumber\": \"LIC999\",\n    \"licenseExpiryDate\": \"2030-01-01\",\n    \"licenseIssuePlace\": \"USA\",\n    \"countryId\": {{countryId}},\n    \"identityCopyNumber\": \"IDC999\",\n    \"identityExpiryDate\": \"2030-01-01\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/drivers",
+            "description": "Requires Permissions.Drivers.Create. Visitor requires border/passport/license/country/identity-copy fields, Gregorian birthDate, and email. Same best-effort network blacklist check as National create (auto-flag only when verified)."
+          }
+        },
+        {
+          "name": "Get driver by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}",
+            "description": "Requires Permissions.Drivers.View"
+          }
+        },
+        {
+          "name": "Update driver",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullNameEn\": \"Khaled Al-Harbi\",\n  \"fullNameAr\": \"خالد الحربي\",\n  \"phoneNumber\": \"509876543\",\n  \"identityType\": 1,\n  \"address\": \"Riyadh, Saudi Arabia\",\n  \"customerId\": {{customerId}},\n  \"isActive\": true,\n  \"national\": {\n    \"beneficiaryIdNumber\": \"1098002244\",\n    \"hijriBirthDate\": 14100521,\n    \"isHijriBirthDate\": true,\n    \"email\": null,\n    \"licenseNumber\": \"LIC-10001\",\n    \"licenseExpiryDate\": \"2030-01-01\",\n    \"licenseIssuePlace\": null\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}",
+            "description": "Requires Permissions.Drivers.Edit. Same nested identity shape as Create. customerId can be set or cleared (null)."
+          }
+        },
+        {
+          "name": "Delete driver",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}",
+            "description": "Requires Permissions.Drivers.Delete. Soft-deletes and deactivates the driver."
+          }
+        },
+        {
+          "name": "Verify driver",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}/verification/verify",
+            "description": "Requires Permissions.Drivers.Edit. Sets verification status to Verified and clears any rejection reason."
+          }
+        },
+        {
+          "name": "Reject driver verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"License image is not clear\"\n}"
+            },
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}/verification/reject",
+            "description": "Requires Permissions.Drivers.Edit. Sets verification status to Rejected with a required reason."
+          }
+        },
+        {
+          "name": "Blacklist driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Repeated traffic violations\"\n}"
+            },
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}/blacklist",
+            "description": "Requires Permissions.Drivers.Edit. Local office flag only — drivers are not written to the warehouse. Network report (POST /api/blacklist/report) does not auto-blacklist drivers."
+          }
+        },
+        {
+          "name": "Remove driver from blacklist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}/blacklist",
+            "description": "Requires Permissions.Drivers.Edit. Clears the blacklist flag and reason."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Blacklist",
+      "item": [
+        {
+          "name": "Search blacklist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('warehouseCustomerId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/blacklist/search",
+            "description": "Requires Permissions.Blacklist.View. Network-wide flagged identities (masked ID). Empty search returns all flagged rows. Saves the first row id to warehouseCustomerId. isVerified is true when 2+ offices flagged the identity."
+          }
+        },
+        {
+          "name": "Get blacklist stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/blacklist/stats",
+            "description": "Requires Permissions.Blacklist.View. Returns { networkVerifiedCount, networkAwaitingCount, partnerOfficesCount, localOfficeEntriesCount, lastSyncedAt }."
+          }
+        },
+        {
+          "name": "Check identity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identityType\": 1,\n  \"idNumber\": \"1098002244\",\n  \"phoneNumber\": \"509876543\"\n}"
+            },
+            "url": "{{baseUrl}}/api/blacklist/check",
+            "description": "Requires authenticated user only. At least one of idNumber or phoneNumber is required. Used by create/contract flows. identityType: 1=National, 2=Residence, 3=Visitor, 4=Gulf."
+          }
+        },
+        {
+          "name": "Report renter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.warehouseCustomerId) pm.collectionVariables.set('warehouseCustomerId', String(json.warehouseCustomerId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identityType\": 1,\n  \"idNumber\": \"1098002244\",\n  \"reason\": \"Fraudulent documents\",\n  \"phoneNumber\": \"509876543\",\n  \"fullNameAr\": \"خالد الحربي\",\n  \"fullNameEn\": \"Khaled Al-Harbi\"\n}"
+            },
+            "url": "{{baseUrl}}/api/blacklist/report",
+            "description": "Requires Permissions.Blacklist.Report. Identity type + id number + reason (max 250) required. Does not require a local customer. If a local customer matches, they are blacklisted too. Does not auto-blacklist drivers."
+          }
+        },
+        {
+          "name": "Get blacklist entry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/blacklist/{{warehouseCustomerId}}",
+            "description": "Requires Permissions.Blacklist.View. Warehouse customer id. 404 if the identity has no office blacklist flags."
           }
         }
       ]
@@ -685,7 +957,7 @@
               "raw": "{}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches."
+            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums (identityTypes, verificationStatuses, tajeerStatuses, customerDocumentTypes)."
           }
         },
         {
@@ -700,10 +972,28 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\"]\n}"
+              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\"]\n}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\") or their integer values."
+            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\") or their integer values."
+          }
+        },
+        {
+          "name": "System lookup context (PersonEnums)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sections\": [\"PersonEnums\", \"Countries\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/lookups/context",
+            "description": "Bootstrap for customer/driver forms. personEnums returns identityTypes, verificationStatuses, tajeerStatuses, customerDocumentTypes (localized EnumOptionDto lists). Use Countries for nationality/issue-place dropdowns."
           }
         },
         {
@@ -1395,10 +1685,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"sales@demo.maarkbh.com\",\n  \"password\": \"Sales@1234\",\n  \"fullName\": \"Sales User\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
+              "raw": "{\n  \"userName\": \"sales.user\",\n  \"email\": \"sales@demo.maarkbh.com\",\n  \"phoneNumber\": \"966512345678\",\n  \"password\": \"Sales@1234\",\n  \"fullName\": \"Sales User\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
             },
             "url": "{{baseUrl}}/api/tenant/users",
-            "description": "Requires Permissions.Users.Create.\n\n`roleName` must be the Identity name from Roles â†’ Lookup (e.g. sales_lead_1), not the display name."
+            "description": "Requires Permissions.Users.Create.\n\n`userName` is required and unique (used for login).\n`phoneNumber` is optional; when provided must be Saudi mobile `9665XXXXXXXX`.\n`roleName` must be the Identity name from Roles → Lookup (e.g. sales_lead_1), not the display name."
           }
         },
         {
@@ -1413,10 +1703,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Sales User Updated\",\n  \"isActive\": true,\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": null\n}"
+              "raw": "{\n  \"userName\": \"sales.user\",\n  \"email\": \"sales@demo.maarkbh.com\",\n  \"phoneNumber\": \"966512345678\",\n  \"fullName\": \"Sales User Updated\",\n  \"isActive\": true,\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": null\n}"
             },
             "url": "{{baseUrl}}/api/tenant/users/{{userId}}",
-            "description": "Requires Permissions.Users.Edit. TenantAdmin user cannot be modified from tenant API."
+            "description": "Requires Permissions.Users.Edit. TenantAdmin user cannot be modified from tenant API.\n\n`userName` must remain unique when changed.\n`phoneNumber`: omit to leave unchanged, empty string to clear, or Saudi mobile `9665XXXXXXXX`."
           }
         }
       ]
@@ -1621,10 +1911,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"ops@demo.maarkbh.com\",\n  \"password\": \"Ops@12345\",\n  \"fullName\": \"Ops User\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
+              "raw": "{\n  \"userName\": \"ops.user\",\n  \"email\": \"ops@demo.maarkbh.com\",\n  \"phoneNumber\": \"966587654321\",\n  \"password\": \"Ops@12345\",\n  \"fullName\": \"Ops User\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
             },
             "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users",
-            "description": "Requires SuperAdmin. roleName = Identity name ending with _{tenantId}."
+            "description": "Requires SuperAdmin. `userName` required and unique. `phoneNumber` optional Saudi mobile `9665XXXXXXXX`. roleName = Identity name ending with _{tenantId}."
           }
         },
         {
@@ -1639,10 +1929,106 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Ops User Updated\",\n  \"isActive\": true,\n  \"branchIds\": null\n}"
+              "raw": "{\n  \"userName\": \"ops.user\",\n  \"email\": \"ops@demo.maarkbh.com\",\n  \"phoneNumber\": \"966587654321\",\n  \"fullName\": \"Ops User Updated\",\n  \"isActive\": true,\n  \"branchIds\": null\n}"
             },
             "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/{{userId}}",
-            "description": "Requires SuperAdmin."
+            "description": "Requires SuperAdmin. `userName` unique when changed. `phoneNumber` optional Saudi mobile `9665XXXXXXXX`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Warehouse",
+      "item": [
+        {
+          "name": "Inquiry (search)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"محمد\",\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/customer-warehouse/inquiry",
+            "description": "Requires Permissions.CustomerWarehouse.View. Returns masked ID numbers."
+          }
+        },
+        {
+          "name": "Get warehouse summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/customer-warehouse/{{warehouseCustomerId}}",
+            "description": "Returns masked identity + per-office risk records."
+          }
+        },
+        {
+          "name": "Import from warehouse",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/customer-warehouse/{{warehouseCustomerId}}/import",
+            "description": "Fetches full data and creates a local Customer (or returns existing id). Requires Permissions.CustomerWarehouse.Import. Response: { customerId }."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Customer Warehouse",
+      "item": [
+        {
+          "name": "Get stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/admin/customer-warehouse/stats",
+            "description": "Requires SuperAdmin role."
+          }
+        },
+        {
+          "name": "Admin search (unmasked)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"محمد\",\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/customer-warehouse/search",
+            "description": "SuperAdmin search with unmasked ID numbers."
+          }
+        },
+        {
+          "name": "Download import template",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/admin/customer-warehouse/import/template",
+            "description": "Downloads the blank Excel template. Requires SuperAdmin."
+          }
+        },
+        {
+          "name": "Import from Excel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" },
+                { "key": "sourceName", "value": "Dynamic", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/admin/customer-warehouse/import/excel",
+            "description": "Upload a filled warehouse_import_template.xlsx. Requires SuperAdmin."
           }
         }
       ]

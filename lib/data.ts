@@ -628,6 +628,10 @@ export interface DynamicsLookupRecord {
   nationality?: string;
   licenseNumber?: string;
   blacklisted: boolean;
+  isNetworkBlacklisted?: boolean;
+  hasNetworkCircular?: boolean;
+  isRegisteredLocally?: boolean;
+  localCustomerId?: string;
   debts: ClientDebt[];
   disputes: ClientDispute[];
 }
