@@ -8,6 +8,7 @@ import {
   BarChart3, Undo2, Tag, Users, Building, Shield,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shared/SidebarShell";
 import { customerService, customerEvents } from "@/lib/api-services";
 import { VerificationStatus } from "@/lib/api-types";
@@ -15,8 +16,13 @@ import { VerificationStatus } from "@/lib/api-types";
 export function Sidebar() {
   const path = usePathname();
   const { dir, toggleDir, role, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout } = useAdmin();
+  const { decodedToken } = useAuth();
   const ar = dir === "rtl";
   const [kycCount, setKycCount] = useState(0);
+
+  // SuperAdmin has no tenant claim; tenant users (owner or frontdesk) do.
+  const hasTenant = !!(decodedToken?.tenant_id ?? decodedToken?.tenantId);
+  const isSuperAdmin = !hasTenant;
 
   const FRONTDESK_ROUTES = new Set(["/dashboard", "/bookings", "/fleet", "/kyc-queue", "/late-returns", "/branches", "/roles", "/customers/inquiry"]);
   const handleNavClick = () => setSidebarOpen(false);
@@ -47,6 +53,9 @@ export function Sidebar() {
     const unsubscribe = customerEvents.onReload(loadKycCount);
     return () => unsubscribe();
   }, []);
+
+  // Routes that should only appear for SuperAdmin (no tenant claim)
+  const SUPERADMIN_ROUTES = new Set(["/admin/customer-warehouse"]);
 
   const NAV_SECTIONS = [
     {
@@ -116,9 +125,10 @@ export function Sidebar() {
       }
     >
       {NAV_SECTIONS.map((section) => {
-        const visibleItems = role === "owner"
+        let visibleItems = role === "owner"
           ? section.items
           : section.items.filter((item) => FRONTDESK_ROUTES.has(item.href));
+        visibleItems = visibleItems.filter((item) => !SUPERADMIN_ROUTES.has(item.href) || isSuperAdmin);
         if (visibleItems.length === 0) return null;
         return (
           <div key={section.title}>

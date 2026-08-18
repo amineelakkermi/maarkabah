@@ -41,6 +41,7 @@ interface WarehouseItem {
   isNetworkBlacklisted?: boolean;
   hasNetworkCircular?: boolean;
   blacklisted?: boolean;
+  isActive?: boolean;
   reason?: string;
   officeCount?: number;
   partnerOfficeCount?: number;
@@ -80,7 +81,38 @@ export default function AdminCustomerWarehousePage() {
     setStatsLoading(true);
     try {
       const data = await customerWarehouseService.getAdminStats();
-      setStats(data ?? null);
+      console.log("[Admin Warehouse] stats response:", data);
+      const mapped: WarehouseStats = {
+        networkVerifiedCount:
+          data?.networkVerifiedCount ??
+          data?.networkVerified ??
+          data?.verifiedCount ??
+          data?.data?.networkVerifiedCount ??
+          data?.data?.verifiedCount,
+        networkAwaitingCount:
+          data?.networkAwaitingCount ??
+          data?.networkAwaiting ??
+          data?.awaitingCount ??
+          data?.data?.networkAwaitingCount ??
+          data?.data?.awaitingCount,
+        partnerOfficesCount:
+          data?.partnerOfficesCount ??
+          data?.partnerOffices ??
+          data?.data?.partnerOfficesCount ??
+          data?.data?.partnerOffices,
+        localOfficeEntriesCount:
+          data?.localOfficeEntriesCount ??
+          data?.localOfficeEntries ??
+          data?.localEntries ??
+          data?.data?.localOfficeEntriesCount ??
+          data?.data?.localEntries,
+        lastSyncedAt:
+          data?.lastSyncedAt ??
+          data?.lastSyncAt ??
+          data?.lastSynced ??
+          data?.data?.lastSyncedAt,
+      };
+      setStats(mapped);
     } catch (err) {
       console.error("Failed to load warehouse stats:", err);
     } finally {
@@ -105,14 +137,18 @@ export default function AdminCustomerWarehousePage() {
 
     try {
       const response = await customerWarehouseService.adminSearch({ search: q, pageNumber: 1, pageSize: 20 });
+      console.log("[Admin Warehouse] search response:", response);
       if (controller.signal.aborted) return;
       const rawList = (response?.items ?? response?.data?.items ?? response?.data ?? response ?? []) as any[];
       const list = Array.isArray(rawList) ? rawList : [];
       setItems(
         list.map((item) => ({
           ...item,
-          idNumber: item.idNumber ?? item.beneficiaryIdNumber ?? "",
-          officeCount: item.officeCount ?? item.officesCount ?? item.partnerOfficeCount ?? 1,
+          idNumber: item.idNumber ?? item.maskedIdNumber ?? item.beneficiaryIdNumber ?? "",
+          isVerified: item.isVerified ?? item.verified ?? false,
+          isBlacklisted: item.isBlacklisted ?? item.blacklisted ?? false,
+          isActive: item.isActive ?? true,
+          officeCount: item.officeCount ?? item.officesCount ?? item.partnerOfficeCount ?? item.reportingOfficeCount ?? 1,
         }))
       );
     } catch (err) {

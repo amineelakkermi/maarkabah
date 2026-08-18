@@ -123,7 +123,9 @@ export default function KycQueuePage() {
       });
       const items = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
       const mapped = Array.isArray(items)
-        ? items.map((item: any) => mapCustomerToEntry(item, ar))
+        ? items
+            .filter((item: any) => !(item.isBlacklisted ?? item.blacklisted))
+            .map((item: any) => mapCustomerToEntry(item, ar))
         : [];
       setEntries(mapped);
     } catch (err) {
@@ -136,6 +138,8 @@ export default function KycQueuePage() {
 
   useEffect(() => {
     loadQueue();
+    const unsubscribe = customerEvents.onReload(loadQueue);
+    return () => unsubscribe();
   }, [ar]);
 
   useEffect(() => {

@@ -300,7 +300,13 @@ export default function CustomerInquiryPage() {
     setRegisteringKey(key);
     try {
       const result = await customerWarehouseService.importCustomer(match.warehouseId);
-      const customerId = result?.customerId ?? result?.id;
+      const customerId =
+        result?.customerId ??
+        result?.id ??
+        result?.data?.customerId ??
+        result?.data?.id ??
+        result?.customer?.id ??
+        result?.data?.customer?.id;
       if (customerId) {
         setRegisteredIds((prev) => new Set(prev).add((match.record as DynamicsLookupRecord).idNumber));
         showToast(T("Customer imported. The identity has been added to your local customer list.", "تم استيراد العميل. تمت إضافة الهوية إلى قائمة العملاء المحلية.", ar));

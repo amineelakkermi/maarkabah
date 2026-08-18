@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Search, UserPlus, ChevronRight, CheckCircle, Phone, CreditCard, X, User, FileSignature, Loader2, FileWarning, Plus, Trash2, Ban,
+  Search, UserPlus, ShieldCheck , ShieldAlert , ChevronRight, CheckCircle, Phone, CreditCard, X, User, FileSignature, Loader2, FileWarning, Plus, Trash2, Ban,
 } from "lucide-react";
 import { Avatar, Badge, HijriDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -80,7 +80,7 @@ export default function CustomerListPage() {
       setIsLoading(true);
       setError(null);
       const response = await customerService.search({ pageNumber: 1, pageSize: 100 });
-      
+
       // Transform API response to ClientProfile format
       const transformedClients = response.items?.map((item: any) => {
         const idTypeCode = item.identityType ?? item.idType;
@@ -117,10 +117,12 @@ export default function CustomerListPage() {
       setClients(transformedClients);
     } catch (err) {
       console.error("Error loading customers:", err);
-      // Fall back to mock data if API fails
-      console.log("Falling back to mock data");
-      setClients(CLIENTS);
-      setError(null); // Don't show error, just use mock data
+      // Keep existing data if we already have it; only fall back to mock data
+      // on the very first load so the UI isn't completely empty.
+      if (clients.length === 0) {
+        setClients(CLIENTS);
+      }
+      setError(T("Failed to refresh customer list.", "فشل في تحديث قائمة العملاء.", ar));
     } finally {
       setIsLoading(false);
     }
@@ -397,6 +399,17 @@ export default function CustomerListPage() {
           ar
         )
       );
+
+      // Optimistically update local state so the top stats refresh immediately,
+      // even if the background API reload is slow or fails.
+      setClients((prev) =>
+        prev.map((c) =>
+          c.id === customerToToggleBlacklist.id
+            ? { ...c, blacklisted: isAdd }
+            : c
+        )
+      );
+
       await loadCustomers();
       customerEvents.reload();
       setCustomerToToggleBlacklist(null);
@@ -448,8 +461,8 @@ export default function CustomerListPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           { label: T("Total customers", "إجمالي العملاء", ar), value: clients.length, color: "var(--color-mk-blue-500)" },
-          { label: T("Verified", "موثّقون", ar), value: clients.filter((c) => c.kycStatus === "verified").length, color: "var(--color-mk-mint-500)" },
-          { label: T("Pending KYC", "قيد التحقق", ar), value: clients.filter((c) => c.kycStatus === "pending").length, color: "var(--color-mk-warning)" },
+          { label: T("Verified", "موثّقون", ar), value: clients.filter((c) => c.kycStatus === "verified" && !c.blacklisted).length, color: "var(--color-mk-mint-500)" },
+          { label: T("Pending KYC", "قيد التحقق", ar), value: clients.filter((c) => c.kycStatus === "pending" && !c.blacklisted).length, color: "var(--color-mk-warning)" },
           { label: T("Blacklisted", "القائمة السوداء", ar), value: clients.filter((c) => c.blacklisted).length, color: "var(--color-mk-danger)" },
         ].map(({ label, value, color }) => (
           <div key={label} className="rounded-lg px-5 py-4 mk-surface">
@@ -555,7 +568,7 @@ export default function CustomerListPage() {
                     onClick={(e) => e.stopPropagation()}
                     className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-blue-500 text-white no-underline shrink-0"
                   >
-                    <FileSignature size={13} />
+                    <FileSignature size={14} />
                   </Link>
                 )}
               </div>
@@ -568,16 +581,17 @@ export default function CustomerListPage() {
                     onClick={(e) => { e.stopPropagation(); setCustomerToToggleBlacklist(c); setBlacklistAction("remove"); }}
                     className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-mint-600/10 text-mk-mint-600 hover:bg-mk-mint-600/20 transition-colors"
                   >
-                    <CheckCircle size={13} />
+                    <CheckCircle size={14} />
                   </button>
                 ) : (
                   <button
                     type="button"
                     title={T("Blacklist customer", "إضافة إلى القائمة السوداء", ar)}
                     onClick={(e) => { e.stopPropagation(); setCustomerToToggleBlacklist(c); setBlacklistAction("add"); }}
-                    className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-warning/10 text-mk-warning hover:bg-mk-warning/20 transition-colors"
+                    className="flex items-center justify-center w-7 h-7 rounded-full
+                     text-mk-warning-600 hover:bg-mk-warning/20 transition-colors"
                   >
-                    <Ban size={13} />
+                    <Ban size={14} />
                   </button>
                 )}
               </div>
@@ -589,7 +603,7 @@ export default function CustomerListPage() {
                   onClick={(e) => { e.stopPropagation(); setCustomerToDelete(c); }}
                   className="flex items-center justify-center w-7 h-7 rounded-full bg-mk-danger/10 text-mk-danger hover:bg-mk-danger/20 transition-colors"
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={14} />
                 </button>
               </div>
               {/* Arrow */}

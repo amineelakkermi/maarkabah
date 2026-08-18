@@ -27,6 +27,12 @@ export interface AuthUser {
   oi_au_id: string;      // OpenIddict Authorization ID
   at_hash: string;       // Access Token hash
   oi_tkn_id: string;     // OpenIddict Token ID
+
+  // Multi-tenant / role claims
+  tenant_id?: number | string;  // Present for tenant users; absent for SuperAdmin
+  tenantId?: number | string;   // Alternative claim name
+  roles?: string[];             // e.g. ["SuperAdmin"] or ["TenantAdmin"]
+  role?: string;
 }
 
 interface AuthContextValue {
