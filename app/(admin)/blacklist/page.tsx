@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { UsersRound, ShieldCheck, ShieldAlert, Search, Loader2, FileWarning } from "lucide-react";
 import { Badge, Button, Input, Table, Th, Td } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
-import { customerService, customerEvents } from "@/lib/api-services";
+import { blacklistService, customerEvents } from "@/lib/api-services";
 import { formatPhone } from "@/lib/formatting";
 import { VerificationStatus } from "@/lib/api-types";
 
@@ -32,41 +32,13 @@ interface BlacklistItem {
   verificationStatus: VerificationDisplay;
 }
 
-interface ApiCustomerItem {
+interface BlacklistApiItem {
   id: number | string;
   identityType?: number;
-  idType?: number;
-  fullNameEn?: string;
-  name?: string;
-  fullNameAr?: string;
-  nameAr?: string;
-  phoneNumber?: string;
-  beneficiaryIdNumber?: string;
-  visitor?: { passportNumber?: string; idNumber?: string };
-  idNumber?: string;
-  // Branch that reported the blacklist entry
-  branchName?: string;
-  branchNameAr?: string;
-  branchNameEn?: string;
-  branch?: string | { name?: string; nameAr?: string; nameEn?: string };
-  reportedByBranch?: string | { name?: string; nameAr?: string; nameEn?: string };
+  maskedIdNumber?: string;
   reportedBy?: string;
-  office?: string;
-  officeName?: string;
-  // Reason / date
-  blacklistReason?: string;
-  blackListReason?: string;
   reason?: string;
-  cause?: string;
-  description?: string;
-  notes?: string;
-  comment?: string;
-  blacklistedAt?: string;
-  blacklistDate?: string;
-  joinedAt?: string;
-  creationTime?: string;
-  // Verification status
-  verificationStatus?: number | string;
+  date?: string;
   isVerified?: boolean;
 }
 
@@ -83,39 +55,6 @@ function maskId(value: string): string {
   return `${value.slice(0, 4)}••${value.slice(-4)}`;
 }
 
-function parseVerificationStatus(item: ApiCustomerItem): VerificationDisplay {
-  const status = item.verificationStatus;
-  if (typeof status === "string") {
-    const lower = status.toLowerCase();
-    if (lower === "verified" || lower === "2") return "verified";
-    if (lower === "rejected" || lower === "3") return "rejected";
-    return "pending";
-  }
-  if (status === VerificationStatus.Verified) return "verified";
-  if (status === VerificationStatus.Rejected) return "rejected";
-  if (item.isVerified === true) return "verified";
-  return "pending";
-}
-
-function parseBranch(item: ApiCustomerItem, ar: boolean): string {
-  const candidates = [
-    item.branchName,
-    item.branchNameEn,
-    item.branchNameAr,
-    typeof item.branch === "string" ? item.branch : undefined,
-    typeof item.branch === "object" ? (ar ? item.branch?.nameAr : item.branch?.nameEn) || item.branch?.name : undefined,
-    typeof item.reportedByBranch === "string" ? item.reportedByBranch : undefined,
-    typeof item.reportedByBranch === "object" ? (ar ? item.reportedByBranch?.nameAr : item.reportedByBranch?.nameEn) || item.reportedByBranch?.name : undefined,
-    item.reportedBy,
-    item.office,
-    item.officeName,
-  ];
-  for (const value of candidates) {
-    if (value && typeof value === "string" && value.trim() !== "") return value.trim();
-  }
-  return ar ? "غير معروف" : "Unknown";
-}
-
 function formatGregorianDate(value: string | undefined, ar: boolean): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -127,37 +66,21 @@ function formatGregorianDate(value: string | undefined, ar: boolean): string {
   });
 }
 
-function mapCustomerToBlacklistItem(item: ApiCustomerItem, ar: boolean): BlacklistItem {
-  const idTypeCode = item.identityType ?? item.idType;
-  const idType = getIdTypeLabel(idTypeCode);
-  const rawId =
-    item.beneficiaryIdNumber ||
-    item.visitor?.passportNumber ||
-    item.visitor?.idNumber ||
-    item.idNumber ||
-    "";
-
-  const reason =
-    item.blacklistReason ||
-    item.blackListReason ||
-    item.reason ||
-    item.cause ||
-    item.description ||
-    item.notes ||
-    item.comment;
-  const date = item.blacklistedAt || item.blacklistDate || item.joinedAt || item.creationTime;
+function mapBlacklistApiItem(item: BlacklistApiItem, ar: boolean): BlacklistItem {
+  const idType = getIdTypeLabel(item.identityType);
+  const idNumber = item.maskedIdNumber || "";
 
   return {
     id: Number(item.id),
-    name: item.fullNameEn || item.name || "",
-    nameAr: item.fullNameAr || item.nameAr || "",
-    phone: formatPhone(item.phoneNumber),
+    name: idNumber,
+    nameAr: idNumber,
+    phone: "",
     idType,
-    idNumber: maskId(rawId),
-    branch: parseBranch(item, ar),
-    reason: reason?.trim() || undefined,
-    date: formatGregorianDate(date, ar),
-    verificationStatus: parseVerificationStatus(item),
+    idNumber,
+    branch: item.reportedBy || (ar ? "غير معروف" : "Unknown"),
+    reason: item.reason?.trim() || undefined,
+    date: formatGregorianDate(item.date, ar),
+    verificationStatus: item.isVerified === true ? "verified" : "pending",
   };
 }
 
@@ -179,15 +102,15 @@ export default function BlacklistPage() {
       try {
         setLoading(true);
         setError(null);
-        const response = await customerService.search({
-          isBlacklisted: true,
+        const response = await blacklistService.search({
+          search: "",
           pageNumber: 1,
           pageSize: 100,
         });
         console.log("[Blacklist] API response:", response);
         const items = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
         const mapped = Array.isArray(items)
-          ? items.map((item) => mapCustomerToBlacklistItem(item as ApiCustomerItem, ar))
+          ? items.map((item) => mapBlacklistApiItem(item as BlacklistApiItem, ar))
           : [];
         if (active) setEntries(mapped);
       } catch (err) {

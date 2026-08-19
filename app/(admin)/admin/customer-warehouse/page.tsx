@@ -20,10 +20,10 @@ const ID_TYPE_LABELS: Record<number, { en: string; ar: string }> = {
 };
 
 interface WarehouseStats {
-  networkVerifiedCount?: number;
-  networkAwaitingCount?: number;
-  partnerOfficesCount?: number;
-  localOfficeEntriesCount?: number;
+  totalIdentities?: number;
+  totalTenantRecords?: number;
+  totalExternalRecords?: number;
+  networkBlacklistedCount?: number;
   lastSyncedAt?: string;
 }
 
@@ -82,35 +82,13 @@ export default function AdminCustomerWarehousePage() {
     try {
       const data = await customerWarehouseService.getAdminStats();
       console.log("[Admin Warehouse] stats response:", data);
+      const raw = data?.data ?? data;
       const mapped: WarehouseStats = {
-        networkVerifiedCount:
-          data?.networkVerifiedCount ??
-          data?.networkVerified ??
-          data?.verifiedCount ??
-          data?.data?.networkVerifiedCount ??
-          data?.data?.verifiedCount,
-        networkAwaitingCount:
-          data?.networkAwaitingCount ??
-          data?.networkAwaiting ??
-          data?.awaitingCount ??
-          data?.data?.networkAwaitingCount ??
-          data?.data?.awaitingCount,
-        partnerOfficesCount:
-          data?.partnerOfficesCount ??
-          data?.partnerOffices ??
-          data?.data?.partnerOfficesCount ??
-          data?.data?.partnerOffices,
-        localOfficeEntriesCount:
-          data?.localOfficeEntriesCount ??
-          data?.localOfficeEntries ??
-          data?.localEntries ??
-          data?.data?.localOfficeEntriesCount ??
-          data?.data?.localEntries,
-        lastSyncedAt:
-          data?.lastSyncedAt ??
-          data?.lastSyncAt ??
-          data?.lastSynced ??
-          data?.data?.lastSyncedAt,
+        totalIdentities: raw?.totalIdentities ?? 0,
+        totalTenantRecords: raw?.totalTenantRecords ?? 0,
+        totalExternalRecords: raw?.totalExternalRecords ?? 0,
+        networkBlacklistedCount: raw?.networkBlacklistedCount ?? 0,
+        lastSyncedAt: raw?.lastSyncedAt,
       };
       setStats(mapped);
     } catch (err) {
@@ -145,9 +123,9 @@ export default function AdminCustomerWarehousePage() {
         list.map((item) => ({
           ...item,
           idNumber: item.idNumber ?? item.maskedIdNumber ?? item.beneficiaryIdNumber ?? "",
-          isVerified: item.isVerified ?? item.verified ?? false,
-          isBlacklisted: item.isBlacklisted ?? item.blacklisted ?? false,
-          isActive: item.isActive ?? true,
+          isVerified: item.isVerified === true || item.verified === true,
+          isBlacklisted: item.isBlacklisted === true || item.isNetworkBlacklisted === true || item.blacklisted === true,
+          isActive: item.isActive !== false,
           officeCount: item.officeCount ?? item.officesCount ?? item.partnerOfficeCount ?? item.reportingOfficeCount ?? 1,
         }))
       );
@@ -210,28 +188,28 @@ export default function AdminCustomerWarehousePage() {
     if (!stats) return [];
     return [
       {
-        icon: ShieldAlert,
-        label: ["Verified entries", "إدخالات موثقة"],
-        value: stats.networkVerifiedCount ?? 0,
-        color: "text-mk-danger",
-      },
-      {
-        icon: Clock,
-        label: ["Awaiting verification", "في انتظار التحقق"],
-        value: stats.networkAwaitingCount ?? 0,
-        color: "text-mk-warning",
-      },
-      {
-        icon: Building2,
-        label: ["Partner offices", "مكاتب شريكة"],
-        value: stats.partnerOfficesCount ?? 0,
+        icon: Database,
+        label: ["Total identities", "إجمالي الهويات"],
+        value: stats.totalIdentities ?? 0,
         color: "text-mk-blue-500",
       },
       {
-        icon: Database,
-        label: ["Local entries", "إدخالات محلية"],
-        value: stats.localOfficeEntriesCount ?? 0,
+        icon: Building2,
+        label: ["Tenant records", "سجلات المستأجر"],
+        value: stats.totalTenantRecords ?? 0,
         color: "text-mk-mint-600",
+      },
+      {
+        icon: Globe,
+        label: ["External records", "سجلات خارجية"],
+        value: stats.totalExternalRecords ?? 0,
+        color: "text-mk-warning",
+      },
+      {
+        icon: ShieldAlert,
+        label: ["Network blacklisted", "محظورون شبكياً"],
+        value: stats.networkBlacklistedCount ?? 0,
+        color: "text-mk-danger",
       },
     ];
   }, [stats]);
@@ -364,8 +342,8 @@ export default function AdminCustomerWarehousePage() {
               </tr>
             ) : (
               items.map((item) => {
-                const blacklisted = item.isBlacklisted ?? item.isNetworkBlacklisted ?? item.blacklisted ?? false;
-                const hasCircular = item.hasNetworkCircular ?? false;
+                const blacklisted = item.isBlacklisted === true || item.isNetworkBlacklisted === true || item.blacklisted === true;
+                const hasCircular = item.hasNetworkCircular === true;
                 const statusBadgeVariant = blacklisted
                   ? "danger"
                   : hasCircular

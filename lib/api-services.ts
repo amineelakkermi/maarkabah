@@ -243,6 +243,63 @@ export const customerService = {
   },
 };
 
+// ─── Blacklist Service ────────────────────────────────────────────
+
+export const blacklistService = {
+  /**
+   * Search network-wide blacklist entries
+   * POST /api/blacklist/search
+   */
+  async search(request: { search?: string; pageNumber?: number; pageSize?: number }): Promise<any> {
+    return apiClient.request('/blacklist/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get blacklist stats
+   * GET /api/blacklist/stats
+   */
+  async getStats(): Promise<any> {
+    return apiClient.request('/blacklist/stats', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Check if an identity is blacklisted
+   * POST /api/blacklist/check
+   */
+  async check(request: { identityType?: number; idNumber?: string; phoneNumber?: string }): Promise<any> {
+    return apiClient.request('/blacklist/check', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Report a renter to the network blacklist
+   * POST /api/blacklist/report
+   */
+  async report(request: { identityType: number; idNumber: string; reason: string; phoneNumber?: string; fullNameAr?: string; fullNameEn?: string }): Promise<any> {
+    return apiClient.request('/blacklist/report', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get blacklist entry by ID
+   * GET /api/blacklist/{id}
+   */
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/blacklist/${id}`, {
+      method: 'GET',
+    });
+  },
+};
+
 // ─── Branch Service ─────────────────────────────────────────────
 
 export const branchService = {
