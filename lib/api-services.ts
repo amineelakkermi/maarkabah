@@ -1074,6 +1074,48 @@ export const customerEvents = {
   },
 };
 
+// ─── Driver Cross-Tab Sync ─────────────────────────────────────
+
+const DRIVER_RELOAD_KEY = 'mk-drivers-reload';
+
+export const driverEvents = {
+  /**
+   * Notify all listening tabs/pages that driver data should reload.
+   * Call this after create, update, delete, verify, reject, or blacklist changes.
+   */
+  reload() {
+    if (typeof window === 'undefined') return;
+    const now = Date.now().toString();
+    try {
+      localStorage.setItem(DRIVER_RELOAD_KEY, now);
+    } catch {
+      // ignore storage errors (private mode, etc.)
+    }
+    window.dispatchEvent(new CustomEvent('drivers:reload'));
+  },
+
+  /**
+   * Subscribe to reload events from any tab or the same page.
+   * Returns an unsubscribe function.
+   */
+  onReload(callback: () => void): () => void {
+    if (typeof window === 'undefined') return () => {};
+
+    const storageHandler = (e: StorageEvent) => {
+      if (e.key === DRIVER_RELOAD_KEY) callback();
+    };
+    const customHandler = () => callback();
+
+    window.addEventListener('storage', storageHandler);
+    window.addEventListener('drivers:reload', customHandler);
+
+    return () => {
+      window.removeEventListener('storage', storageHandler);
+      window.removeEventListener('drivers:reload', customHandler);
+    };
+  },
+};
+
 // ─── Lookup Service ─────────────────────────────────────────────
 
 export const lookupService = {
@@ -1082,9 +1124,77 @@ export const lookupService = {
    * POST /api/lookups/context
    */
   async getContext(request: Types.SystemLookupContextRequest): Promise<any> {
-    return apiClient.request('/api/lookups/context', {
+    return apiClient.request('/lookups/context', {
       method: 'POST',
       body: request,
+    });
+  },
+};
+
+// ─── Additional Service Service ─────────────────────────────────
+
+export const additionalServiceService = {
+  /**
+   * Search additional services
+   * POST /api/additional-services/search
+   */
+  async search(request: Types.AdditionalServiceSearchRequest): Promise<any> {
+    return apiClient.request('/additional-services/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get active additional services for a branch (picker)
+   * POST /api/additional-services/picker
+   */
+  async picker(request: Types.AdditionalServicePickerRequest): Promise<any> {
+    return apiClient.request('/additional-services/picker', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get additional service by ID
+   * GET /api/additional-services/{id}
+   */
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/additional-services/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Create additional service
+   * POST /api/additional-services
+   */
+  async create(request: Types.CreateAdditionalServiceCommand): Promise<any> {
+    return apiClient.request('/additional-services', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Update additional service
+   * PUT /api/additional-services/{id}
+   */
+  async update(id: number | string, request: Types.UpdateAdditionalServiceRequest): Promise<any> {
+    return apiClient.request(`/additional-services/${id}`, {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Delete (soft-delete) additional service
+   * DELETE /api/additional-services/{id}
+   */
+  async delete(id: number | string): Promise<void> {
+    await apiClient.request(`/additional-services/${id}`, {
+      method: 'DELETE',
     });
   },
 };
@@ -1182,5 +1292,125 @@ export const customerWarehouseService = {
       throw new Error(data?.error || data?.message || 'Failed to import Excel file');
     }
     return data;
+  },
+};
+
+// ─── Driver Service ───────────────────────────────────────────────
+
+export const driverService = {
+  /**
+   * Search drivers
+   * POST /api/drivers/search
+   */
+  async search(request: { search?: string; identityType?: number | null; verificationStatus?: number | null; isBlacklisted?: boolean | null; isActive?: boolean | null; customerId?: number | string | null; pageNumber?: number; pageSize?: number }): Promise<any> {
+    return apiClient.request('/drivers/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get driver stats
+   * GET /api/drivers/stats
+   */
+  async getStats(): Promise<any> {
+    return apiClient.request('/drivers/stats', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Driver picker for contract selection
+   * POST /api/drivers/picker
+   */
+  async picker(request: { search?: string; identityType?: number | null; pageNumber?: number; pageSize?: number }): Promise<any> {
+    return apiClient.request('/drivers/picker', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Create a new driver
+   * POST /api/drivers
+   */
+  async create(request: any): Promise<any> {
+    return apiClient.request('/drivers', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get driver by ID
+   * GET /api/drivers/{id}
+   */
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/drivers/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Update driver
+   * PUT /api/drivers/{id}
+   */
+  async update(id: number | string, request: any): Promise<any> {
+    return apiClient.request(`/drivers/${id}`, {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Delete driver
+   * DELETE /api/drivers/{id}
+   */
+  async delete(id: number | string): Promise<void> {
+    await apiClient.request(`/drivers/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Verify driver
+   * POST /api/drivers/{id}/verification/verify
+   */
+  async verify(id: number | string): Promise<void> {
+    await apiClient.request(`/drivers/${id}/verification/verify`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Reject driver verification
+   * POST /api/drivers/{id}/verification/reject
+   */
+  async rejectVerification(id: number | string, request: { reason: string }): Promise<void> {
+    await apiClient.request(`/drivers/${id}/verification/reject`, {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Add driver to blacklist
+   * POST /api/drivers/{id}/blacklist
+   */
+  async addToBlacklist(id: number | string, request: { reason: string }): Promise<void> {
+    await apiClient.request(`/drivers/${id}/blacklist`, {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Remove driver from blacklist
+   * DELETE /api/drivers/{id}/blacklist
+   */
+  async removeFromBlacklist(id: number | string): Promise<void> {
+    await apiClient.request(`/drivers/${id}/blacklist`, {
+      method: 'DELETE',
+    });
   },
 };

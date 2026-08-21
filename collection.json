@@ -105,6 +105,10 @@
       "value": "1"
     },
     {
+      "key": "additionalServiceId",
+      "value": "1"
+    },
+    {
       "key": "roleName",
       "value": "Sales Lead"
     },
@@ -857,6 +861,131 @@
       ]
     },
     {
+      "name": "Additional Services",
+      "item": [
+        {
+          "name": "Search additional services",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('additionalServiceId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"isActive\": null,\n  \"billingUnit\": null,\n  \"branchId\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/additional-services/search",
+            "description": "Requires Permissions.AdditionalServices.View. Flat paged rows (isTenantWide, branchCount). Restricted users see tenant-wide services plus those assigned to their branches."
+          }
+        },
+        {
+          "name": "Get additional service",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/additional-services/{{additionalServiceId}}",
+            "description": "Requires Permissions.AdditionalServices.View. Returns detail including branchIds. 404 if missing or outside the user's branch scope."
+          }
+        },
+        {
+          "name": "Picker (contract bootstrap)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": {{branchId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/additional-services/picker",
+            "description": "Requires Permissions.AdditionalServices.View. Not paged. Active services offered at the given branch (empty branch list = all branches). Omit branchId to use the caller's visibility rule. Inaccessible branchId returns []."
+          }
+        },
+        {
+          "name": "Create additional service",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const id = json.id || (json.data && json.data.id) || json.data;",
+                  "  if (id) pm.collectionVariables.set('additionalServiceId', String(id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"مقعد أطفال (٣–١٢)\",\n  \"nameEn\": \"Child seat (3–12)\",\n  \"billingUnit\": 2,\n  \"unitPrice\": 30,\n  \"sortOrder\": 10,\n  \"isActive\": true,\n  \"descriptionAr\": \"مركّب قبل التسليم\",\n  \"descriptionEn\": \"Installed before pickup\",\n  \"iconKey\": \"child\",\n  \"branchIds\": []\n}"
+            },
+            "url": "{{baseUrl}}/api/additional-services",
+            "description": "Requires Permissions.AdditionalServices.Create. billingUnit: 1=Once, 2=PerDay, 3=PerKm (from lookups AdditionalServiceEnums). Empty or omitted branchIds = tenant-wide. Code is generated (AS00001…)."
+          }
+        },
+        {
+          "name": "Update additional service",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"تأمين · شامل\",\n  \"nameEn\": \"Insurance · Comprehensive\",\n  \"billingUnit\": 1,\n  \"unitPrice\": 1500,\n  \"sortOrder\": 1,\n  \"isActive\": true,\n  \"descriptionAr\": \"تغطية كاملة بدون تحمل شخصي\",\n  \"descriptionEn\": \"Full coverage, zero liability\",\n  \"iconKey\": \"insurance\",\n  \"branchIds\": []\n}"
+            },
+            "url": "{{baseUrl}}/api/additional-services/{{additionalServiceId}}",
+            "description": "Requires Permissions.AdditionalServices.Edit. System rows lock code and billing unit. Empty branchIds = all branches."
+          }
+        },
+        {
+          "name": "Delete additional service",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/additional-services/{{additionalServiceId}}",
+            "description": "Requires Permissions.AdditionalServices.Delete. Soft-deletes custom rows. 400 if the row is a seeded system service."
+          }
+        }
+      ]
+    },
+    {
       "name": "Countries",
       "item": [
         {
@@ -957,7 +1086,7 @@
               "raw": "{}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums (identityTypes, verificationStatuses, tajeerStatuses, customerDocumentTypes)."
+            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums, additionalServiceEnums (billingUnits)."
           }
         },
         {
@@ -972,10 +1101,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\"]\n}"
+              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\", \"AdditionalServiceEnums\"]\n}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\") or their integer values."
+            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\", \"AdditionalServiceEnums\") or their integer values."
           }
         },
         {
@@ -994,6 +1123,24 @@
             },
             "url": "{{baseUrl}}/api/lookups/context",
             "description": "Bootstrap for customer/driver forms. personEnums returns identityTypes, verificationStatuses, tajeerStatuses, customerDocumentTypes (localized EnumOptionDto lists). Use Countries for nationality/issue-place dropdowns."
+          }
+        },
+        {
+          "name": "System lookup context (AdditionalServiceEnums)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sections\": [\"AdditionalServiceEnums\", \"Branches\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/lookups/context",
+            "description": "Bootstrap for additional-service forms. additionalServiceEnums.billingUnits is Once / PerDay / PerKm. Service rows themselves come from POST /api/additional-services/picker — not this endpoint."
           }
         },
         {

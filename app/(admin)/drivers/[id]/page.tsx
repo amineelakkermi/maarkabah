@@ -5,24 +5,23 @@ import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronRight, ChevronLeft, ChevronDown, Phone, CreditCard, FileText,
-  Calendar, Star, Ban, Mail, MapPin, Pencil, Check, X as XIcon, CheckCircle2, FileSignature,
+  Calendar, Star, Ban, Mail, MapPin, Pencil, Check, X as XIcon, CheckCircle2,
   Loader2, Trash2,
 } from "lucide-react";
 import { Avatar, Badge, HijriDatePicker, Button, Select, Modal } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
-import { customerService, customerEvents } from "@/lib/api-services";
+import { driverService, driverEvents } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
-import { CLIENTS, type ClientProfile, type ClientContract } from "@/lib/data";
-import { OtpVerificationPanel } from "@/components/employee/OtpVerification";
+import { MOCK_DRIVERS, type DriverProfile } from "@/lib/data";
 
-type EditableFields = Pick<ClientProfile,
-  "name" | "nameAr" | "phone" | "email" | "idType" | "idNumber" | "idExpiryDate" |
+type EditableFields = Pick<DriverProfile,
+  "name" | "nameAr" | "phone" | "email" | "idType" | "nationalId" | "idExpiryDate" |
   "birthDate" | "hijriBirthDate" | "nationality" | "licenseNumber" | "licenseExpiryDate" |
   "personAddress" | "idCopyNumber" | "licenseIssuePlace" | "borderNumber"
 >;
 
 // Required field set per identity type, mirroring the new-contract flow's
-// identity form so editing a customer's profile shows the same fields.
+// identity form so editing a driver's profile shows the same fields.
 type IdentityFieldDef = {
   key: string; labelEn: string; labelAr: string; required: boolean;
   type: "text" | "date" | "email" | "hijri"; value: string; onChange: (v: string) => void;
@@ -30,18 +29,12 @@ type IdentityFieldDef = {
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
-const HISTORY_BADGE: Record<ClientContract["status"], { variant: "success" | "warning" | "neutral" | "danger" | "info"; label: [string, string] }> = {
+const HISTORY_BADGE: Record<string, { variant: "success" | "warning" | "neutral" | "danger" | "info"; label: [string, string] }> = {
   active: { variant: "info", label: ["Active", "نشط"] },
   pending: { variant: "warning", label: ["Pending", "معلق"] },
   completed: { variant: "success", label: ["Completed", "مكتمل"] },
   expired: { variant: "neutral", label: ["Expired", "منتهي"] },
   cancelled: { variant: "danger", label: ["Cancelled", "ملغي"] },
-};
-
-const DEBT_BADGE: Record<"unpaid" | "overdue" | "paid", { variant: "success" | "warning" | "danger"; label: [string, string] }> = {
-  unpaid: { variant: "warning", label: ["Unpaid", "غير مسدد"] },
-  overdue: { variant: "danger", label: ["Overdue", "متأخر السداد"] },
-  paid: { variant: "success", label: ["Paid", "مسدد"] },
 };
 
 function firstString(...values: (string | number | undefined | null)[]): string {
@@ -53,124 +46,66 @@ function firstString(...values: (string | number | undefined | null)[]): string 
   return "";
 }
 
-function mapApiToClientProfile(item: any): ClientProfile {
-  // Keep this log until the backend response shape is fully confirmed.
-  console.log("[CustomerDetail] raw API item:", item);
+function getIdTypeLabel(code: number): DriverProfile["idType"] {
+  if (code === 1) return "Saudi ID";
+  if (code === 2) return "Iqama";
+  if (code === 3) return "Passport";
+  return "GCC ID";
+}
 
-  const idTypeCode = item.identityType ?? item.idType;
-  const idType = idTypeCode === 1 ? "Saudi ID" : idTypeCode === 2 ? "Iqama" : idTypeCode === 3 ? "Passport" : idTypeCode === 4 ? "GCC ID" : "Unknown";
+function mapApiToDriverProfile(item: any): DriverProfile {
+  const idTypeCode = item.identityType ?? item.idType ?? 1;
+  const idType = getIdTypeLabel(idTypeCode);
 
   return {
     id: String(item.id),
     name: item.fullNameEn || item.name || "",
     nameAr: item.fullNameAr || item.nameAr || "",
     phone: item.phoneNumber || "",
-    email: firstString(
-      item.email,
-      item.national?.email,
-      item.residence?.email,
-      item.visitor?.email,
-      item.gulf?.email
-    ) || undefined,
     idType,
-    idNumber: firstString(
+    idTypeCode: idTypeCode as 1 | 2 | 3 | 4,
+    nationalId: firstString(
       item.beneficiaryIdNumber,
       item.passportNumber,
       item.visitor?.passportNumber,
-      item.visitor?.idNumber,
       item.borderNumber,
       item.visitor?.borderNumber,
       item.identityCopyNumber,
       item.visitor?.identityCopyNumber,
       item.idCopyNumber
     ) || "",
-    idExpiryDate: firstString(
-      item.idExpiryDate,
-      item.identityExpiryDate,
-      item.national?.identityExpiryDate,
-      item.residence?.identityExpiryDate,
-      item.visitor?.identityExpiryDate,
-      item.gulf?.identityExpiryDate
-    ) || undefined,
     birthDate: firstString(
       item.birthDate,
-      item.dateOfBirth,
-      item.national?.birthDate,
-      item.national?.dateOfBirth,
       item.residence?.birthDate,
-      item.residence?.dateOfBirth,
       item.visitor?.birthDate,
-      item.visitor?.dateOfBirth,
-      item.gulf?.birthDate,
-      item.gulf?.dateOfBirth
+      item.gulf?.birthDate
     ) || undefined,
-    hijriBirthDate: firstString(
-      item.hijriBirthDate,
-      item.hijriDateOfBirth,
-      item.national?.hijriBirthDate,
-      item.national?.hijriDateOfBirth,
-      item.residence?.hijriBirthDate,
-      item.residence?.hijriDateOfBirth
-    )
-      ? Number(firstString(
-          item.hijriBirthDate,
-          item.hijriDateOfBirth,
-          item.national?.hijriBirthDate,
-          item.national?.hijriDateOfBirth,
-          item.residence?.hijriBirthDate,
-          item.residence?.hijriDateOfBirth
-        ))
+    hijriBirthDate: firstString(item.hijriBirthDate, item.national?.hijriBirthDate)
+      ? Number(firstString(item.hijriBirthDate, item.national?.hijriBirthDate))
       : undefined,
-    nationality: firstString(
-      item.nationality,
-      item.national?.nationality,
-      item.residence?.nationality,
-      item.visitor?.nationality,
-      item.gulf?.nationality
-    ) || undefined,
-    personAddress: item.address,
-    idCopyNumber: firstString(
-      item.idCopyNumber,
-      item.identityCopyNumber,
-      item.national?.idCopyNumber,
-      item.residence?.idCopyNumber,
-      item.visitor?.identityCopyNumber,
-      item.gulf?.identityCopyNumber
-    ) || undefined,
+    email: firstString(item.email, item.national?.email, item.residence?.email, item.visitor?.email, item.gulf?.email) || undefined,
+    passportNumber: item.passportNumber || item.visitor?.passportNumber || undefined,
+    nationality: firstString(item.nationality, item.visitor?.nationality, item.gulf?.nationality) || undefined,
+    nationalityCode: item.countryId,
+    licenseNumber: firstString(item.licenseNumber, item.national?.licenseNumber, item.residence?.licenseNumber, item.visitor?.licenseNumber, item.gulf?.licenseNumber) || "",
+    licenseExpiryDate: firstString(item.licenseExpiryDate, item.national?.licenseExpiryDate, item.residence?.licenseExpiryDate, item.visitor?.licenseExpiryDate, item.gulf?.licenseExpiryDate) || undefined,
+    idExpiryDate: firstString(item.idExpiryDate, item.identityExpiryDate, item.visitor?.identityExpiryDate, item.gulf?.identityExpiryDate) || undefined,
+    idCopyNumber: firstString(item.idCopyNumber, item.identityCopyNumber, item.visitor?.identityCopyNumber, item.gulf?.identityCopyNumber) || undefined,
+    licenseIssuePlace: firstString(item.licenseIssuePlace, item.national?.licenseIssuePlace, item.residence?.licenseIssuePlace, item.visitor?.licenseIssuePlace, item.gulf?.licenseIssuePlace) || undefined,
     borderNumber: item.borderNumber || item.visitor?.borderNumber || undefined,
-    licenseIssuePlace: firstString(
-      item.licenseIssuePlace,
-      item.national?.licenseIssuePlace,
-      item.residence?.licenseIssuePlace,
-      item.visitor?.licenseIssuePlace,
-      item.gulf?.licenseIssuePlace
-    ) || undefined,
-    licenseNumber: firstString(
-      item.licenseNumber,
-      item.national?.licenseNumber,
-      item.residence?.licenseNumber,
-      item.visitor?.licenseNumber,
-      item.gulf?.licenseNumber
-    ) || "",
-    licenseExpiryDate: firstString(
-      item.licenseExpiryDate,
-      item.national?.licenseExpiryDate,
-      item.residence?.licenseExpiryDate,
-      item.visitor?.licenseExpiryDate,
-      item.gulf?.licenseExpiryDate
-    ) || undefined,
-    contracts: item.contracts || 0,
-    rating: item.rating || 0,
-    kycStatus: normalizeKycStatus(item.verificationStatus),
-    yakeenStatus: item.yakeenStatus === 1 ? "verified" : item.yakeenStatus === 2 ? "pending" : "not_verified",
+    personAddress: item.address || "",
+    bookings: item.bookings || 0,
+    status: normalizeKycStatus(item.verificationStatus),
+    tajeerStatus: item.tajeerStatus === 1 ? "verified" : item.tajeerStatus === 2 ? "pending" : "not_verified",
+    lastBooking: item.lastBooking || null,
+    rating: item.rating ?? null,
     blacklisted: item.isBlacklisted || false,
     joinDate: (item.joinedAt || item.creationTime) ? new Date(item.joinedAt || item.creationTime).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     history: [],
-    debts: [],
   };
 }
 
-export default function CustomerDetailPage() {
+export default function DriverDetailPage() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const params = useParams();
@@ -178,9 +113,9 @@ export default function CustomerDetailPage() {
   const pathname = usePathname();
   const id = params.id as string;
 
-  const listHref = pathname?.startsWith("/employee/") ? "/employee/customer" : "/customers";
+  const listHref = pathname?.startsWith("/employee/") ? "/employee/drivers" : "/drivers";
 
-  const [client, setClient] = useState<ClientProfile | null>(null);
+  const [driver, setDriver] = useState<DriverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedContract, setExpandedContract] = useState<string | null>(null);
@@ -189,8 +124,6 @@ export default function CustomerDetailPage() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<EditableFields | null>(null);
   const [savedToast, setSavedToast] = useState(false);
-  const [showContracts, setShowContracts] = useState(true);
-  const [expandedDebts, setExpandedDebts] = useState<Record<number, boolean>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
@@ -199,37 +132,38 @@ export default function CustomerDetailPage() {
   const [isTogglingBlacklist, setIsTogglingBlacklist] = useState(false);
 
   async function handleDelete() {
-    if (!client) return;
+    if (!driver) return;
     try {
       setDeleting(true);
-      await customerService.delete(Number(client.id));
+      await driverService.delete(driver.id);
+      driverEvents.reload();
       setShowDeleteModal(false);
       router.push(listHref);
     } catch (err) {
-      console.error("Error deleting customer:", err);
-      alert(T("Failed to delete customer.", "فشل حذف العميل.", ar));
+      console.error("Error deleting driver:", err);
+      alert(T("Failed to delete driver.", "فشل حذف السائق.", ar));
       setDeleting(false);
     }
   }
 
   async function handleToggleBlacklist() {
-    if (!client) return;
+    if (!driver) return;
     try {
       setIsTogglingBlacklist(true);
       const isAdd = blacklistAction === "add";
       if (isAdd) {
-        await customerService.addToBlacklist(Number(client.id), { reason: blacklistReason });
+        await driverService.addToBlacklist(driver.id, { reason: blacklistReason });
       } else {
-        await customerService.removeFromBlacklist(Number(client.id));
+        await driverService.removeFromBlacklist(driver.id);
       }
-      setClient((prev) => prev ? { ...prev, blacklisted: isAdd } : prev);
-      customerEvents.reload();
+      setDriver((prev) => prev ? { ...prev, blacklisted: isAdd } : prev);
+      driverEvents.reload();
       setShowBlacklistModal(false);
       setBlacklistReason("");
       alert(
         T(
-          isAdd ? "Customer added to blacklist." : "Customer removed from blacklist.",
-          isAdd ? "تمت إضافة العميل إلى القائمة السوداء." : "تمت إزالة العميل من القائمة السوداء.",
+          isAdd ? "Driver added to blacklist." : "Driver removed from blacklist.",
+          isAdd ? "تمت إضافة السائق إلى القائمة السوداء." : "تمت إزالة السائق من القائمة السوداء.",
           ar
         )
       );
@@ -237,8 +171,8 @@ export default function CustomerDetailPage() {
       console.error("Error toggling blacklist status:", err);
       alert(
         T(
-          blacklistAction === "add" ? "Failed to add customer to blacklist." : "Failed to remove customer from blacklist.",
-          blacklistAction === "add" ? "فشل إضافة العميل إلى القائمة السوداء." : "فشل إزالة العميل من القائمة السوداء.",
+          blacklistAction === "add" ? "Failed to add driver to blacklist." : "Failed to remove driver from blacklist.",
+          blacklistAction === "add" ? "فشل إضافة السائق إلى القائمة السوداء." : "فشل إزالة السائق من القائمة السوداء.",
           ar
         )
       );
@@ -248,52 +182,49 @@ export default function CustomerDetailPage() {
   }
 
   useEffect(() => {
-    async function loadCustomer() {
+    async function loadDriver() {
       try {
         setLoading(true);
         setError(null);
-        const response = await customerService.getById(Number(id));
+        const response = await driverService.getById(id);
         const data = response?.data ?? response?.result ?? response;
-        const customerData = data?.data && typeof data.data === "object" && (data.data.id !== undefined || data.data.fullNameEn !== undefined) ? data.data : data;
-        console.log("[CustomerDetail] API response:", response);
-        console.log("[CustomerDetail] extracted customerData:", customerData);
-        const mapped = mapApiToClientProfile(customerData);
-        console.log("[CustomerDetail] mapped client:", mapped);
-        setClient(mapped);
-        setPhoneVerified(mapped.kycStatus === "verified");
-        setEmailVerified(mapped.kycStatus === "verified");
-      } catch (err: any) {
-        console.error("Error loading customer:", err);
-        setError(T("Failed to load customer details.", "فشل تحميل بيانات العميل.", ar));
+        const driverData = data?.data && typeof data.data === "object" && (data.data.id !== undefined || data.data.fullNameEn !== undefined) ? data.data : data;
+        const mapped = mapApiToDriverProfile(driverData);
+        setDriver(mapped);
+        setPhoneVerified(mapped.status === "verified");
+        setEmailVerified(mapped.status === "verified");
+      } catch (err) {
+        console.error("Error loading driver:", err);
+        setError(T("Failed to load driver details.", "فشل تحميل بيانات السائق.", ar));
         // Fallback to mock data if API fails during development
-        const mocked = CLIENTS.find((c) => c.id === id) ?? null;
+        const mocked = MOCK_DRIVERS.find((d) => d.id === id) ?? null;
         if (mocked) {
-          setClient(mocked);
-          setPhoneVerified(mocked.kycStatus === "verified");
-          setEmailVerified(mocked.kycStatus === "verified");
+          setDriver(mocked);
+          setPhoneVerified(mocked.status === "verified");
+          setEmailVerified(mocked.status === "verified");
         }
       } finally {
         setLoading(false);
       }
     }
 
-    loadCustomer();
+    loadDriver();
   }, [id, ar]);
 
   if (loading) {
     return (
       <div className="py-24 text-center flex flex-col items-center gap-3 text-mk-ink-400">
         <Loader2 size={32} className="animate-spin" />
-        <span className="mk-label">{T("Loading customer...", "جاري تحميل بيانات العميل...", ar)}</span>
+        <span className="mk-label">{T("Loading driver...", "جاري تحميل بيانات السائق...", ar)}</span>
       </div>
     );
   }
 
-  if (!client) {
+  if (!driver) {
     return (
       <div className="py-24 text-center">
         <div className="mk-display mb-3">🪪</div>
-        <div className="mk-body mb-2 text-mk-ink-900">{T("Customer not found", "العميل غير موجود", ar)}</div>
+        <div className="mk-body mb-2 text-mk-ink-900">{T("Driver not found", "السائق غير موجود", ar)}</div>
         {error && <div className="mk-caption text-mk-danger mb-3">{error}</div>}
         <Link href={listHref} className="mk-body-sm text-mk-blue-500 no-underline">{T("← Back", "→ العودة", ar)}</Link>
       </div>
@@ -301,24 +232,24 @@ export default function CustomerDetailPage() {
   }
 
   function startEditing() {
-    if (!client) return;
+    if (!driver) return;
     setDraft({
-      name: client.name,
-      nameAr: client.nameAr,
-      phone: client.phone,
-      email: client.email ?? "",
-      idType: client.idType,
-      idNumber: client.idNumber,
-      idExpiryDate: client.idExpiryDate ?? "",
-      birthDate: client.birthDate ?? "",
-      hijriBirthDate: client.hijriBirthDate,
-      nationality: client.nationality ?? "",
-      licenseNumber: client.licenseNumber,
-      licenseExpiryDate: client.licenseExpiryDate ?? "",
-      personAddress: client.personAddress ?? "",
-      idCopyNumber: client.idCopyNumber ?? "",
-      licenseIssuePlace: client.licenseIssuePlace ?? "",
-      borderNumber: client.borderNumber ?? "",
+      name: driver.name,
+      nameAr: driver.nameAr,
+      phone: driver.phone,
+      email: driver.email ?? "",
+      idType: driver.idType,
+      nationalId: driver.nationalId,
+      idExpiryDate: driver.idExpiryDate ?? "",
+      birthDate: driver.birthDate ?? "",
+      hijriBirthDate: driver.hijriBirthDate,
+      nationality: driver.nationality ?? "",
+      licenseNumber: driver.licenseNumber,
+      licenseExpiryDate: driver.licenseExpiryDate ?? "",
+      personAddress: driver.personAddress,
+      idCopyNumber: driver.idCopyNumber ?? "",
+      licenseIssuePlace: driver.licenseIssuePlace ?? "",
+      borderNumber: driver.borderNumber ?? "",
     });
     setEditing(true);
   }
@@ -329,7 +260,7 @@ export default function CustomerDetailPage() {
   }
 
   async function saveEditing() {
-    if (!draft || !client) return;
+    if (!draft || !driver) return;
     try {
       const isSaudi = draft.idType === "Saudi ID";
       const isIqama = draft.idType === "Iqama";
@@ -347,25 +278,30 @@ export default function CustomerDetailPage() {
 
       if (isSaudi) {
         updatePayload.national = {
-          beneficiaryIdNumber: draft.idNumber,
-          birthDate: draft.birthDate || undefined,
+          beneficiaryIdNumber: draft.nationalId,
           hijriBirthDate: draft.hijriBirthDate || undefined,
-          email: draft.email || undefined,
           isHijriBirthDate: !draft.birthDate,
+          email: draft.email || undefined,
+          licenseNumber: draft.licenseNumber || undefined,
+          licenseExpiryDate: draft.licenseExpiryDate || undefined,
+          licenseIssuePlace: draft.licenseIssuePlace || undefined,
         };
       } else if (isIqama) {
         updatePayload.residence = {
-          beneficiaryIdNumber: draft.idNumber,
+          beneficiaryIdNumber: draft.nationalId,
           birthDate: draft.birthDate || undefined,
-          email: draft.email || undefined,
           isHijriBirthDate: false,
+          email: draft.email || undefined,
+          licenseNumber: draft.licenseNumber || undefined,
+          licenseExpiryDate: draft.licenseExpiryDate || undefined,
+          licenseIssuePlace: draft.licenseIssuePlace || undefined,
         };
       } else if (isPassport) {
         updatePayload.visitor = {
           email: draft.email || undefined,
           birthDate: draft.birthDate || undefined,
           borderNumber: draft.borderNumber || undefined,
-          passportNumber: draft.idNumber,
+          passportNumber: draft.nationalId,
           licenseNumber: draft.licenseNumber || undefined,
           licenseExpiryDate: draft.licenseExpiryDate || undefined,
           licenseIssuePlace: draft.licenseIssuePlace || undefined,
@@ -377,7 +313,7 @@ export default function CustomerDetailPage() {
         updatePayload.gulf = {
           email: draft.email || undefined,
           birthDate: draft.birthDate || undefined,
-          beneficiaryIdNumber: draft.idNumber,
+          beneficiaryIdNumber: draft.nationalId,
           licenseNumber: draft.licenseNumber || undefined,
           licenseExpiryDate: draft.licenseExpiryDate || undefined,
           licenseIssuePlace: draft.licenseIssuePlace || undefined,
@@ -394,10 +330,10 @@ export default function CustomerDetailPage() {
         }
       });
 
-      await customerService.update(Number(client.id), updatePayload);
-      customerEvents.reload();
+      await driverService.update(driver.id, updatePayload);
+      driverEvents.reload();
 
-      setClient((prev) => prev && {
+      setDriver((prev) => prev && {
         ...prev,
         ...draft,
       });
@@ -406,8 +342,8 @@ export default function CustomerDetailPage() {
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2200);
     } catch (err) {
-      console.error("Error updating customer:", err);
-      alert(T("Failed to save customer. Please check the fields and try again.", "فشل حفظ بيانات العميل. يرجى التحقق من الحقول والمحاولة مرة أخرى.", ar));
+      console.error("Error updating driver:", err);
+      alert(T("Failed to save driver. Please check the fields and try again.", "فشل حفظ بيانات السائق. يرجى التحقق من الحقول والمحاولة مرة أخرى.", ar));
     }
   }
 
@@ -423,7 +359,7 @@ export default function CustomerDetailPage() {
 
     if (d.idType === "Saudi ID" || d.idType === "Iqama") {
       const fields: IdentityFieldDef[] = [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.idNumber, onChange: (v) => updateDraft("idNumber", v) },
+        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.nationalId, onChange: (v) => updateDraft("nationalId", v) },
         addressField,
       ];
       if (d.idType === "Saudi ID") {
@@ -462,9 +398,8 @@ export default function CustomerDetailPage() {
     }
     if (d.idType === "GCC ID") {
       return [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.idNumber, onChange: (v) => updateDraft("idNumber", v) },
+        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.nationalId, onChange: (v) => updateDraft("nationalId", v) },
         addressField,
-        { key: "birthDate", labelEn: "Date of Birth", labelAr: "تاريخ الميلاد", required: true, type: "date", value: d.birthDate ?? "", onChange: (v) => updateDraft("birthDate", v) },
         { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: d.licenseNumber, onChange: (v) => updateDraft("licenseNumber", v) },
         { key: "idExpiry", labelEn: "ID Expiry Date", labelAr: "تاريخ انتهاء الهوية", required: true, type: "date", value: d.idExpiryDate ?? "", onChange: (v) => updateDraft("idExpiryDate", v) },
         { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: d.licenseIssuePlace ?? "", onChange: (v) => updateDraft("licenseIssuePlace", v) },
@@ -477,7 +412,7 @@ export default function CustomerDetailPage() {
     return [
       addressField,
       { key: "borderNumber", labelEn: "Border No.", labelAr: "رقم الحدود", required: true, type: "text", value: d.borderNumber ?? "", onChange: (v) => updateDraft("borderNumber", v) },
-      { key: "passportNumber", labelEn: "Passport No.", labelAr: "رقم الجواز", required: true, type: "text", value: d.idNumber, onChange: (v) => updateDraft("idNumber", v) },
+      { key: "passportNumber", labelEn: "Passport No.", labelAr: "رقم الجواز", required: true, type: "text", value: d.nationalId, onChange: (v) => updateDraft("nationalId", v) },
       { key: "birthDate", labelEn: "Date of Birth", labelAr: "تاريخ الميلاد", required: true, type: "date", value: d.birthDate ?? "", onChange: (v) => updateDraft("birthDate", v) },
       { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: d.licenseNumber, onChange: (v) => updateDraft("licenseNumber", v) },
       { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: d.licenseExpiryDate ?? "", onChange: (v) => updateDraft("licenseExpiryDate", v) },
@@ -488,17 +423,14 @@ export default function CustomerDetailPage() {
     ];
   }
 
-  const canCreateContract = !client.blacklisted && client.kycStatus === "verified";
+  const history = driver.history ?? [];
+  const previousContracts = history.filter((h) => h.status !== "active" && h.status !== "pending");
+  const activeContracts = history.filter((h) => h.status === "active" || h.status === "pending");
 
-  const outstandingDebt = (client.debts ?? []).reduce((sum, d) => sum + (d.status !== "paid" ? d.amount : 0), 0);
-
-  const previousContracts = client.history.filter((h) => h.status !== "active" && h.status !== "pending");
-  const activeContracts = client.history.filter((h) => h.status === "active" || h.status === "pending");
-
-  const birthDateStr = client.hijriBirthDate
-    ? `${String(client.hijriBirthDate).slice(0, 4)}/${String(client.hijriBirthDate).slice(4, 6)}/${String(client.hijriBirthDate).slice(6, 8)} هـ`
-    : client.birthDate
-      ? `${client.birthDate} م`
+  const birthDateStr = driver.hijriBirthDate
+    ? `${String(driver.hijriBirthDate).slice(0, 4)}/${String(driver.hijriBirthDate).slice(4, 6)}/${String(driver.hijriBirthDate).slice(6, 8)} هـ`
+    : driver.birthDate
+      ? `${driver.birthDate} م`
       : T("Not provided", "غير مسجل", ar);
 
   const contactRows: [string, React.ReactNode, React.ReactNode][] = [
@@ -506,7 +438,7 @@ export default function CustomerDetailPage() {
       T("Mobile phone", "رقم الجوال", ar),
       <div key="phone-val" className="flex items-center gap-2">
         <span dir="ltr" className="inline-block whitespace-nowrap" style={{ unicodeBidi: "embed" }}>
-          {formatPhone(client.phone)}
+          {formatPhone(driver.phone)}
         </span>
         {phoneVerified && (
           <Badge variant="success" className="mk-overline py-1 px-2 leading-none shrink-0">
@@ -518,9 +450,9 @@ export default function CustomerDetailPage() {
     ],
     [
       T("Email", "البريد الإلكتروني", ar),
-      client.email ? (
+      driver.email ? (
         <div key="email-val" className="flex items-center gap-2">
-          <span>{client.email}</span>
+          <span>{driver.email}</span>
           {emailVerified && (
             <Badge variant="success" className="mk-overline py-1 px-2 leading-none shrink-0">
               {T("Verified", "تم التحقق", ar)}
@@ -534,25 +466,22 @@ export default function CustomerDetailPage() {
     ],
   ];
 
-  // Identity & License — includes the per-type fields (ID copy no., license issue
-  // place, border no.) only when the customer's ID type actually has them, mirroring
-  // the new-contract flow's identity form.
   const identityRows: [string, React.ReactNode, React.ReactNode][] = [
-    [T("Identity Type", "نوع الإثبات", ar), client.idType === "Passport" ? T("Visitor", "زائر", ar) : client.idType, <CreditCard key="t" size={13} className="text-mk-ink-400 shrink-0" />],
-    [T(client.idType === "Passport" ? "Passport No." : "Identity Number", client.idType === "Passport" ? "رقم الجواز" : "رقم الإثبات", ar), client.idNumber, <CreditCard key="n" size={13} className="text-mk-ink-400 shrink-0" />],
-    ...(client.idType === "Passport" ? [[T("Border No.", "رقم الحدود", ar), client.borderNumber || T("Not provided", "غير مسجل", ar), <CreditCard key="bn" size={13} className="text-mk-ink-400 shrink-0" />] as [string, React.ReactNode, React.ReactNode]] : []),
-    [T("ID Expiry Date", "انتهاء الهوية", ar), client.idExpiryDate || T("Not provided", "غير مسجل", ar), <Calendar key="ie" size={13} className="text-mk-ink-400 shrink-0" />],
+    [T("Identity Type", "نوع الإثبات", ar), driver.idType === "Passport" ? T("Visitor", "زائر", ar) : driver.idType, <CreditCard key="t" size={13} className="text-mk-ink-400 shrink-0" />],
+    [T(driver.idType === "Passport" ? "Passport No." : "Identity Number", driver.idType === "Passport" ? "رقم الجواز" : "رقم الإثبات", ar), driver.nationalId, <CreditCard key="n" size={13} className="text-mk-ink-400 shrink-0" />],
+    ...(driver.idType === "Passport" ? [[T("Border No.", "رقم الحدود", ar), driver.borderNumber || T("Not provided", "غير مسجل", ar), <CreditCard key="bn" size={13} className="text-mk-ink-400 shrink-0" />] as [string, React.ReactNode, React.ReactNode]] : []),
+    [T("ID Expiry Date", "انتهاء الهوية", ar), driver.idExpiryDate || T("Not provided", "غير مسجل", ar), <Calendar key="ie" size={13} className="text-mk-ink-400 shrink-0" />],
     [T("Date of Birth", "تاريخ الميلاد", ar), birthDateStr, <Calendar key="b" size={13} className="text-mk-ink-400 shrink-0" />],
-    [T("Nationality", "الجنسية", ar), client.nationality || T("Not provided", "غير مسجل", ar), <MapPin key="nat" size={13} className="text-mk-ink-400 shrink-0" />],
-    ...(client.idType === "GCC ID" || client.idType === "Passport" ? [[T("ID Copy No.", "رقم نسخة الهوية", ar), client.idCopyNumber || T("Not provided", "غير مسجل", ar), <CreditCard key="icn" size={13} className="text-mk-ink-400 shrink-0" />] as [string, React.ReactNode, React.ReactNode]] : []),
-    [T("Driving License", "رقم رخصة القيادة", ar), client.licenseNumber, <FileText key="l" size={13} className="text-mk-ink-400 shrink-0" />],
-    [T("License Expiry", "انتهاء الرخصة", ar), client.licenseExpiryDate || T("Not provided", "غير مسجل", ar), <Calendar key="le" size={13} className="text-mk-ink-400 shrink-0" />],
-    ...(client.idType === "GCC ID" || client.idType === "Passport" ? [[T("License Issue Place", "مكان إصدار الرخصة", ar), client.licenseIssuePlace || T("Not provided", "غير مسجل", ar), <MapPin key="lip" size={13} className="text-mk-ink-400 shrink-0" />] as [string, React.ReactNode, React.ReactNode]] : []),
+    [T("Nationality", "الجنسية", ar), driver.nationality || T("Not provided", "غير مسجل", ar), <MapPin key="nat" size={13} className="text-mk-ink-400 shrink-0" />],
+    ...(driver.idType === "GCC ID" || driver.idType === "Passport" ? [[T("ID Copy No.", "رقم نسخة الهوية", ar), driver.idCopyNumber || T("Not provided", "غير مسجل", ar), <CreditCard key="icn" size={13} className="text-mk-ink-400 shrink-0" />] as [string, React.ReactNode, React.ReactNode]] : []),
+    [T("Driving License", "رقم رخصة القيادة", ar), driver.licenseNumber, <FileText key="l" size={13} className="text-mk-ink-400 shrink-0" />],
+    [T("License Expiry", "انتهاء الرخصة", ar), driver.licenseExpiryDate || T("Not provided", "غير مسجل", ar), <Calendar key="le" size={13} className="text-mk-ink-400 shrink-0" />],
+    ...(driver.idType === "GCC ID" || driver.idType === "Passport" ? [[T("License Issue Place", "مكان إصدار الرخصة", ar), driver.licenseIssuePlace || T("Not provided", "غير مسجل", ar), <MapPin key="lip" size={13} className="text-mk-ink-400 shrink-0" />] as [string, React.ReactNode, React.ReactNode]] : []),
   ];
 
   const addressRows: [string, React.ReactNode, React.ReactNode][] = [
-    [T("Address", "العنوان الوطني", ar), client.personAddress || T("Not provided", "غير مسجل", ar), <MapPin key="a" size={13} className="text-mk-ink-400 shrink-0" />],
-    [T("Registration date", "تاريخ التسجيل", ar), client.joinDate, <Calendar key="j" size={13} className="text-mk-ink-400 shrink-0" />],
+    [T("Address", "العنوان الوطني", ar), driver.personAddress || T("Not provided", "غير مسجل", ar), <MapPin key="a" size={13} className="text-mk-ink-400 shrink-0" />],
+    [T("Registration date", "تاريخ التسجيل", ar), driver.joinDate, <Calendar key="j" size={13} className="text-mk-ink-400 shrink-0" />],
   ];
 
   return (
@@ -560,7 +489,7 @@ export default function CustomerDetailPage() {
       {/* Saved toast */}
       {savedToast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full text-white mk-label shadow-2xl flex items-center gap-2 bg-mk-midnight">
-          <Check size={14} /> {T("Customer profile saved", "تم حفظ بيانات العميل", ar)}
+          <Check size={14} /> {T("Driver profile saved", "تم حفظ بيانات السائق", ar)}
         </div>
       )}
 
@@ -569,38 +498,30 @@ export default function CustomerDetailPage() {
         <Link href={listHref} className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-[var(--shadow-card)] text-mk-ink-600 no-underline hover:bg-mk-ink-50 transition-colors">
           {ar ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </Link>
-        <span className="mk-body-sm text-mk-ink-500">{T("Back to Customers", "العودة إلى العملاء", ar)}</span>
-        <div className="flex-1" />
-        {canCreateContract && (
-          <Link
-            href={`/employee/new-contract?clientId=${client.id}`}
-            className="flex items-center gap-2 px-4 py-3 rounded-full mk-label text-white bg-mk-blue-500 no-underline shadow-[var(--shadow-glow-blue)]"
-          >
-            <FileSignature size={14} /> {T("Create contract", "إنشاء عقد", ar)}
-          </Link>
-        )}
+        <span className="mk-body-sm text-mk-ink-500">{T("Back to Drivers", "العودة إلى السائقين", ar)}</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: profile + verification */}
         <div className="rounded-xl p-6 mk-surface">
           <div className="flex items-center gap-3">
-            <Avatar name={ar ? client.nameAr : client.name} size="lg" className={client.blacklisted ? "grayscale opacity-50" : ""} />
+            <Avatar name={ar ? driver.nameAr : driver.name} size="lg" className={driver.blacklisted ? "grayscale opacity-50" : ""} />
             <div>
-              <div className="mk-body leading-tight text-mk-ink-900">{ar ? client.nameAr : client.name}</div>
+              <div className="mk-body leading-tight text-mk-ink-900">{ar ? driver.nameAr : driver.name}</div>
+              <p className="mk-caption font-mono mt-1 text-mk-ink-400">ID: {driver.id}</p>
               <div className="flex gap-2 mt-2 flex-wrap">
-                {client.blacklisted ? (
+                {driver.blacklisted ? (
                   <Badge variant="danger" dot>{T("Blacklisted", "قائمة سوداء", ar)}</Badge>
-                ) : client.kycStatus === "verified" ? (
+                ) : driver.status === "verified" ? (
                   <Badge variant="success" dot>{T("Verified", "موثّق", ar)}</Badge>
-                ) : client.kycStatus === "rejected" ? (
+                ) : driver.status === "rejected" ? (
                   <Badge variant="danger" dot>{T("Rejected", "مرفوض", ar)}</Badge>
                 ) : (
                   <Badge variant="warning" dot>{T("Awaiting Verification", "بانتظار التحقق", ar)}</Badge>
                 )}
-                {client.rating > 0 && (
+                {driver.rating != null && driver.rating > 0 && (
                   <span className="flex items-center gap-1 mk-caption text-mk-warning">
-                    <Star size={12} className="fill-current" /> {client.rating}
+                    <Star size={12} className="fill-current" /> {driver.rating}
                   </span>
                 )}
               </div>
@@ -609,13 +530,13 @@ export default function CustomerDetailPage() {
 
           {/* Profile attributes */}
           <div className="flex items-center justify-between mt-4 mb-2">
-            <span className="mk-overline uppercase tracking-wider text-mk-ink-500">{T("Profile details", "بيانات العميل", ar)}</span>
+            <span className="mk-overline uppercase tracking-wider text-mk-ink-500">{T("Profile details", "بيانات السائق", ar)}</span>
             {!editing ? (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" onClick={startEditing}>
                   <Pencil size={12} /> {T("Edit", "تعديل", ar)}
                 </Button>
-                {client.blacklisted ? (
+                {driver.blacklisted ? (
                   <Button variant="ghost" size="sm" className="text-mk-mint-600 hover:bg-mk-mint-600/10" onClick={() => { setBlacklistAction("remove"); setShowBlacklistModal(true); }}>
                     <CheckCircle2 size={12} /> {T("Remove from Blacklist", "إزالة من القائمة السوداء", ar)}
                   </Button>
@@ -742,7 +663,7 @@ export default function CustomerDetailPage() {
                   <label className="mk-overline text-mk-ink-500">{T("ID Type", "نوع الهوية", ar)}</label>
                   <Select
                     value={draft.idType}
-                    onChange={(e) => updateDraft("idType", e.target.value)}
+                    onChange={(e) => updateDraft("idType", e.target.value as DriverProfile["idType"])}
                   >
                     <option value="Saudi ID">{T("National ID", "هوية وطنية", ar)}</option>
                     <option value="Iqama">{T("Iqama", "إقامة", ar)}</option>
@@ -772,78 +693,54 @@ export default function CustomerDetailPage() {
               </div>
             </div>
           )}
-          {client.blacklisted && (
+          {driver.blacklisted && (
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-mk-ink-100 mk-caption text-mk-danger">
-              <Ban size={13} />{T("This customer is restricted from new bookings", "هذا العميل موقوف عن الحجوزات الجديدة", ar)}
+              <Ban size={13} />{T("This driver is restricted from new bookings", "هذا السائق موقوف عن الحجوزات الجديدة", ar)}
             </div>
-          )}        </div>
+          )}
+        </div>
 
         {/* Right: contract history */}
         <div className="flex flex-col gap-4">
-          <div className="rounded-xl p-6 mk-surface">
-            <div className="flex items-center justify-between mb-3">
-              <div className="mk-h4 text-mk-ink-900">{T("Contracts", "العقود", ar)}</div>
-              <span className="mk-overline uppercase text-mk-ink-400">{T(`${client.history.length} on file`, `${client.history.length} سجل`, ar)}</span>
-            </div>
-            {client.history.length === 0 ? (
-              <p className="mk-caption p-3 text-center bg-mk-ink-50 rounded-md text-mk-ink-400">
-                {T("No rental contracts on file yet", "لا يوجد عقود تأجير مسجلة بعد لهذا العميل", ar)}
-              </p>
-            ) : (
+          {activeContracts.length > 0 && (
+            <div className="rounded-xl p-6 mk-surface">
+              <div className="mk-h4 mb-3 text-mk-ink-900">{T("Active & Pending Contracts", "العقود النشطة والمعلقة", ar)}</div>
               <div className="flex flex-col gap-2">
-                {[...activeContracts, ...previousContracts].map((h) => (
+                {activeContracts.map((h) => (
                   <ContractRow
                     key={h.id}
                     h={h}
                     ar={ar}
                     expanded={expandedContract === h.id}
                     onToggle={() => setExpandedContract((cur) => (cur === h.id ? null : h.id))}
-                    repeatCount={client.history.filter((item) => item.car === h.car).length}
+                    repeatCount={history.filter((item) => item.car === h.car).length}
                   />
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* Claims & Debts */}
-          <div className="rounded-xl p-6 mk-surface flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="mk-h4 text-mk-ink-900">{T("Claims & Debts", "المطالبات والمديونيات", ar)}</div>
-              {outstandingDebt > 0 && (
-                <span className="mk-label text-mk-danger">
-                  {T(`${outstandingDebt} SAR outstanding`, `${outstandingDebt} ريال مستحق`, ar)}
-                </span>
-              )}
             </div>
-            {client.debts && client.debts.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {client.debts.map((d) => (
-                  <div key={d.id} className="p-3 rounded-xl border border-mk-ink-100 bg-mk-ink-50/50 flex flex-col gap-2 text-start">
-                    <div className="flex justify-between items-center mk-caption">
-                      <div className="flex flex-col gap-1">
-                        <span className="mk-label text-mk-ink-900">{ar ? d.typeAr : d.type}</span>
-                        <span className={`mk-overline ${d.office === "Maarkbh" ? "text-mk-blue-500" : "text-mk-warning"}`}>
-                          {ar ? d.officeAr : d.office}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="mk-label text-mk-blue-600">{d.amount} {T("SAR", "ريال", ar)}</span>
-                        <Badge variant={DEBT_BADGE[d.status].variant} className="mk-overline px-2 py-0">
-                          {T(...DEBT_BADGE[d.status].label, ar)}
-                        </Badge>
-                      </div>
-                    </div>
-                    <p className="mk-overline text-mk-ink-500 m-0 leading-relaxed">{ar ? d.notesAr : d.notes}</p>
-                    <div className="mk-overline text-mk-ink-400 text-end">
-                      {d.date}{d.dueDate ? ` · ${T("due", "الاستحقاق", ar)} ${d.dueDate}` : ""}{d.contractRef ? ` · ${d.contractRef}` : ""} · {d.id}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          )}
+
+          <div className="rounded-xl p-6 mk-surface">
+            <div className="flex items-center justify-between mb-3">
+              <div className="mk-h4 text-mk-ink-900">{T("Previous & Expired Contracts", "العقود السابقة والمنتهية", ar)}</div>
+              <span className="mk-overline uppercase text-mk-ink-400">{T(`${previousContracts.length} on file`, `${previousContracts.length} سجل`, ar)}</span>
+            </div>
+            {previousContracts.length === 0 ? (
+              <p className="mk-caption p-3 text-center bg-mk-ink-50 rounded-md text-mk-ink-400">
+                {T("No prior rental contracts on file yet", "لا يوجد عقود تأجير سابقة مسجلة بعد لهذا السائق", ar)}
+              </p>
             ) : (
-              <div className="flex items-center gap-2 p-3 rounded-xl border border-mk-success/20 bg-mk-success/5 mk-caption text-mk-success">
-                <CheckCircle2 size={13} className="shrink-0" />
-                <span>{T("No outstanding claims or debts on file", "لا توجد مطالبات أو مديونيات مستحقة", ar)}</span>
+              <div className="flex flex-col gap-2">
+                {previousContracts.map((h) => (
+                  <ContractRow
+                    key={h.id}
+                    h={h}
+                    ar={ar}
+                    expanded={expandedContract === h.id}
+                    onToggle={() => setExpandedContract((cur) => (cur === h.id ? null : h.id))}
+                    repeatCount={history.filter((item) => item.car === h.car).length}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -851,18 +748,18 @@ export default function CustomerDetailPage() {
       </div>
 
       {/* Blacklist / Remove from blacklist confirmation modal */}
-      <Modal open={showBlacklistModal} onClose={() => !isTogglingBlacklist && setShowBlacklistModal(false)} variant="centered" size="sm" title={blacklistAction === "remove" ? T("Remove from blacklist?", "إزالة من القائمة السوداء؟", ar) : T("Blacklist customer?", "إضافة إلى القائمة السوداء؟", ar)}>
+      <Modal open={showBlacklistModal} onClose={() => !isTogglingBlacklist && setShowBlacklistModal(false)} variant="centered" size="sm" title={blacklistAction === "remove" ? T("Remove from blacklist?", "إزالة من القائمة السوداء؟", ar) : T("Blacklist driver?", "إضافة السائق إلى القائمة السوداء؟", ar)}>
         <div className="flex flex-col gap-5 p-2">
           <p className="mk-body text-mk-ink-700">
             {blacklistAction === "remove"
               ? T(
-                  `Are you sure you want to remove ${client?.name || client?.nameAr || "this customer"} from the blacklist?`,
-                  `هل أنت متأكد من إزالة ${client?.nameAr || client?.name || "هذا العميل"} من القائمة السوداء؟`,
+                  `Are you sure you want to remove ${driver?.name || driver?.nameAr || "this driver"} from the blacklist?`,
+                  `هل أنت متأكد من إزالة ${driver?.nameAr || driver?.name || "هذا السائق"} من القائمة السوداء؟`,
                   ar
                 )
               : T(
-                  `Are you sure you want to blacklist ${client?.name || client?.nameAr || "this customer"}? They will be restricted from new bookings.`,
-                  `هل أنت متأكد من إضافة ${client?.nameAr || client?.name || "هذا العميل"} إلى القائمة السوداء؟ سيتم منعهم من الحجوزات الجديدة.`,
+                  `Are you sure you want to blacklist ${driver?.name || driver?.nameAr || "this driver"}? They will be restricted from new bookings.`,
+                  `هل أنت متأكد من إضافة ${driver?.nameAr || driver?.name || "هذا السائق"} إلى القائمة السوداء؟ سيتم منعهم من الحجوزات الجديدة.`,
                   ar
                 )}
           </p>
@@ -891,12 +788,12 @@ export default function CustomerDetailPage() {
       </Modal>
 
       {/* Delete confirmation modal */}
-      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} variant="centered" size="sm" title={T("Delete customer?", "حذف العميل؟", ar)}>
+      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} variant="centered" size="sm" title={T("Delete driver?", "حذف السائق؟", ar)}>
         <div className="flex flex-col gap-5 p-2">
           <p className="mk-body text-mk-ink-700">
             {T(
-              `Are you sure you want to delete ${client?.name || client?.nameAr || "this customer"}? This action cannot be undone.`,
-              `هل أنت متأكد من حذف ${client?.nameAr || client?.name || "هذا العميل"}؟ لا يمكن التراجع عن هذا الإجراء.`,
+              `Are you sure you want to delete ${driver?.name || driver?.nameAr || "this driver"}? This action cannot be undone.`,
+              `هل أنت متأكد من حذف ${driver?.nameAr || driver?.name || "هذا السائق"}؟ لا يمكن التراجع عن هذا الإجراء.`,
               ar
             )}
           </p>
@@ -947,9 +844,10 @@ function EditField({ label, value, onChange, type = "text", dir, mono, badge, is
   );
 }
 
-function ContractRow({ h, ar, expanded, onToggle, repeatCount = 0 }: { h: ClientContract; ar: boolean; expanded: boolean; onToggle: () => void; repeatCount?: number }) {
+function ContractRow({ h, ar, expanded, onToggle, repeatCount = 0 }: { h: { id: string; car: string; date: string; status: string; rate: number }; ar: boolean; expanded: boolean; onToggle: () => void; repeatCount?: number }) {
   const days = 3;
   const total = h.rate * days;
+  const badge = HISTORY_BADGE[h.status] ?? { variant: "neutral" as const, label: [h.status, h.status] as [string, string] };
   return (
     <div className="rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden transition-all duration-300">
       <button
@@ -970,9 +868,7 @@ function ContractRow({ h, ar, expanded, onToggle, repeatCount = 0 }: { h: Client
         <div className="flex items-center gap-3">
           <div className="text-end">
             <div className="mk-label text-mk-blue-600">{h.rate} {T("SAR/d", "ريال/ي", ar)}</div>
-            <Badge variant={HISTORY_BADGE[h.status].variant} className="mk-overline px-2 mt-1">
-              {T(...HISTORY_BADGE[h.status].label, ar)}
-            </Badge>
+            <Badge variant={badge.variant} className="mk-overline px-2 mt-1">{T(...badge.label, ar)}</Badge>
           </div>
           <ChevronDown size={15} className={`text-mk-ink-400 shrink-0 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} />
         </div>
@@ -992,7 +888,7 @@ function ContractRow({ h, ar, expanded, onToggle, repeatCount = 0 }: { h: Client
             <div className="flex justify-between"><span className="text-mk-ink-500">{T("Duration", "المدة", ar)}</span><strong className="text-mk-ink-900">{T(`${days} days`, `${days} أيام`, ar)}</strong></div>
             <div className="flex justify-between"><span className="text-mk-ink-500">{T("Daily rate", "السعر اليومي", ar)}</span><strong className="text-mk-ink-900">{h.rate} {T("SAR", "ريال", ar)}</strong></div>
             <div className="flex justify-between"><span className="text-mk-ink-500">{T("Total amount", "الإجمالي", ar)}</span><strong className="text-mk-blue-600">{total} {T("SAR", "ريال", ar)}</strong></div>
-            <div className="flex justify-between items-center pt-1"><span className="text-mk-ink-500">{T("Status", "الحالة", ar)}</span><Badge variant={HISTORY_BADGE[h.status].variant} className="mk-overline px-2">{T(...HISTORY_BADGE[h.status].label, ar)}</Badge></div>
+            <div className="flex justify-between items-center pt-1"><span className="text-mk-ink-500">{T("Status", "الحالة", ar)}</span><Badge variant={badge.variant} className="mk-overline px-2">{T(...badge.label, ar)}</Badge></div>
           </div>
         </div>
       </div>

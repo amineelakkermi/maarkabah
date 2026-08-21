@@ -443,3 +443,67 @@ export interface CustomerWarehouseReportRequest {
   fullNameAr?: string;
   fullNameEn?: string;
 }
+
+// ─── Additional Services ───────────────────────────────────────
+
+export enum AdditionalServiceBillingUnit {
+  Once = 1,
+  PerDay = 2,
+  PerKm = 3,
+}
+
+export interface AdditionalServiceDto {
+  id: number;
+  code?: string;
+  nameAr?: string;
+  nameEn?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  billingUnit?: AdditionalServiceBillingUnit;
+  unitPrice?: number;
+  sortOrder?: number;
+  iconKey?: string;
+  isActive?: boolean;
+  isSystem?: boolean;
+  isTenantWide?: boolean;
+  branchCount?: number;
+  branchIds?: number[];
+}
+
+export interface CreateAdditionalServiceCommand {
+  nameAr?: string;
+  nameEn?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  billingUnit?: AdditionalServiceBillingUnit;
+  unitPrice?: number;
+  sortOrder?: number;
+  iconKey?: string;
+  branchIds?: number[];
+}
+
+export interface UpdateAdditionalServiceRequest {
+  nameAr?: string;
+  nameEn?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  billingUnit?: AdditionalServiceBillingUnit;
+  unitPrice?: number;
+  sortOrder?: number;
+  iconKey?: string;
+  isActive?: boolean;
+  branchIds?: number[];
+}
+
+export interface AdditionalServiceSearchRequest {
+  search?: string;
+  isActive?: boolean;
+  billingUnit?: AdditionalServiceBillingUnit;
+  branchId?: number;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface AdditionalServicePickerRequest {
+  branchId?: number;
+}

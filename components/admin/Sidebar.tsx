@@ -5,12 +5,12 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Map, CalendarDays, Car,
   ShieldCheck, ClockAlert, Ban, Search, Globe,
-  BarChart3, Undo2, Tag, Users, Building, Shield,
+  BarChart3, Undo2, Tag, Users, Building, Shield, IdCard,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shared/SidebarShell";
-import { customerService, customerEvents } from "@/lib/api-services";
+import { customerService, customerEvents, driverService, driverEvents } from "@/lib/api-services";
 import { VerificationStatus } from "@/lib/api-types";
 
 export function Sidebar() {
@@ -19,12 +19,13 @@ export function Sidebar() {
   const { decodedToken } = useAuth();
   const ar = dir === "rtl";
   const [kycCount, setKycCount] = useState(0);
+  const [driverKycCount, setDriverKycCount] = useState(0);
 
   // SuperAdmin has no tenant claim; tenant users (owner or frontdesk) do.
   const hasTenant = !!(decodedToken?.tenant_id ?? decodedToken?.tenantId);
   const isSuperAdmin = !hasTenant;
 
-  const FRONTDESK_ROUTES = new Set(["/dashboard", "/bookings", "/fleet", "/kyc-queue", "/late-returns", "/branches", "/roles", "/customers/inquiry"]);
+  const FRONTDESK_ROUTES = new Set(["/dashboard", "/bookings", "/fleet", "/kyc-queue", "/late-returns", "/branches", "/roles", "/customers/inquiry", "/drivers", "/drivers-kyc-queue"]);
   const handleNavClick = () => setSidebarOpen(false);
 
   useEffect(() => {
@@ -35,14 +36,12 @@ export function Sidebar() {
           pageNumber: 1,
           pageSize: 1000,
         });
-        const items = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
-        const total =
-          response?.totalCount ??
-          response?.data?.totalCount ??
-          response?.total ??
-          response?.data?.total ??
-          (Array.isArray(items) ? items.length : 0);
-        setKycCount(total);
+        const rawItems = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
+        const items = Array.isArray(rawItems) ? rawItems : [];
+        const pending = items.filter((item: any) =>
+          !(item.isBlacklisted === true || item.blacklisted === true)
+        ).length;
+        setKycCount(pending);
       } catch (err) {
         console.error("Error loading KYC queue count:", err);
         setKycCount(0);
@@ -51,6 +50,31 @@ export function Sidebar() {
 
     loadKycCount();
     const unsubscribe = customerEvents.onReload(loadKycCount);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const loadDriverKycCount = async () => {
+      try {
+        const response = await driverService.search({
+          verificationStatus: VerificationStatus.Pending,
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        const rawItems = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
+        const items = Array.isArray(rawItems) ? rawItems : [];
+        const pending = items.filter((item: any) =>
+          !(item.isBlacklisted === true || item.blacklisted === true)
+        ).length;
+        setDriverKycCount(pending);
+      } catch (err) {
+        console.error("Error loading driver KYC queue count:", err);
+        setDriverKycCount(0);
+      }
+    };
+
+    loadDriverKycCount();
+    const unsubscribe = driverEvents.onReload(loadDriverKycCount);
     return () => unsubscribe();
   }, []);
 
@@ -74,7 +98,9 @@ export function Sidebar() {
       items: [
         { href: "/customers", icon: Users, label: "Client List", labelAr: "قائمة العملاء" },
         { href: "/customers/inquiry", icon: Search, label: "Inquiry", labelAr: "الاستعلام" },
+        { href: "/drivers", icon: IdCard, label: "Drivers", labelAr: "بيانات السائقين" },
         { href: "/kyc-queue", icon: ShieldCheck, label: "KYC Queue", labelAr: "مراجعة الهوية", badge: kycCount || undefined },
+        { href: "/drivers-kyc-queue", icon: ShieldCheck, label: "Driver KYC Queue", labelAr: "مراجعة هوية السائقين", badge: driverKycCount || undefined },
         { href: "/late-returns", icon: ClockAlert, label: "Late Returns", labelAr: "الإرجاع المتأخر", badge: 2 },
         { href: "/blacklist", icon: Ban, label: "Blacklist", labelAr: "القائمة السوداء" },
       ],

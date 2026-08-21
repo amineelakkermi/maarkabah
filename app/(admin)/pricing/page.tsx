@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, Gauge, Baby, Fuel, Wifi, MapPin, Compass, Accessibility, Pencil, Check } from "lucide-react";
 import { CARS } from "@/lib/data";
 import { useAdmin } from "@/contexts/AdminContext";
-import { Input, Button, Badge, Table, Th, Td } from "@/components/ui";
+import { Button, Badge, Table, Th, Td } from "@/components/ui";
+import AdditionalServicesSection from "@/components/shared/additional-services/AdditionalServicesSection";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -12,23 +12,6 @@ export default function PricingPage() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const pricingCars = CARS.filter((c) => c.status !== "draft").slice(0, 6);
-
-  const ADDON_DEFS = [
-    { k: "insurance", icon: ShieldCheck, nameEn: "Insurance · Comprehensive", nameAr: "تأمين · شامل", descEn: "Full coverage, zero liability", descAr: "تغطية كاملة بدون تحمل شخصي", defaultPrice: 1500, unitEn: "once", unitAr: "مرة واحدة", cls: "text-mk-mint-600" },
-    { k: "unlimited_km", icon: Gauge, nameEn: "Unlimited Kilometers", nameAr: "كيلومتر مفتوح", descEn: "No km cap for the rental period", descAr: "بدون حد للكيلومتر طوال الإيجار", defaultPrice: 85, unitEn: "day", unitAr: "يوم", cls: "text-mk-blue-500" },
-    { k: "child", icon: Baby, nameEn: "Child seat (0–2)", nameAr: "مقعد أطفال (٠–٢)", descEn: "Installed before pickup", descAr: "مركّب قبل التسليم", defaultPrice: 25, unitEn: "day", unitAr: "يوم", cls: "text-mk-violet-500" },
-    { k: "fuel", icon: Fuel, nameEn: "Fuel prepay (40 L)", nameAr: "وقود مسبق (٤٠ ل)", descEn: "Return empty, no penalty", descAr: "الإرجاع فارغ بلا غرامة", defaultPrice: 175, unitEn: "once", unitAr: "مرة واحدة", cls: "text-mk-warning" },
-    { k: "internet", icon: Wifi, nameEn: "Internet / Wi-Fi", nameAr: "خدمة الإنترنت", descEn: "High-speed 4G/5G portable router", descAr: "راوتر متنقل سريع 4G/5G", defaultPrice: 30, unitEn: "day", unitAr: "يوم", cls: "text-mk-blue-500" },
-    { k: "delivery", icon: MapPin, nameEn: "Car Delivery (per Km)", nameAr: "توصيل السيارة (بالكيلو)", descEn: "Priced by distance", descAr: "التوصيل للموقع بسعر لكل كم", defaultPrice: 5, unitEn: "km", unitAr: "كم", cls: "text-mk-violet-500" },
-    { k: "return_agent", icon: MapPin, nameEn: "Vehicle Pickup by Agent", nameAr: "استلام المركبة بواسطة مندوب", descEn: "Agent collects the vehicle from the customer's location", descAr: "مندوب يستلم المركبة من موقع العميل عند التسليم", defaultPrice: 75, unitEn: "once", unitAr: "مرة واحدة", cls: "text-mk-violet-500" },
-    { k: "navigation", icon: Compass, nameEn: "GPS Navigation System", nameAr: "نظام الملاحة GPS", descEn: "Dedicated offline GPS device", descAr: "جهاز خرائط وملاحة مستقل", defaultPrice: 40, unitEn: "day", unitAr: "يوم", cls: "text-mk-mint-600" },
-    { k: "special_needs", icon: Accessibility, nameEn: "Special Needs Amenities", nameAr: "وسائل لذوي الاحتياجات الخاصة", descEn: "Hand controls & specialized assistance", descAr: "تجهيزات خاصة وتسهيلات حركة", defaultPrice: 50, unitEn: "day", unitAr: "يوم", cls: "text-mk-warning" },
-  ] as const;
-
-  const [addonPrices, setAddonPrices] = useState<Record<string, number>>(
-    Object.fromEntries(ADDON_DEFS.map((a) => [a.k, a.defaultPrice]))
-  );
-  const [editingAddons, setEditingAddons] = useState(false);
 
   const CANCEL_POLICY = [
     { windowEn: "24h+ before pickup", windowAr: "قبل ٢٤س+ من التسليم", refundEn: "100%", refundAr: "١٠٠٪", cls: "text-mk-mint-600" },
@@ -119,73 +102,7 @@ export default function PricingPage() {
     </div>
 
     {/* Add-on services pricing table */}
-    <div>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="mk-h4 flex-1 text-mk-ink-900">
-          {T("Add-on services pricing", "جدول تسعير الخدمات الإضافية", ar)}
-        </div>
-        {editingAddons ? (
-          <Button variant="primary" size="sm" onClick={() => setEditingAddons(false)}>
-            <Check size={13} />{T("Done", "تم الحفظ", ar)}
-          </Button>
-        ) : (
-          <Button variant="outline" size="sm" onClick={() => setEditingAddons(true)}>
-            <Pencil size={13} />{T("Edit prices", "تعديل الأسعار", ar)}
-          </Button>
-        )}
-      </div>
-      <div className="rounded-xl overflow-hidden mk-surface">
-        <Table>
-          <thead>
-            <tr>
-              {[
-                T("Service", "الخدمة", ar),
-                T("Description", "الوصف", ar),
-                T("Unit", "الوحدة", ar),
-                T("Price", "السعر", ar),
-              ].map((h, i) => <Th key={i}>{h}</Th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {ADDON_DEFS.map((a) => (
-              <tr key={a.k} className="transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50">
-                <Td>
-                  <div className="flex items-center gap-3">
-                    <a.icon size={16} className={`${a.cls} shrink-0`} />
-                    <span className="mk-label text-mk-ink-900">{ar ? a.nameAr : a.nameEn}</span>
-                  </div>
-                </Td>
-                <Td className="mk-caption text-mk-ink-500">{ar ? a.descAr : a.descEn}</Td>
-                <Td>
-                  <Badge variant="neutral" className="normal-case tracking-normal">
-                    {ar ? a.unitAr : `/ ${a.unitEn}`}
-                  </Badge>
-                </Td>
-                <Td>
-                  {editingAddons ? (
-                    <div className="max-w-[140px]">
-                      <Input
-                        type="number"
-                        min={0}
-                        value={addonPrices[a.k]}
-                        onChange={(e) =>
-                          setAddonPrices((prev) => ({ ...prev, [a.k]: Math.max(0, Number(e.target.value) || 0) }))
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <span className="mk-body-sm text-mk-ink-900">{addonPrices[a.k].toLocaleString()}</span>
-                      <span className="mk-caption ms-1 text-mk-ink-500 uppercase-none normal-case tracking-normal">{T("SAR", "ريال", ar)}</span>
-                    </>
-                  )}
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </div>
-    </div>
+    <AdditionalServicesSection />
     </div>
   );
 }

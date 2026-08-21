@@ -2,9 +2,9 @@
 
 import DriverListPage from "@/components/shared/drivers/DriverListPage";
 
-export default function EmployeeDriversListPage() {
+export default function AdminDriversListPage() {
   const driverDetailPath = (id: string | number | null | undefined) =>
-    `/employee/drivers/${id ?? ""}`;
+    `/drivers/${id ?? ""}`;
 
   return <DriverListPage driverDetailPath={driverDetailPath} />;
 }

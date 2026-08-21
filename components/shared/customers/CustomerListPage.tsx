@@ -92,6 +92,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
       setIsLoading(true);
       setError(null);
       const response = await customerService.search({ pageNumber: 1, pageSize: 100 });
+      console.log("[CustomerList] raw response:", response);
 
       // Transform API response to ClientProfile format
       const transformedClients = response.items?.map((item: any) => {
@@ -104,7 +105,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
           phone: item.phoneNumber || "",
           email: item.email,
           idType,
-          idNumber: item.beneficiaryIdNumber || item.visitor?.passportNumber || item.visitor?.idNumber || "",
+          idNumber: item.beneficiaryIdNumber || item.passportNumber || item.visitor?.passportNumber || item.visitor?.idNumber || item.borderNumber || item.visitor?.borderNumber || item.identityCopyNumber || item.visitor?.identityCopyNumber || item.idCopyNumber || "",
           idExpiryDate: item.idExpiryDate || item.identityExpiryDate || item.national?.identityExpiryDate || item.residence?.identityExpiryDate || item.visitor?.identityExpiryDate || item.gulf?.identityExpiryDate,
           birthDate: item.birthDate || item.national?.birthDate || item.residence?.birthDate || item.visitor?.birthDate || item.gulf?.birthDate,
           hijriBirthDate: item.national?.hijriBirthDate ?? item.residence?.hijriBirthDate,
@@ -112,7 +113,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
           personAddress: item.address,
           idCopyNumber: item.idCopyNumber || item.identityCopyNumber || item.national?.idCopyNumber || item.residence?.idCopyNumber || item.visitor?.identityCopyNumber || item.gulf?.identityCopyNumber,
           licenseIssuePlace: item.licenseIssuePlace || item.national?.licenseIssuePlace || item.residence?.licenseIssuePlace || item.visitor?.licenseIssuePlace || item.gulf?.licenseIssuePlace,
-          borderNumber: item.visitor?.borderNumber,
+          borderNumber: item.borderNumber || item.visitor?.borderNumber,
           licenseNumber: item.licenseNumber || item.national?.licenseNumber || item.residence?.licenseNumber || item.visitor?.licenseNumber || item.gulf?.licenseNumber || "",
           licenseExpiryDate: item.licenseExpiryDate || item.national?.licenseExpiryDate || item.residence?.licenseExpiryDate || item.visitor?.licenseExpiryDate || item.gulf?.licenseExpiryDate,
           contracts: item.contracts || 0,
