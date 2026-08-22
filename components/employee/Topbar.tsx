@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { TopbarShell } from "@/components/shared/TopbarShell";
-import { SidebarRoleSwitcher } from "@/components/shared/SidebarShell";
 import { useAdmin } from "@/contexts/AdminContext";
 
 const PAGE_META: Record<string, { en: string; ar: string; sub?: string; subAr?: string }> = {
@@ -20,7 +19,6 @@ const PAGE_META: Record<string, { en: string; ar: string; sub?: string; subAr?: 
 export function EmployeeTopbar() {
   const { dir, isDark, toggleDark, setSidebarOpen } = useAdmin();
   const path = usePathname();
-  const router = useRouter();
   const ar = dir === "rtl";
   const isContractDetail = path.startsWith("/employee/contracts/") && path !== "/employee/contracts";
   const contractId = isContractDetail ? path.split("/").pop() : null;
@@ -52,17 +50,7 @@ export function EmployeeTopbar() {
           )}
         </>
       }
-      trailing={
-        <SidebarRoleSwitcher
-          ar={ar}
-          activeIsFirst={false}
-          firstLabelAr="مالك"
-          firstLabelEn="Owner"
-          secondLabelAr="موظف"
-          secondLabelEn="Front desk"
-          onSelectOther={() => router.push("/dashboard")}
-        />
-      }
+      trailing={undefined}
     />
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProvider } from "@/contexts/UserContext";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { UIProvider } from "@/contexts/UIContext";
@@ -23,15 +24,17 @@ export default function RootLayout({
       <body className="min-h-full">
         <AuthProvider>
           <UserProvider>
-            <ThemeProvider>
-              <LocaleProvider>
-                <UIProvider>
-                  <ToastProvider>
-                    {children}
-                  </ToastProvider>
-                </UIProvider>
-              </LocaleProvider>
-            </ThemeProvider>
+            <PermissionsProvider>
+              <ThemeProvider>
+                <LocaleProvider>
+                  <UIProvider>
+                    <ToastProvider>
+                      {children}
+                    </ToastProvider>
+                  </UIProvider>
+                </LocaleProvider>
+              </ThemeProvider>
+            </PermissionsProvider>
           </UserProvider>
         </AuthProvider>
       </body>

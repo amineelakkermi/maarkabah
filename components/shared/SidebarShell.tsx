@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { useState, useRef, useEffect } from "react";
-import { X, ChevronDown, Check, LogOut, PanelLeft } from "lucide-react";
+import { X, LogOut, PanelLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui";
@@ -193,82 +193,6 @@ export function SidebarNavLink({ href, icon: Icon, label, labelAr, ar, active, d
         document.body
       )}
     </>
-  );
-}
-
-/** Current-role control — a trigger showing the active role that opens a
- * small dropdown to switch to the other one. Used standalone (e.g. in a
- * Topbar), not tied to the sidebar despite the name. */
-export function SidebarRoleSwitcher({
-  ar,
-  activeIsFirst,
-  firstLabelAr,
-  firstLabelEn,
-  secondLabelAr,
-  secondLabelEn,
-  onSelectOther,
-}: {
-  ar: boolean;
-  activeIsFirst: boolean;
-  firstLabelAr: string;
-  firstLabelEn: string;
-  secondLabelAr: string;
-  secondLabelEn: string;
-  onSelectOther: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
-  const options = [
-    { isFirst: true, labelAr: firstLabelAr, labelEn: firstLabelEn },
-    { isFirst: false, labelAr: secondLabelAr, labelEn: secondLabelEn },
-  ];
-  const activeLabel = activeIsFirst ? (ar ? firstLabelAr : firstLabelEn) : (ar ? secondLabelAr : secondLabelEn);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((s) => !s)}
-        className={`flex items-center gap-2 h-9 ps-3.5 pe-2.5 rounded-full mk-label border-0 cursor-pointer transition-colors whitespace-nowrap ${open ? "bg-mk-blue-100 text-mk-blue-700" : "bg-mk-ink-50 text-mk-ink-700 hover:bg-mk-ink-100"
-          }`}
-      >
-        {activeLabel}
-        <ChevronDown size={14} className={`shrink-0 transition-transform duration-[var(--duration-fast)] ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div
-          className="absolute z-50 w-[180px] mk-surface rounded-[14px] overflow-hidden py-1 mk-shadow-menu"
-          style={{ top: "calc(100% + 6px)", insetInlineEnd: 0 }}
-        >
-          {options.map((opt) => {
-            const active = opt.isFirst === activeIsFirst;
-            return (
-              <button
-                key={opt.isFirst ? "first" : "second"}
-                type="button"
-                onClick={() => { setOpen(false); if (!active) onSelectOther(); }}
-                className={`w-full flex items-center justify-between gap-2.5 px-4 py-[9px] mk-label-muted text-start border-0 bg-transparent cursor-pointer transition-colors ${active ? "text-mk-blue-600 font-semibold" : "text-mk-ink-800 hover:bg-mk-ink-50"
-                  }`}
-              >
-                {ar ? opt.labelAr : opt.labelEn}
-                {active && <Check size={14} className="shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
   );
 }
 

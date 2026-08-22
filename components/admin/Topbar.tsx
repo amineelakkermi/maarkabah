@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { TopbarShell } from "@/components/shared/TopbarShell";
-import { SidebarRoleSwitcher } from "@/components/shared/SidebarShell";
 import { useAdmin } from "@/contexts/AdminContext";
 
 const PAGE_META: Record<string, { en: string; ar: string; crumbEn?: string; crumbAr?: string }> = {
@@ -24,7 +23,6 @@ const PAGE_META: Record<string, { en: string; ar: string; crumbEn?: string; crum
 export function Topbar() {
   const { isDark, toggleDark, dir, setSidebarOpen } = useAdmin();
   const path = usePathname();
-  const router = useRouter();
   const ar = dir === "rtl";
   const meta = PAGE_META[path] ?? { en: "Maarkbh", ar: "مركبة" };
 
@@ -41,17 +39,6 @@ export function Topbar() {
           )}
           <h1 className="mk-h2 leading-none text-mk-ink-900 tracking-tight truncate">{ar ? meta.ar : meta.en}</h1>
         </>
-      }
-      trailing={
-        <SidebarRoleSwitcher
-          ar={ar}
-          activeIsFirst
-          firstLabelAr="مالك"
-          firstLabelEn="Owner"
-          secondLabelAr="موظف"
-          secondLabelEn="Front desk"
-          onSelectOther={() => router.push("/employee/today")}
-        />
       }
     />
   );

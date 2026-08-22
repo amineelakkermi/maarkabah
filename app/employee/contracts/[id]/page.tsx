@@ -569,7 +569,7 @@ function PricingDetailsCard({
 export default function ContractDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const { dir, role } = useAdmin();
+  const { dir } = useAdmin();
   const ar = dir === "rtl";
 
   const [showPreview, setShowPreview] = useState(false);
@@ -610,7 +610,7 @@ export default function ContractDetailPage() {
 
   const canHandOver = contract.status === "pending";
   const canReturn   = contract.status === "active" || contract.status === "late";
-  const canCancel   = role === "owner";
+  const canCancel = false;
 
   return (
     <div dir={ar ? "rtl" : "ltr"}>
@@ -866,7 +866,7 @@ export default function ContractDetailPage() {
             days={ext.days}
             deposit={ext.deposit}
             payment={ext.payment}
-            role={role}
+            role="frontdesk"
             ar={ar}
           />
         </div>

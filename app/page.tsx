@@ -5,14 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUser, AdminRole } from "@/contexts/UserContext";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Input, Button, Modal, IconButton } from "@/components/ui";
 import { accountService } from "@/lib/api-services";
 import {
   Palette, User, Lock, Eye, EyeOff, Sun, Moon, Languages,
   Users, FileCheck, ChevronRight, ChevronLeft, Sparkles, CheckCircle2, BookOpen, Headphones,
-  MapPinned, Gauge, Repeat2, LayoutDashboard, UserCheck as UserCheckIcon, X, Loader2, AlertCircle
+  MapPinned, Gauge, Repeat2, X, Loader2, AlertCircle
 } from "lucide-react";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -107,11 +106,9 @@ const ONBOARDING_STEPS = [
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoggedIn, isLoading, logout } = useAuth();
-  const { setRole } = useUser();
   const { dir, toggleDir, isDark, toggleDark } = useAdmin();
   const ar = dir === "rtl";
 
-  const [step, setStep] = useState<"login" | "portal">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -131,9 +128,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      setStep("portal");
+      router.push("/dashboard");
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, router]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -154,7 +151,7 @@ export default function LoginPage() {
 
     try {
       await login(username.trim(), password);
-      setStep("portal");
+      router.push("/dashboard");
     } catch (err) {
       let errorMessage = T("Login failed", "فشل تسجيل الدخول", ar);
       if (err instanceof Error) {
@@ -179,14 +176,8 @@ export default function LoginPage() {
     setError(null);
   }
 
-  const handleRoleSelect = (role: AdminRole) => {
-    setRole(role);
-    router.push(role === "owner" ? "/dashboard" : "/employee/today");
-  };
-
   const handleLogout = () => {
     logout();
-    setStep("login");
     setUsername("");
     setPassword("");
     setError(null);
@@ -404,8 +395,7 @@ export default function LoginPage() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6">
-          {step === "login" ? (
-            <form onSubmit={handleSubmit} className="w-full max-w-[380px] flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="w-full max-w-[380px] flex flex-col gap-5">
               <div className="mb-4">
                 <h2 className="mk-h3 text-mk-ink-900 mb-1">{T("Sign In", "تسجيل الدخول", ar)}</h2>
                 <p className="mk-body-sm text-mk-ink-500 leading-relaxed">
@@ -490,72 +480,6 @@ export default function LoginPage() {
                 {T("screen — including password resets.", "— بما في ذلك إعادة تعيين كلمة المرور.", ar)}
               </p>
             </form>
-          ) : (
-            <div className="w-full max-w-[580px] mx-auto animate-[fi_0.25s_ease-out] text-center">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-mk-success/10 border border-mk-success/20 text-mk-success mk-caption mb-3">
-                <CheckCircle2 size={13} />
-                <span>{T("Authenticated successfully", "تم التحقق بنجاح", ar)}</span>
-              </span>
-              <h1 className="mk-h1 text-mk-ink-900 mb-1 tracking-tight">
-                {T("Welcome back", "أهلاً بك مجدداً", ar)} 👋
-              </h1>
-              <p className="text-mk-ink-500 mk-body-sm">
-                {T("Choose the portal you want to open.", "اختر البوابة التي ترغب في فتحها.", ar)}
-              </p>
-
-              <div className="grid md:grid-cols-2 gap-4 mt-6">
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect("owner")}
-                  className="group text-start bg-mk-ink-50 hover:bg-mk-blue-50 border border-mk-ink-100 hover:border-mk-blue-300 rounded-xl p-6 transition-all duration-[220ms] flex flex-col justify-between min-h-[220px] shadow-sm hover:-translate-y-1 hover:shadow-mk-blue-500/10"
-                >
-                  <div>
-                    <div className="w-12 h-12 rounded-md bg-mk-blue-500/10 text-mk-blue-600 border border-mk-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <LayoutDashboard size={22} />
-                    </div>
-                    <div className="mk-h4 text-mk-ink-900 mb-2">{T("Admin Dashboard", "لوحة الإدارة", ar)}</div>
-                    <p className="text-mk-ink-500 mk-caption leading-relaxed">
-                      {T("Owner and manager portal for fleet, branches, reports and user management.", "بوابة المالك والمدير لإدارة الأسطول والفروع والتقارين والمستخدمين.", ar)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-mk-ink-100">
-                    <span className="mk-overline tracking-wider text-mk-blue-500 uppercase">{T("Enter as owner", "دخول كمالك", ar)}</span>
-                    <ChevronRight size={16} className="text-mk-ink-400" />
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect("frontdesk")}
-                  className="group text-start bg-mk-ink-50 hover:bg-mk-mint-50 border border-mk-ink-100 hover:border-mk-mint-300 rounded-xl p-6 transition-all duration-[220ms] flex flex-col justify-between min-h-[220px] shadow-sm hover:-translate-y-1 hover:shadow-mk-mint-500/10"
-                >
-                  <div>
-                    <div className="w-12 h-12 rounded-md bg-mk-mint-500/10 text-mk-mint-600 border border-mk-mint-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <UserCheckIcon size={22} />
-                    </div>
-                    <div className="mk-h4 text-mk-ink-900 mb-2">{T("Employee Desk", "مكتب الموظف", ar)}</div>
-                    <p className="text-mk-ink-500 mk-caption leading-relaxed">
-                      {T("Front-desk employee portal for contracts, customers, KYC and pickups/returns.", "بوابة موظف الاستقبال للعقود والعملاء والتحقق والاستلام والتسليم.", ar)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-mk-ink-100">
-                    <span className="mk-overline tracking-wider text-mk-mint-600 uppercase">{T("Enter as employee", "دخول كموظف", ar)}</span>
-                    <ChevronRight size={16} className="text-mk-ink-400" />
-                  </div>
-                </button>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 mt-8">
-                <Button type="button" variant="outline" size="sm" onClick={() => setShowChangePassword(true)}>
-                  <Lock size={14} />
-                  {T("Change password", "تغيير كلمة المرور", ar)}
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={handleLogout}>
-                  {T("Logout", "تسجيل خروج", ar)}
-                </Button>
-              </div>
-            </div>
-          )}
         </main>
       </div>
 

@@ -2,13 +2,12 @@
 
 import { useContext } from "react";
 import { useAuth } from "./AuthContext";
-import { useUser, AdminRole } from "./UserContext";
+import { useUser } from "./UserContext";
 import { useTheme } from "./ThemeContext";
 import { useLocale } from "./LocaleContext";
 import { useUI } from "./UIContext";
 
-// Re-export types for backward compatibility
-export type { AdminRole } from "./UserContext";
+// Backward compatibility types
 export type { UserProfile } from "./UserContext";
 
 // Backward compatibility hook that aggregates all contexts
@@ -23,17 +22,13 @@ export function useAdmin() {
     // Auth
     isLoggedIn: auth.isLoggedIn,
     isLoading: auth.isLoading,
+    isInitialized: auth.isInitialized,
     authError: auth.authError,
-    login: async (username: string, password: string, role: AdminRole) => {
-      await auth.login(username, password);
-      user.setRole(role);
-    },
+    login: auth.login,
     logout: auth.logout,
 
     // User
     currentUser: user.currentUser,
-    role: user.role,
-    setRole: user.setRole,
 
     // Theme
     isDark: theme.isDark,

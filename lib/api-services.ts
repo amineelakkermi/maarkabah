@@ -1063,6 +1063,20 @@ export const tenantRoleService = {
   },
 };
 
+// ─── Tenant Context Service ───────────────────────────────────────
+
+export const tenantContextService = {
+  /**
+   * Get current tenant context and permissions
+   * GET /api/tenant/context
+   */
+  async getContext(): Promise<any> {
+    return apiClient.request('/tenant/context', {
+      method: 'GET',
+    });
+  },
+};
+
 // ─── Customer Cross-Tab Sync ───────────────────────────────────
 
 const RELOAD_KEY = 'mk-customers-reload';
