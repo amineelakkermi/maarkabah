@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { Topbar } from "@/components/admin/Topbar";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { RoutePermissionGuard } from "@/components/shared/RoutePermissionGuard";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen, setSidebarOpen } = useAdmin();
@@ -43,7 +44,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <div className="min-w-0 p-4 pt-0 lg:p-0">
         <Topbar />
-        <main>{children}</main>
+        <main>
+          <RoutePermissionGuard>{children}</RoutePermissionGuard>
+        </main>
       </div>
     </div>
   );

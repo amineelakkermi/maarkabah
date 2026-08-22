@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { useAdmin } from "@/contexts/AdminContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shared/SidebarShell";
 import { customerService, customerEvents, driverService, driverEvents } from "@/lib/api-services";
@@ -14,21 +13,14 @@ import { Permission } from "@/lib/permissions";
 export function Sidebar() {
   const path = usePathname();
   const { dir, toggleDir, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout } = useAdmin();
-  const { decodedToken } = useAuth();
-  const { permissions, hasPermission } = usePermissions();
+  const { permissions, hasPermission, isSuperAdmin } = usePermissions();
   const ar = dir === "rtl";
 
   const [kycCount, setKycCount] = useState(0);
   const [driverKycCount, setDriverKycCount] = useState(0);
 
-  // SuperAdmin has no tenant claim; tenant users (owner or employee) do.
-  const isSuperAdmin = !(decodedToken?.tenant_id ?? decodedToken?.tenantId);
-
   const visibleSections = useMemo(() => {
-    const sections = filterNavSections(ADMIN_NAV_SECTIONS, (req) => {
-      if (req === "superadmin") return isSuperAdmin;
-      return hasPermission(req);
-    });
+    const sections = filterNavSections(ADMIN_NAV_SECTIONS, (req) => hasPermission(req));
 
     // Attach live badges to the filtered KYC links.
     return sections.map((section) => ({
@@ -39,10 +31,10 @@ export function Sidebar() {
         return item;
       }),
     }));
-  }, [permissions, kycCount, driverKycCount, isSuperAdmin, hasPermission]);
+  }, [permissions, kycCount, driverKycCount, hasPermission]);
 
   useEffect(() => {
-    if (!hasPermission(Permission.Customers.View)) {
+    if (isSuperAdmin || !hasPermission(Permission.Customers.View)) {
       setKycCount(0);
       return;
     }
@@ -69,10 +61,10 @@ export function Sidebar() {
     loadKycCount();
     const unsubscribe = customerEvents.onReload(loadKycCount);
     return () => unsubscribe();
-  }, [hasPermission]);
+  }, [hasPermission, isSuperAdmin]);
 
   useEffect(() => {
-    if (!hasPermission(Permission.Drivers.View)) {
+    if (isSuperAdmin || !hasPermission(Permission.Drivers.View)) {
       setDriverKycCount(0);
       return;
     }
@@ -99,7 +91,7 @@ export function Sidebar() {
     loadDriverKycCount();
     const unsubscribe = driverEvents.onReload(loadDriverKycCount);
     return () => unsubscribe();
-  }, [hasPermission]);
+  }, [hasPermission, isSuperAdmin]);
 
   const handleNavClick = () => setSidebarOpen(false);
 

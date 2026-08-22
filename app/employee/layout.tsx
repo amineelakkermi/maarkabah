@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/contexts/AdminContext";
 import { EmployeeSidebar } from "@/components/employee/Sidebar";
 import { EmployeeTopbar } from "@/components/employee/Topbar";
+import { RoutePermissionGuard } from "@/components/shared/RoutePermissionGuard";
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, isInitialized } = useAuth();
@@ -45,7 +46,9 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
 
       <div className="min-w-0 p-4 pt-0 lg:p-0">
         <EmployeeTopbar />
-        <main>{children}</main>
+        <main>
+          <RoutePermissionGuard>{children}</RoutePermissionGuard>
+        </main>
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ interface PermissionsContextValue {
   tenantContext: TenantContextData | null;
   isLoading: boolean;
   error: string | null;
+  isSuperAdmin: boolean;
   hasPermission: (requirement: PermissionRequirement) => boolean;
   hasAnyPermission: (...requirements: PermissionRequirement[]) => boolean;
   hasAllPermissions: (...requirements: PermissionRequirement[]) => boolean;
@@ -31,6 +32,7 @@ const PermissionsContext = createContext<PermissionsContextValue>({
   tenantContext: null,
   isLoading: true,
   error: null,
+  isSuperAdmin: false,
   hasPermission: () => false,
   hasAnyPermission: () => false,
   hasAllPermissions: () => false,
@@ -38,11 +40,17 @@ const PermissionsContext = createContext<PermissionsContextValue>({
 });
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, decodedToken } = useAuth();
   const [permissions, setPermissions] = useState<string[]>([]);
   const [tenantContext, setTenantContext] = useState<TenantContextData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // SuperAdmins have no tenant claim and should bypass permission checks entirely.
+  const isSuperAdmin = useMemo(
+    () => !!(decodedToken && !(decodedToken.tenant_id ?? decodedToken.tenantId)),
+    [decodedToken]
+  );
 
   const load = async () => {
     try {
@@ -62,28 +70,45 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (isLoggedIn) {
-      load();
-    } else {
+    if (!isLoggedIn) {
       setPermissions([]);
       setTenantContext(null);
       setIsLoading(false);
       setError(null);
+      return;
     }
-  }, [isLoggedIn]);
 
-  const value = useMemo(() => ({
-    permissions,
-    tenantContext,
-    isLoading,
-    error,
-    hasPermission: (requirement: PermissionRequirement) => checkPermission(permissions, requirement),
-    hasAnyPermission: (...requirements: PermissionRequirement[]) =>
-      requirements.some((r) => checkPermission(permissions, r)),
-    hasAllPermissions: (...requirements: PermissionRequirement[]) =>
-      requirements.every((r) => checkPermission(permissions, r)),
-    reload: load,
-  }), [permissions, tenantContext, isLoading, error]);
+    // SuperAdmins have no tenant, so /api/tenant/context does not apply.
+    // They bypass permission checks entirely.
+    if (isSuperAdmin) {
+      setPermissions([]);
+      setTenantContext(null);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    load();
+  }, [isLoggedIn, isSuperAdmin]);
+
+  const value = useMemo(() => {
+    const hasPermission = (requirement: PermissionRequirement) =>
+      isSuperAdmin || checkPermission(permissions, requirement);
+
+    return {
+      permissions,
+      tenantContext,
+      isLoading,
+      error,
+      isSuperAdmin,
+      hasPermission,
+      hasAnyPermission: (...requirements: PermissionRequirement[]) =>
+        requirements.some((r) => hasPermission(r)),
+      hasAllPermissions: (...requirements: PermissionRequirement[]) =>
+        requirements.every((r) => hasPermission(r)),
+      reload: load,
+    };
+  }, [permissions, tenantContext, isLoading, error, isSuperAdmin]);
 
   return (
     <PermissionsContext.Provider value={value}>
