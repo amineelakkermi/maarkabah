@@ -1793,8 +1793,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/tenant/users?pageNumber=1&pageSize=20",
-            "description": "Requires Permissions.Users.View. Returns paged results."
+            "url": "{{baseUrl}}/api/tenant/users?pageNumber=1&pageSize=20&isActive=true",
+            "description": "Requires Permissions.Users.View. Returns paged results. Optional `isActive` (true/false) filters by account status."
           }
         },
         {
@@ -1854,6 +1854,42 @@
             },
             "url": "{{baseUrl}}/api/tenant/users/{{userId}}",
             "description": "Requires Permissions.Users.Edit. TenantAdmin user cannot be modified from tenant API.\n\n`userName` must remain unique when changed.\n`phoneNumber`: omit to leave unchanged, empty string to clear, or Saudi mobile `9665XXXXXXXX`."
+          }
+        },
+        {
+          "name": "Activate user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/tenant/users/{{userId}}/activate",
+            "description": "Requires Permissions.Users.Edit. Sets IsActive=true. 204 if already active. Cannot toggle TenantAdmin. Does not delete the user."
+          }
+        },
+        {
+          "name": "Deactivate user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/tenant/users/{{userId}}/deactivate",
+            "description": "Requires Permissions.Users.Edit. Sets IsActive=false. 204 if already inactive. Blocks self-deactivate (User.CannotDeactivateSelf) and TenantAdmin (User.Protected). New login/refresh is rejected with Auth.AccountDisabled."
+          }
+        },
+        {
+          "name": "Reset user password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"Sales@5678\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tenant/users/{{userId}}/reset-password",
+            "description": "Requires Permissions.Users.Edit. Sets a new password without the current one. Cannot reset TenantAdmin. Password must be at least 8 characters and include a digit."
           }
         }
       ]
@@ -2010,8 +2046,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users?pageNumber=1&pageSize=20",
-            "description": "Requires SuperAdmin role. Login as admin@maarkbh.com first. Returns paged results."
+            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users?pageNumber=1&pageSize=20&isActive=true",
+            "description": "Requires SuperAdmin role. Login as admin@maarkbh.com first. Returns paged results. Optional `isActive` (true/false) filters by account status."
           }
         },
         {
@@ -2080,6 +2116,42 @@
             },
             "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/{{userId}}",
             "description": "Requires SuperAdmin. `userName` unique when changed. `phoneNumber` optional Saudi mobile `9665XXXXXXXX`."
+          }
+        },
+        {
+          "name": "Activate tenant user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/{{userId}}/activate",
+            "description": "Requires SuperAdmin. Sets IsActive=true. 204 if already active. 404 when the user is missing or belongs to another tenant."
+          }
+        },
+        {
+          "name": "Deactivate tenant user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/{{userId}}/deactivate",
+            "description": "Requires SuperAdmin. Sets IsActive=false. 204 if already inactive. New login/refresh is rejected with Auth.AccountDisabled. Does not delete the user."
+          }
+        },
+        {
+          "name": "Reset tenant user password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"Ops@56789\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/{{userId}}/reset-password",
+            "description": "Requires SuperAdmin. Sets a new password without the current one. 404 when the user is missing or belongs to another tenant. Password must be at least 8 characters and include a digit."
           }
         }
       ]

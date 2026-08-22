@@ -943,6 +943,37 @@ export const tenantUserService = {
       body: request,
     });
   },
+
+  /**
+   * Activate tenant user
+   * POST /api/tenant/users/{userId}/activate
+   */
+  async activate(userId: number): Promise<void> {
+    await apiClient.request(`/tenant/users/${userId}/activate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Deactivate tenant user
+   * POST /api/tenant/users/{userId}/deactivate
+   */
+  async deactivate(userId: number): Promise<void> {
+    await apiClient.request(`/tenant/users/${userId}/deactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Reset tenant user password
+   * POST /api/tenant/users/{userId}/reset-password
+   */
+  async resetPassword(userId: number, request: { newPassword: string }): Promise<void> {
+    await apiClient.request(`/tenant/users/${userId}/reset-password`, {
+      method: 'POST',
+      body: request,
+    });
+  },
 };
 
 // ─── Tenant Roles Service ─────────────────────────────────────────

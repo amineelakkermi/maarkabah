@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Edit } from "lucide-react";
-import { Avatar, Badge, Button, Table, Th, Td, type BadgeVariant, Drawer, DrawerHeader, DrawerFooter, useToast, Input, Select } from "@/components/ui";
+import { Plus, Loader2, Edit, Power, PowerOff, KeyRound, Lock } from "lucide-react";
+import { Avatar, Badge, Button, Table, Th, Td, type BadgeVariant, Drawer, DrawerHeader, DrawerFooter, useToast, Input, Select, Modal } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { tenantUserService, tenantRoleService, branchService } from "@/lib/api-services";
 
@@ -24,6 +24,9 @@ const normalizeSaudiPhone = (raw: string): string => {
 };
 
 const isValidSaudiPhone = (phone: string): boolean => /^9665\d{8}$/.test(phone);
+
+const isProtectedUser = (user: any): boolean =>
+  user?.roleName?.startsWith('TenantAdmin') || user?.isEditable === false;
 
 const ROLE_BADGE: Record<string, BadgeVariant> = {
   "Owner": "violet",
@@ -60,6 +63,10 @@ export default function StaffPage() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [viewingUser, setViewingUser] = useState<any>(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [resetUser, setResetUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
   const { showToast } = useToast();
 
   const [userName, setUserName] = useState("");
@@ -195,13 +202,13 @@ export default function StaffPage() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName || !fullName || !email || !password || !roleName) {
-      showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar));
+      showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar), "error");
       return;
     }
 
     const normalizedPhone = phoneNumber ? normalizeSaudiPhone(phoneNumber) : "";
     if (normalizedPhone && !isValidSaudiPhone(normalizedPhone)) {
-      showToast(T("Phone number must be a Saudi mobile number in the form 9665XXXXXXXX", "يجب أن يكون رقم الهاتف رقم جوال سعودي بصيغة 9665XXXXXXXX", ar));
+      showToast(T("Phone number must be a Saudi mobile number in the form 9665XXXXXXXX", "يجب أن يكون رقم الهاتف رقم جوال سعودي بصيغة 9665XXXXXXXX", ar), "error");
       return;
     }
 
@@ -219,23 +226,24 @@ export default function StaffPage() {
       await loadUsers();
       setDrawerOpen(false);
       resetForm();
-      showToast(T("🟢 User created successfully!", "🟢 تم إضافة الموظف بنجاح!", ar));
-    } catch (error) {
+      showToast(T("User created successfully!", "تم إضافة الموظف بنجاح!", ar));
+    } catch (error: any) {
       console.error('Error creating user:', error);
-      showToast(T('Failed to create user', 'فشل إنشاء الموظف', ar));
+      const message = error?.message || T('Failed to create user', 'فشل إنشاء الموظف', ar);
+      showToast(message, "error");
     }
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName || !fullName || !email || !roleName) {
-      showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar));
+      showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar), "error");
       return;
     }
 
     const normalizedPhone = phoneNumber ? normalizeSaudiPhone(phoneNumber) : "";
     if (normalizedPhone && !isValidSaudiPhone(normalizedPhone)) {
-      showToast(T("Phone number must be a Saudi mobile number in the form 9665XXXXXXXX", "يجب أن يكون رقم الهاتف رقم جوال سعودي بصيغة 9665XXXXXXXX", ar));
+      showToast(T("Phone number must be a Saudi mobile number in the form 9665XXXXXXXX", "يجب أن يكون رقم الهاتف رقم جوال سعودي بصيغة 9665XXXXXXXX", ar), "error");
       return;
     }
 
@@ -254,11 +262,63 @@ export default function StaffPage() {
       setEditDrawerOpen(false);
       setEditingUser(null);
       resetForm();
-      showToast(T("🟢 User updated successfully!", "🟢 تم تحديث الموظف بنجاح!", ar));
+      showToast(T("User updated successfully!", "تم تحديث الموظف بنجاح!", ar));
     } catch (error: any) {
       console.error('Error updating user:', error);
       const message = error?.message || T('Failed to update user', 'فشل تحديث الموظف', ar);
-      showToast(message);
+      showToast(message, "error");
+    }
+  };
+
+  const handleToggleActive = async () => {
+    const user = viewingUser || editingUser;
+    if (!user || togglingActive) return;
+    if (isProtectedUser(user)) {
+      showToast(T("Protected users cannot be activated or deactivated", "المستخدمون المحميون لا يمكن تفعيلهم أو تعطيلهم", ar), "error");
+      return;
+    }
+
+    setTogglingActive(true);
+    try {
+      if (user.isActive) {
+        await tenantUserService.deactivate(user.id);
+        showToast(T("User deactivated", "تم تعطيل المستخدم", ar));
+      } else {
+        await tenantUserService.activate(user.id);
+        showToast(T("User activated", "تم تفعيل المستخدم", ar));
+      }
+      await loadUsers();
+      if (viewingUser) {
+        setViewingUser((prev: any) => ({ ...prev, isActive: !prev.isActive }));
+      }
+    } catch (error: any) {
+      console.error('Error toggling user active state:', error);
+      const message = error?.message || T('Failed to update user status', 'فشل تحديث حالة المستخدم', ar);
+      showToast(message, "error");
+    } finally {
+      setTogglingActive(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUser) return;
+    if (newPassword.length < 8 || !/\d/.test(newPassword)) {
+      showToast(T("Password must be at least 8 characters and include a digit", "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على رقم", ar), "error");
+      return;
+    }
+
+    setResetting(true);
+    try {
+      await tenantUserService.resetPassword(resetUser.id, { newPassword });
+      showToast(T("Password reset successfully", "تم إعادة تعيين كلمة المرور بنجاح", ar));
+      setResetUser(null);
+      setNewPassword("");
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      const message = error?.message || T('Failed to reset password', 'فشل إعادة تعيين كلمة المرور', ar);
+      showToast(message, "error");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -466,21 +526,88 @@ export default function StaffPage() {
             )}
           </div>
 
-          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch">
-            <Button variant="outline" onClick={() => setViewDrawerOpen(false)}>
-              {T("Close", "إغلاق", ar)}
-            </Button>
-            <Button
-              variant="primary"
-              className="flex-1 shadow-[var(--shadow-glow-blue)]"
-              onClick={() => { setViewDrawerOpen(false); handleEditUser(viewingUser); }}
-            >
-              <Edit size={14} />
-              {T("Edit", "تعديل", ar)}
-            </Button>
+          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch flex-col gap-3">
+            <div className="flex items-center gap-3 w-full">
+              <Button variant="outline" className="flex-1" onClick={() => setViewDrawerOpen(false)}>
+                {T("Close", "إغلاق", ar)}
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1 shadow-[var(--shadow-glow-blue)]"
+                onClick={() => { setViewDrawerOpen(false); handleEditUser(viewingUser); }}
+              >
+                <Edit size={14} />
+                {T("Edit", "تعديل", ar)}
+              </Button>
+            </div>
+
+            {!isProtectedUser(viewingUser) && (
+              <div className="grid grid-cols-2 gap-3 w-full">
+                <Button
+                  variant="outline"
+                  className={viewingUser?.isActive ? "border-mk-danger text-mk-danger hover:bg-mk-danger/5" : "border-mk-mint-600 text-mk-mint-600 hover:bg-mk-mint-50"}
+                  onClick={handleToggleActive}
+                  disabled={togglingActive}
+                >
+                  {togglingActive ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : viewingUser?.isActive ? (
+                    <><PowerOff size={14} /> {T("Deactivate", "تعطيل", ar)}</>
+                  ) : (
+                    <><Power size={14} /> {T("Activate", "تفعيل", ar)}</>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setResetUser(viewingUser)}
+                >
+                  <KeyRound size={14} />
+                  {T("Reset password", "إعادة تعيين كلمة المرور", ar)}
+                </Button>
+              </div>
+            )}
+
+            {isProtectedUser(viewingUser) && (
+              <div className="flex items-center justify-center gap-2 text-mk-ink-400 mk-caption">
+                <Lock size={14} />
+                {T("Protected user — actions restricted", "مستخدم محمي — الإجراءات مقيدة", ar)}
+              </div>
+            )}
           </DrawerFooter>
         </div>
       </Drawer>
+
+      {/* Reset Password Modal */}
+      <Modal
+        open={!!resetUser}
+        onClose={() => { setResetUser(null); setNewPassword(""); }}
+        variant="centered"
+        size="sm"
+        title={T("Reset password", "إعادة تعيين كلمة المرور", ar)}
+      >
+        <div className="flex flex-col gap-4 p-6">
+          <p className="mk-body-sm text-mk-ink-700">
+            {T("Set a new password for", "تعيين كلمة مرور جديدة لـ", ar)}
+            <span className="font-semibold text-mk-ink-900 ms-1">{resetUser?.name || resetUser?.fullName}</span>
+          </p>
+          <Input
+            type="password"
+            label={T("New password", "كلمة المرور الجديدة", ar)}
+            placeholder={T("At least 8 characters with a digit", "8 أحرف على الأقل مع رقم", ar)}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <div className="flex items-center gap-3 mt-2">
+            <Button variant="outline" className="flex-1" onClick={() => { setResetUser(null); setNewPassword(""); }} disabled={resetting}>
+              {T("Cancel", "إلغاء", ar)}
+            </Button>
+            <Button variant="primary" className="flex-1" onClick={handleResetPassword} disabled={resetting}>
+              {resetting ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
+              {T("Reset", "تعيين", ar)}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Create Drawer */}
       <Drawer open={isDrawerOpen} onClose={() => setDrawerOpen(false)}>
