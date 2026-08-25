@@ -9,6 +9,8 @@ export interface RoutePermissionRule {
    * - `undefined` is treated the same as missing (deny by default).
    */
   permission: PermissionRequirement;
+  /** If true, only a SuperAdmin can access this route. */
+  requiresSuperAdmin?: boolean;
 }
 
 /**
@@ -41,8 +43,6 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { pattern: "/branches", permission: Permission.Branches.View },
   { pattern: "/roles", permission: Permission.Roles.View },
   { pattern: "/staff", permission: Permission.Users.View },
-
-  { pattern: "/admin/customer-warehouse", permission: "superadmin" },
 
   // ─── Employee portal ────────────────────────────────────────────────
   { pattern: "/employee", permission: null },
@@ -78,16 +78,16 @@ function patternToRegex(pattern: string): RegExp {
 }
 
 /**
- * Returns the permission requirement for a given pathname, or `undefined`
+ * Returns the route permission rule for a given pathname, or `undefined`
  * if the route is not explicitly mapped.
  */
-export function getRequiredPermissionForPathname(
+export function getRoutePermissionRule(
   pathname: string
-): PermissionRequirement | undefined {
+): { permission: PermissionRequirement; requiresSuperAdmin?: boolean } | undefined {
   for (const rule of ROUTE_PERMISSIONS) {
     const regex = patternToRegex(rule.pattern);
     if (regex.test(pathname)) {
-      return rule.permission;
+      return { permission: rule.permission, requiresSuperAdmin: rule.requiresSuperAdmin };
     }
   }
   return undefined;

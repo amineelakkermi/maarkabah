@@ -90,7 +90,6 @@ export type PermissionString = NestedValues<typeof Permission>;
 
 export type PermissionRequirement =
   | PermissionString
-  | "superadmin"
   | null
   | { any: PermissionRequirement[] }
   | { all: PermissionRequirement[] };

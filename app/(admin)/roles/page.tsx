@@ -128,12 +128,23 @@ export default function RolesPage() {
     }
   };
 
-  const handleEditRole = (role: any) => {
+  const handleEditRole = async (role: any) => {
     setEditingRole(role);
     setName(role.name || "");
     setDescription(role.description || "");
     setSelectedPermissions([]);
     setEditDrawerOpen(true);
+
+    try {
+      const details = await tenantRoleService.getById(role.id);
+      const perms = details.permissions || details.data?.permissions || [];
+      setName(details.name || details.data?.name || role.name || "");
+      setDescription(details.description || details.data?.description || role.description || "");
+      setSelectedPermissions(perms);
+    } catch (error) {
+      console.error('Error loading role details:', error);
+      showToast(T('Failed to load role permissions', 'فشل تحميل صلاحيات الدور', ar));
+    }
   };
 
   const handleUpdateRole = async (e: React.FormEvent) => {

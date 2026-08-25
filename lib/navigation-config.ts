@@ -16,6 +16,8 @@ export interface NavItem {
   labelAr: string;
   badge?: number;
   requiredPermission: PermissionRequirement;
+  /** If true, only a SuperAdmin can see this link. */
+  requiresSuperAdmin?: boolean;
 }
 
 export interface NavSection {
@@ -67,7 +69,6 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       { href: "/branches", icon: Building, label: "Branches", labelAr: "الفروع", requiredPermission: Permission.Branches.View },
       { href: "/roles", icon: Shield, label: "Roles", labelAr: "الأدوار", requiredPermission: Permission.Roles.View },
       { href: "/staff", icon: Users, label: "Staff", labelAr: "الفريق", requiredPermission: Permission.Users.View },
-      { href: "/admin/customer-warehouse", icon: Globe, label: "Warehouse Admin", labelAr: "إدارة المستودع", requiredPermission: "superadmin" },
     ],
   },
 ];
@@ -110,12 +111,12 @@ export const EMPLOYEE_NAV_SECTIONS: NavSection[] = [
 
 export function filterNavSections(
   sections: NavSection[],
-  hasAccess: (req: PermissionRequirement) => boolean
+  hasAccess: (item: NavItem) => boolean
 ): NavSection[] {
   return sections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => hasAccess(item.requiredPermission)),
+      items: section.items.filter((item) => hasAccess(item)),
     }))
     .filter((section) => section.items.length > 0);
 }

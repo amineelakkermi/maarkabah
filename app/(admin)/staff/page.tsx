@@ -88,23 +88,56 @@ export default function StaffPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await tenantUserService.getUsers(1, 100);
-      console.log('Users API response:', response);
+      const [usersResponse, rolesResponse] = await Promise.all([
+        tenantUserService.getUsers(1, 100),
+        tenantRoleService.search({ pageNumber: 1, pageSize: 100 }),
+      ]);
+      console.log('Users API response:', usersResponse);
+      console.log('Roles API response:', rolesResponse);
 
-      const rawUsers = response.items || response.data || [];
+      const rawUsers = usersResponse.items || usersResponse.data || [];
+      const rawRoles = rolesResponse.items || rolesResponse.data || [];
+
+      const roleDetails = await Promise.all(
+        rawRoles.map((role: any) =>
+          tenantRoleService.getById(role.id).catch(() => null)
+        )
+      );
+
+      const rolePermissionMap = new Map<string, number>();
+      roleDetails.forEach((detail: any) => {
+        if (!detail) return;
+        const displayName = detail.name || detail.data?.name;
+        const permissions = detail.permissions || detail.data?.permissions || [];
+        if (displayName) {
+          rolePermissionMap.set(displayName, permissions.length);
+        }
+      });
+      console.log('Role permission map:', Array.from(rolePermissionMap.entries()));
 
       const transformedUsers = rawUsers.map((item: any) => ({
         id: item.id,
         name: item.fullName || '',
         email: item.email || '',
-        role: item.roleDisplayName || item.roleName || 'Staff',
+        role: item.roleDisplayName
+          || item.role?.displayName
+          || item.role?.name
+          || (item.roleName ? item.roleName.replace(/_\d+$/, '').replace(/_/g, ' ') : 'Staff'),
         roleName: item.roleName || '',
         branch: item.hasAllBranches
           ? T("All branches", "جميع الفروع", ar)
           : `${item.branchCount ?? 0} ${T("branch(es)", "فرع/فروع", ar)}`,
         permissions: item.roleName?.startsWith('TenantAdmin') || item.isEditable === false
-          ? 'All permissions'
-          : (item.permissionsCount || 0),
+          ? T('All permissions', 'جميع الصلاحيات', ar)
+          : (
+              item.role?.permissions?.length ??
+              item.role?.permissionsCount ??
+              item.permissionsCount ??
+              item.permissions?.length ??
+              rolePermissionMap.get(item.roleDisplayName) ??
+              rolePermissionMap.get(item.roleName) ??
+              0
+            ),
         isActive: item.isActive !== false,
       }));
       setUsers(transformedUsers);
@@ -122,9 +155,16 @@ export default function StaffPage() {
       const response = await tenantRoleService.lookup();
       console.log('Role options API response:', response);
       const items = Array.isArray(response) ? response : (response.items || response.data || []);
-      setRoleOptions(items.map((r: any) =>
-        typeof r === 'string' ? { name: r, displayName: r } : r
-      ));
+      setRoleOptions(items.map((r: any) => {
+        if (typeof r === 'string') {
+          return { name: r, displayName: r.replace(/_\d+$/, '').replace(/_/g, ' ') };
+        }
+        const identity = r.name || r.identityName || r.roleName || '';
+        return {
+          name: identity,
+          displayName: r.displayName || identity.replace(/_\d+$/, '').replace(/_/g, ' '),
+        };
+      }));
     } catch (error) {
       console.error('Error loading role options:', error);
     }
@@ -358,7 +398,7 @@ export default function StaffPage() {
           onClick={() => { resetForm(); setDrawerOpen(true); }}
         >
           <Plus size={14} />
-          {T("Invite teammate", "دعوة عضو", ar)}
+          {T("Add staff", "إضافة موظف", ar)}
         </Button>
       </div>
 
@@ -414,7 +454,11 @@ export default function StaffPage() {
                       {p.isActive ? T("Active", "نشط", ar) : T("Inactive", "غير نشط", ar)}
                     </Badge>
                   </Td>
-                  <Td className="mk-caption text-mk-ink-500">{typeof p.permissions === 'number' ? `${p.permissions} permissions` : p.permissions}</Td>
+                  <Td className="mk-caption text-mk-ink-500">
+                    {typeof p.permissions === 'number'
+                      ? `${p.permissions} ${T('permissions', 'صلاحيات', ar)}`
+                      : p.permissions}
+                  </Td>
                   <Td>
                     <Button
                       variant="outline"

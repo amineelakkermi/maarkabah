@@ -2042,6 +2042,39 @@
       "name": "Admin (SuperAdmin)",
       "item": [
         {
+          "name": "Create office (tenant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.tenantId) pm.collectionVariables.set('tenantId', String(json.tenantId));",
+                  "  if (json.userId) pm.collectionVariables.set('userId', String(json.userId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"مكتب النور للتأجير\",\n  \"subdomain\": \"alnoor\",\n  \"commercialRegistrationNumber\": \"7012345678\",\n  \"taxNumber\": \"310123456700003\",\n  \"mobile\": \"966512345678\",\n  \"email\": \"admin@alnoor.maarkbh.com\",\n  \"adminFullName\": \"Office Admin\",\n  \"adminUserName\": \"alnoor.admin\",\n  \"adminPassword\": \"Admin@1234\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/tenants",
+            "description": "Requires SuperAdmin. Creates an isolated tenant database, saves the office profile on Master (CR/tax unique), and creates a TenantAdmin user. 201 { tenantId, userId }. No partial record on failure."
+          }
+        },
+        {
           "name": "List tenant users",
           "request": {
             "method": "GET",

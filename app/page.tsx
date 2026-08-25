@@ -105,7 +105,12 @@ const ONBOARDING_STEPS = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoggedIn, isLoading, logout } = useAuth();
+  const { login, isLoggedIn, isLoading, logout, decodedToken } = useAuth();
+
+  function getHomeRouteForUser(user: any) {
+    const isSuperAdmin = user && !(user.tenant_id ?? user.tenantId);
+    return isSuperAdmin ? "/superadmin" : "/dashboard";
+  }
   const { dir, toggleDir, isDark, toggleDark } = useAdmin();
   const ar = dir === "rtl";
 
@@ -127,10 +132,10 @@ export default function LoginPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      router.push("/dashboard");
+    if (isLoggedIn && decodedToken) {
+      router.push(getHomeRouteForUser(decodedToken));
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, decodedToken, router]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -150,8 +155,8 @@ export default function LoginPage() {
     }
 
     try {
-      await login(username.trim(), password);
-      router.push("/dashboard");
+      const user = await login(username.trim(), password);
+      router.push(getHomeRouteForUser(user));
     } catch (err) {
       let errorMessage = T("Login failed", "فشل تسجيل الدخول", ar);
       if (err instanceof Error) {

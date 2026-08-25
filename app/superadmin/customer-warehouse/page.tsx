@@ -8,7 +8,6 @@ import {
 import { Badge, Button, Input, Table, Th, Td, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { customerWarehouseService } from "@/lib/api-services";
-import { normalizeKycStatus } from "@/lib/formatting";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -49,7 +48,7 @@ interface WarehouseItem {
   lastReportedAt?: string;
 }
 
-export default function AdminCustomerWarehousePage() {
+export default function SuperAdminCustomerWarehousePage() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const { showToast } = useToast();
@@ -81,7 +80,6 @@ export default function AdminCustomerWarehousePage() {
     setStatsLoading(true);
     try {
       const data = await customerWarehouseService.getAdminStats();
-      console.log("[Admin Warehouse] stats response:", data);
       const raw = data?.data ?? data;
       const mapped: WarehouseStats = {
         totalIdentities: raw?.totalIdentities ?? 0,
@@ -115,7 +113,6 @@ export default function AdminCustomerWarehousePage() {
 
     try {
       const response = await customerWarehouseService.adminSearch({ search: q, pageNumber: 1, pageSize: 20 });
-      console.log("[Admin Warehouse] search response:", response);
       if (controller.signal.aborted) return;
       const rawList = (response?.items ?? response?.data?.items ?? response?.data ?? response ?? []) as any[];
       const list = Array.isArray(rawList) ? rawList : [];
@@ -187,30 +184,10 @@ export default function AdminCustomerWarehousePage() {
   const statCards = useMemo(() => {
     if (!stats) return [];
     return [
-      {
-        icon: Database,
-        label: ["Total identities", "إجمالي الهويات"],
-        value: stats.totalIdentities ?? 0,
-        color: "text-mk-blue-500",
-      },
-      {
-        icon: Building2,
-        label: ["Tenant records", "سجلات المستأجر"],
-        value: stats.totalTenantRecords ?? 0,
-        color: "text-mk-mint-600",
-      },
-      {
-        icon: Globe,
-        label: ["External records", "سجلات خارجية"],
-        value: stats.totalExternalRecords ?? 0,
-        color: "text-mk-warning",
-      },
-      {
-        icon: ShieldAlert,
-        label: ["Network blacklisted", "محظورون شبكياً"],
-        value: stats.networkBlacklistedCount ?? 0,
-        color: "text-mk-danger",
-      },
+      { icon: Database, label: ["Total identities", "إجمالي الهويات"], value: stats.totalIdentities ?? 0, color: "text-mk-blue-500" },
+      { icon: Building2, label: ["Tenant records", "سجلات المستأجر"], value: stats.totalTenantRecords ?? 0, color: "text-mk-mint-600" },
+      { icon: Globe, label: ["External records", "سجلات خارجية"], value: stats.totalExternalRecords ?? 0, color: "text-mk-warning" },
+      { icon: ShieldAlert, label: ["Network blacklisted", "محظورون شبكياً"], value: stats.networkBlacklistedCount ?? 0, color: "text-mk-danger" },
     ];
   }, [stats]);
 
@@ -231,7 +208,6 @@ export default function AdminCustomerWarehousePage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {statCards.map((card) => (
           <div key={card.label[0]} className="rounded-xl p-4 mk-surface flex items-center gap-3">
@@ -252,7 +228,6 @@ export default function AdminCustomerWarehousePage() {
         </div>
       )}
 
-      {/* Import tools */}
       <div className="rounded-xl p-4 mb-5 mk-surface flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
           <span className="mk-label text-mk-ink-900">{T("Bulk import", "استيراد بالجملة", ar)}</span>
@@ -283,7 +258,6 @@ export default function AdminCustomerWarehousePage() {
         </div>
       </div>
 
-      {/* Search */}
       <div className="mb-5 max-w-md">
         <Input
           variant="search"
@@ -294,7 +268,6 @@ export default function AdminCustomerWarehousePage() {
         />
       </div>
 
-      {/* Results */}
       <div className="rounded-xl overflow-hidden mk-surface">
         <Table>
           <thead>
@@ -344,16 +317,12 @@ export default function AdminCustomerWarehousePage() {
               items.map((item) => {
                 const blacklisted = item.isBlacklisted === true || item.isNetworkBlacklisted === true || item.blacklisted === true;
                 const hasCircular = item.hasNetworkCircular === true;
-                const statusBadgeVariant = blacklisted
-                  ? "danger"
-                  : hasCircular
-                    ? "warning"
-                    : "success";
+                const statusBadgeVariant = blacklisted ? "danger" : hasCircular ? "warning" : "success";
                 const statusLabel = blacklisted
                   ? T("Blacklisted", "قائمة سوداء", ar)
                   : hasCircular
-                    ? T("Circular", "تنبيه دائري", ar)
-                    : T("Active", "نشط", ar);
+                  ? T("Circular", "تنبيه دائري", ar)
+                  : T("Active", "نشط", ar);
                 return (
                   <tr key={String(item.id)} className="hover:bg-mk-ink-50 transition-colors">
                     <Td>

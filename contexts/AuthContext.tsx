@@ -41,7 +41,7 @@ interface AuthContextValue {
   isLoading: boolean;
   authError: string | null;
   decodedToken: AuthUser | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   clearError: () => void;
   refreshAccessToken: () => Promise<void>;
@@ -53,7 +53,7 @@ const AuthContext = createContext<AuthContextValue>({
   isLoading: false,
   authError: null,
   decodedToken: null,
-  login: async () => {},
+  login: async () => ({} as AuthUser),
   logout: () => {},
   clearError: () => {},
   refreshAccessToken: async () => {},
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string): Promise<AuthUser> => {
     setIsLoading(true);
     setAuthError(null);
 
@@ -103,10 +103,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
 
+      const authUser = user as AuthUser;
+
       // Cookies are already set server-side at this point; just reflect the
       // resulting session in React state.
       setIsLoggedIn(true);
-      setDecodedToken(user as AuthUser);
+      setDecodedToken(authUser);
+
+      return authUser;
     } catch (error) {
       console.error("Login error:", error);
       setIsLoggedIn(false);

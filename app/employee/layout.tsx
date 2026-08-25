@@ -9,15 +9,20 @@ import { EmployeeTopbar } from "@/components/employee/Topbar";
 import { RoutePermissionGuard } from "@/components/shared/RoutePermissionGuard";
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, isInitialized } = useAuth();
+  const { isLoggedIn, isInitialized, decodedToken } = useAuth();
   const { sidebarOpen, setSidebarOpen } = useAdmin();
   const router = useRouter();
 
+  const isSuperAdmin = !!(decodedToken && !(decodedToken.tenant_id ?? decodedToken.tenantId));
+
   useEffect(() => {
-    if (isInitialized && !isLoggedIn) {
+    if (!isInitialized) return;
+    if (!isLoggedIn) {
       router.replace("/");
+    } else if (isSuperAdmin) {
+      router.replace("/superadmin");
     }
-  }, [isInitialized, isLoggedIn, router]);
+  }, [isInitialized, isLoggedIn, isSuperAdmin, router]);
 
   if (!isInitialized || !isLoggedIn) {
     return (

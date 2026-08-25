@@ -550,15 +550,36 @@ export const attachmentService = {
 
 export const adminTenantService = {
   /**
+   * Create a new tenant (office)
+   * POST /admin/tenants
+   */
+  async createTenant(request: {
+    name: string;
+    subdomain: string;
+    commercialRegistrationNumber: string;
+    taxNumber: string;
+    mobile: string;
+    email: string;
+    adminFullName: string;
+    adminUserName: string;
+    adminPassword: string;
+  }): Promise<any> {
+    return apiClient.request('/admin/tenants', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
    * Get users for a tenant
-   * GET /api/admin/tenants/{tenantId}/users
+   * GET /admin/tenants/{tenantId}/users
    */
   async getUsers(tenantId: number, pageNumber?: number, pageSize?: number): Promise<any> {
     const params: Record<string, number> = {};
     if (pageNumber !== undefined) params.PageNumber = pageNumber;
     if (pageSize !== undefined) params.PageSize = pageSize;
 
-    return apiClient.request(`/api/admin/tenants/${tenantId}/users`, {
+    return apiClient.request(`/admin/tenants/${tenantId}/users`, {
       method: 'GET',
       params,
     });
@@ -566,10 +587,10 @@ export const adminTenantService = {
 
   /**
    * Create user for a tenant
-   * POST /api/admin/tenants/{tenantId}/users
+   * POST /admin/tenants/{tenantId}/users
    */
   async createUser(tenantId: number, request: Types.CreateTenantUserRequest): Promise<any> {
-    return apiClient.request(`/api/admin/tenants/${tenantId}/users`, {
+    return apiClient.request(`/admin/tenants/${tenantId}/users`, {
       method: 'POST',
       body: request,
     });
@@ -577,35 +598,66 @@ export const adminTenantService = {
 
   /**
    * Get user by ID
-   * GET /api/admin/tenants/{tenantId}/users/{userId}
+   * GET /admin/tenants/{tenantId}/users/{userId}
    */
   async getUserById(tenantId: number, userId: number): Promise<any> {
-    return apiClient.request(`/api/admin/tenants/${tenantId}/users/${userId}`, {
+    return apiClient.request(`/admin/tenants/${tenantId}/users/${userId}`, {
       method: 'GET',
     });
   },
 
   /**
    * Update user
-   * PUT /api/admin/tenants/{tenantId}/users/{userId}
+   * PUT /admin/tenants/{tenantId}/users/{userId}
    */
   async updateUser(tenantId: number, userId: number, request: Types.UpdateTenantUserRequest): Promise<any> {
-    return apiClient.request(`/api/admin/tenants/${tenantId}/users/${userId}`, {
+    return apiClient.request(`/admin/tenants/${tenantId}/users/${userId}`, {
       method: 'PUT',
       body: request,
     });
   },
 
   /**
+   * Activate user
+   * POST /admin/tenants/{tenantId}/users/{userId}/activate
+   */
+  async activateUser(tenantId: number, userId: number): Promise<void> {
+    await apiClient.request(`/admin/tenants/${tenantId}/users/${userId}/activate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Deactivate user
+   * POST /admin/tenants/{tenantId}/users/{userId}/deactivate
+   */
+  async deactivateUser(tenantId: number, userId: number): Promise<void> {
+    await apiClient.request(`/admin/tenants/${tenantId}/users/${userId}/deactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Reset user password
+   * POST /admin/tenants/{tenantId}/users/{userId}/reset-password
+   */
+  async resetUserPassword(tenantId: number, userId: number, newPassword: string): Promise<void> {
+    await apiClient.request(`/admin/tenants/${tenantId}/users/${userId}/reset-password`, {
+      method: 'POST',
+      body: { newPassword },
+    });
+  },
+
+  /**
    * Get roles for a tenant
-   * GET /api/admin/tenants/{tenantId}/roles
+   * GET /admin/tenants/{tenantId}/roles
    */
   async getRoles(tenantId: number, pageNumber?: number, pageSize?: number): Promise<any> {
     const params: Record<string, number> = {};
     if (pageNumber !== undefined) params.PageNumber = pageNumber;
     if (pageSize !== undefined) params.PageSize = pageSize;
 
-    return apiClient.request(`/api/admin/tenants/${tenantId}/roles`, {
+    return apiClient.request(`/admin/tenants/${tenantId}/roles`, {
       method: 'GET',
       params,
     });

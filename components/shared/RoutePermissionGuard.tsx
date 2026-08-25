@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { usePermissions } from "@/contexts/PermissionsContext";
-import { getRequiredPermissionForPathname } from "@/lib/route-permissions";
+import { getRoutePermissionRule } from "@/lib/route-permissions";
 import { UnauthorizedView } from "./UnauthorizedView";
 
 interface RoutePermissionGuardProps {
@@ -15,9 +15,7 @@ export function RoutePermissionGuard({ children }: RoutePermissionGuardProps) {
   const pathname = usePathname();
   const { isLoading, hasPermission, isSuperAdmin } = usePermissions();
 
-  const requiredPermission = pathname !== null
-    ? getRequiredPermissionForPathname(pathname)
-    : undefined;
+  const routeRule = pathname !== null ? getRoutePermissionRule(pathname) : undefined;
 
   const homeHref = pathname?.startsWith("/employee") ? "/employee/today" : "/dashboard";
 
@@ -35,12 +33,17 @@ export function RoutePermissionGuard({ children }: RoutePermissionGuardProps) {
   }
 
   // Route is not explicitly listed in the permission map → deny by default.
-  if (requiredPermission === undefined) {
+  if (routeRule === undefined) {
+    return <UnauthorizedView homeHref={homeHref} />;
+  }
+
+  // Some routes are reserved for SuperAdmins only.
+  if (routeRule.requiresSuperAdmin) {
     return <UnauthorizedView homeHref={homeHref} />;
   }
 
   // `null` means "visible to any authenticated tenant user".
-  if (requiredPermission !== null && !hasPermission(requiredPermission)) {
+  if (routeRule.permission !== null && !hasPermission(routeRule.permission)) {
     return <UnauthorizedView homeHref={homeHref} />;
   }
 

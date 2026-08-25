@@ -10,12 +10,16 @@ import { EMPLOYEE_NAV_SECTIONS, filterNavSections } from "@/lib/navigation-confi
 export function EmployeeSidebar() {
   const path = usePathname();
   const { dir, toggleDir, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout } = useAdmin();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const ar = dir === "rtl";
 
   const visibleSections = useMemo(
-    () => filterNavSections(EMPLOYEE_NAV_SECTIONS, (req) => hasPermission(req)),
-    [hasPermission]
+    () =>
+      filterNavSections(EMPLOYEE_NAV_SECTIONS, (item) => {
+        if (item.requiresSuperAdmin) return isSuperAdmin;
+        return hasPermission(item.requiredPermission);
+      }),
+    [hasPermission, isSuperAdmin]
   );
 
   const allLinks = useMemo(

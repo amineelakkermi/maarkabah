@@ -20,7 +20,10 @@ export function Sidebar() {
   const [driverKycCount, setDriverKycCount] = useState(0);
 
   const visibleSections = useMemo(() => {
-    const sections = filterNavSections(ADMIN_NAV_SECTIONS, (req) => hasPermission(req));
+    const sections = filterNavSections(ADMIN_NAV_SECTIONS, (item) => {
+      if (item.requiresSuperAdmin) return isSuperAdmin;
+      return hasPermission(item.requiredPermission);
+    });
 
     // Attach live badges to the filtered KYC links.
     return sections.map((section) => ({
@@ -31,7 +34,7 @@ export function Sidebar() {
         return item;
       }),
     }));
-  }, [permissions, kycCount, driverKycCount, hasPermission]);
+  }, [permissions, kycCount, driverKycCount, hasPermission, isSuperAdmin]);
 
   useEffect(() => {
     if (isSuperAdmin || !hasPermission(Permission.Customers.View)) {
