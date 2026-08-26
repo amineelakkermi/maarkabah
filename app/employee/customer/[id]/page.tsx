@@ -10,10 +10,11 @@ import {
 } from "lucide-react";
 import { Avatar, Badge, HijriDatePicker, Button, Select, Modal } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
-import { customerService, customerEvents } from "@/lib/api-services";
+import { customerService, customerEvents, countryService } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
 import { CLIENTS, type ClientProfile, type ClientContract } from "@/lib/data";
 import { OtpVerificationPanel } from "@/components/employee/OtpVerification";
+import { hijriToGregorianStr, gregorianToHijriStr, formatHijriDisplay } from "@/lib/hijri-utils";
 
 type EditableFields = Pick<ClientProfile,
   "name" | "nameAr" | "phone" | "email" | "idType" | "idNumber" | "idExpiryDate" |
@@ -25,7 +26,7 @@ type EditableFields = Pick<ClientProfile,
 // identity form so editing a customer's profile shows the same fields.
 type IdentityFieldDef = {
   key: string; labelEn: string; labelAr: string; required: boolean;
-  type: "text" | "date" | "email" | "hijri"; value: string; onChange: (v: string) => void;
+  type: "text" | "date" | "email" | "hijri" | "country-select"; value: string; onChange: (v: string) => void;
 };
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -116,6 +117,8 @@ function mapApiToClientProfile(item: any): ClientProfile {
         ))
       : undefined,
     nationality: firstString(
+      item.countryNameAr,
+      item.countryNameEn,
       item.nationality,
       item.national?.nationality,
       item.residence?.nationality,
@@ -188,6 +191,23 @@ export default function CustomerDetailPage() {
   const [expandedDebts, setExpandedDebts] = useState<Record<number, boolean>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [countries, setCountries] = useState<{ id: number; name: string; nameAr?: string; nameEn?: string }[]>([]);
+
+  useEffect(() => {
+    countryService
+      .search({ pageNumber: 1, pageSize: 200 })
+      .then((res: any) => {
+        const list = res?.data?.items ?? res?.items ?? res?.data ?? res ?? [];
+        const normalized = Array.isArray(list) ? list.map((c: any) => ({
+          id: c.id,
+          name: c.nameAr || c.nameEn || c.name || "",
+          nameAr: c.nameAr,
+          nameEn: c.nameEn,
+        })) : [];
+        setCountries(normalized);
+      })
+      .catch(() => setCountries([]));
+  }, []);
 
   async function handleDelete() {
     if (!client) return;
@@ -409,16 +429,24 @@ export default function CustomerDetailPage() {
             required: true,
             type: "hijri",
             value: d.hijriBirthDate ? String(d.hijriBirthDate) : "",
-            onChange: (v) => updateDraft("hijriBirthDate", v ? Number(v) : undefined as any),
+            onChange: (v) => {
+              updateDraft("hijriBirthDate", v ? Number(v) : undefined as any);
+              const g = hijriToGregorianStr(v);
+              if (g) updateDraft("birthDate", g);
+            },
           },
           {
             key: "birthDate",
-            labelEn: "Date of Birth (Gregorian, optional)",
-            labelAr: "تاريخ الميلاد (ميلادي، اختياري)",
+            labelEn: "Date of Birth (Gregorian)",
+            labelAr: "تاريخ الميلاد (ميلادي)",
             required: false,
             type: "date",
             value: d.birthDate ?? "",
-            onChange: (v) => updateDraft("birthDate", v),
+            onChange: (v) => {
+              updateDraft("birthDate", v);
+              const h = gregorianToHijriStr(v);
+              if (h) updateDraft("hijriBirthDate", Number(h) as any);
+            },
           }
         );
       } else {
@@ -442,12 +470,12 @@ export default function CustomerDetailPage() {
         { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: d.licenseNumber, onChange: (v) => updateDraft("licenseNumber", v) },
         { key: "idExpiry", labelEn: "ID Expiry Date", labelAr: "تاريخ انتهاء الهوية", required: true, type: "date", value: d.idExpiryDate ?? "", onChange: (v) => updateDraft("idExpiryDate", v) },
         { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: d.licenseIssuePlace ?? "", onChange: (v) => updateDraft("licenseIssuePlace", v) },
-        { key: "country", labelEn: "Country ID", labelAr: "رقم الدولة", required: true, type: "text", value: d.nationalityCode ? String(d.nationalityCode) : "", onChange: (v) => updateDraft("nationalityCode", v ? Number(v) : undefined) },
+        { key: "country", labelEn: "Country", labelAr: "الدولة", required: true, type: "country-select", value: d.nationalityCode ? String(d.nationalityCode) : "", onChange: (v) => { updateDraft("nationalityCode", v ? Number(v) : undefined); const c = countries.find((c) => c.id === Number(v)); if (c) updateDraft("nationality", ar ? c.nameAr || c.name : c.nameEn || c.name); } },
         idCopyNumberField,
         { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: d.licenseExpiryDate ?? "", onChange: (v) => updateDraft("licenseExpiryDate", v) },
       ];
     }
-    // Passport / Visitor — no "Beneficiary ID No." field; identity is border/passport number instead
+    // Passport / Visitor
     return [
       addressField,
       { key: "borderNumber", labelEn: "Border No.", labelAr: "رقم الحدود", required: true, type: "text", value: d.borderNumber ?? "", onChange: (v) => updateDraft("borderNumber", v) },
@@ -456,7 +484,7 @@ export default function CustomerDetailPage() {
       { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: d.licenseNumber, onChange: (v) => updateDraft("licenseNumber", v) },
       { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: d.licenseExpiryDate ?? "", onChange: (v) => updateDraft("licenseExpiryDate", v) },
       { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: d.licenseIssuePlace ?? "", onChange: (v) => updateDraft("licenseIssuePlace", v) },
-      { key: "country", labelEn: "Country ID", labelAr: "رقم الدولة", required: true, type: "text", value: d.nationalityCode ? String(d.nationalityCode) : "", onChange: (v) => updateDraft("nationalityCode", v ? Number(v) : undefined) },
+      { key: "country", labelEn: "Country", labelAr: "الدولة", required: true, type: "country-select", value: d.nationalityCode ? String(d.nationalityCode) : "", onChange: (v) => { updateDraft("nationalityCode", v ? Number(v) : undefined); const c = countries.find((c) => c.id === Number(v)); if (c) updateDraft("nationality", ar ? c.nameAr || c.name : c.nameEn || c.name); } },
       idCopyNumberField,
       { key: "idExpiry", labelEn: "ID Expiry Date", labelAr: "تاريخ انتهاء الهوية", required: true, type: "date", value: d.idExpiryDate ?? "", onChange: (v) => updateDraft("idExpiryDate", v) },
     ];
@@ -720,6 +748,31 @@ export default function CustomerDetailPage() {
                       <div key={f.key} className="flex flex-col gap-1">
                         <label className="mk-overline text-mk-ink-500">{T(f.labelEn, f.labelAr, ar) + (f.required ? " *" : "")}</label>
                         <HijriDatePicker value={f.value} onChange={f.onChange} ar={ar} />
+                      </div>
+                    ) : f.type === "date" && f.key.includes("birthDate") ? (
+                      <div key={f.key}>
+                        <EditField
+                          label={T(f.labelEn, f.labelAr, ar) + (f.required ? " *" : "")}
+                          value={f.value}
+                          onChange={f.onChange}
+                          type={f.type}
+                        />
+                        {f.value && (() => {
+                          const h = gregorianToHijriStr(f.value);
+                          return h ? <p className="mt-1 text-xs text-mk-green-400">{T("Hijri", "هجري", ar)}: {formatHijriDisplay(h, ar)}</p> : null;
+                        })()}
+                      </div>
+                    ) : f.type === "country-select" ? (
+                      <div key={f.key} className="flex flex-col gap-1">
+                        <label className="mk-overline text-mk-ink-500">{T(f.labelEn, f.labelAr, ar) + (f.required ? " *" : "")}</label>
+                        <Select value={f.value} onChange={(e) => f.onChange(e.target.value)}>
+                          <option value="">{T("Select country...", "اختر الدولة...", ar)}</option>
+                          {countries.map((c) => (
+                            <option key={c.id} value={String(c.id)}>
+                              {ar ? c.nameAr || c.name : c.nameEn || c.name}
+                            </option>
+                          ))}
+                        </Select>
                       </div>
                     ) : (
                       <EditField

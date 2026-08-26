@@ -7,10 +7,11 @@ import { useRouter } from "next/navigation";
 import {
   Search, UserPlus, ShieldCheck , ShieldAlert , ChevronRight, CheckCircle, Phone, CreditCard, X, User, FileSignature, Loader2, FileWarning, Plus, Trash2, Ban,
 } from "lucide-react";
-import { Avatar, Badge, HijriDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton, Modal, useToast } from "@/components/ui";
+import { Avatar, Badge, HijriDatePicker, GregorianDateInput, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { customerService, attachmentService, countryService, customerEvents } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
+import { hijriToGregorianStr, gregorianToHijriStr } from "@/lib/hijri-utils";
 import { CLIENTS } from "@/lib/data";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -232,10 +233,28 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
       const fields: IdentityFieldDef[] = [
         { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: newId, onChange: setNewId },
         addressField,
-        { key: "birthDate", labelEn: newIdType === "Saudi ID" ? "Date of Birth (Hijri)" : "Date of Birth", labelAr: newIdType === "Saudi ID" ? "تاريخ الميلاد (هجري)" : "تاريخ الميلاد", required: true, type: newIdType === "Saudi ID" ? "hijri" : "date", value: newIdType === "Saudi ID" ? newHijriBirthDate : newBirthDate, onChange: newIdType === "Saudi ID" ? setNewHijriBirthDate : setNewBirthDate },
+        {
+          key: "birthDate",
+          labelEn: newIdType === "Saudi ID" ? "Date of Birth (Hijri)" : "Date of Birth",
+          labelAr: newIdType === "Saudi ID" ? "تاريخ الميلاد (هجري)" : "تاريخ الميلاد",
+          required: true,
+          type: newIdType === "Saudi ID" ? "hijri" : "date",
+          value: newIdType === "Saudi ID" ? newHijriBirthDate : newBirthDate,
+          onChange: newIdType === "Saudi ID"
+            ? (v: string) => { setNewHijriBirthDate(v); const g = hijriToGregorianStr(v); if (g) setNewBirthDate(g); }
+            : setNewBirthDate,
+        },
       ];
       if (newIdType === "Saudi ID") {
-        fields.push({ key: "birthDateGregorian", labelEn: "Date of Birth (Gregorian, optional)", labelAr: "تاريخ الميلاد (ميلادي، اختياري)", required: false, type: "date", value: newBirthDate, onChange: setNewBirthDate });
+        fields.push({
+          key: "birthDateGregorian",
+          labelEn: "Date of Birth (Gregorian)",
+          labelAr: "تاريخ الميلاد (ميلادي)",
+          required: false,
+          type: "date",
+          value: newBirthDate,
+          onChange: (v: string) => { setNewBirthDate(v); const h = gregorianToHijriStr(v); if (h) setNewHijriBirthDate(h); },
+        });
       }
       return fields;
     }
@@ -726,6 +745,15 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
                     </label>
                     <HijriDatePicker value={f.value} onChange={f.onChange} ar={ar} />
                   </div>
+                ) : f.type === "date" && f.key.includes("birthDate") ? (
+                  <GregorianDateInput
+                    key={f.key}
+                    label={<>{T(f.labelEn, f.labelAr, ar)} {f.required && <span className="text-mk-danger">*</span>}</>}
+                    value={f.value}
+                    onChange={f.onChange}
+                    ar={ar}
+                    required={f.required}
+                  />
                 ) : (
                   <Input
                     key={f.key}

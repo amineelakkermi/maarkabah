@@ -1,29 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Select } from "./Select";
+import { hijriToGregorianStr, HIJRI_MONTHS } from "@/lib/hijri-utils";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
-// Value is an 8-digit string "YYYYMMDD" (Hijri), matching DriverProfile.hijriBirthDate.
-export const HIJRI_MONTHS = [
-  { n: 1, ar: "محرم", en: "Muharram" },
-  { n: 2, ar: "صفر", en: "Safar" },
-  { n: 3, ar: "ربيع الأول", en: "Rabi' al-awwal" },
-  { n: 4, ar: "ربيع الآخر", en: "Rabi' al-thani" },
-  { n: 5, ar: "جمادى الأولى", en: "Jumada al-awwal" },
-  { n: 6, ar: "جمادى الآخرة", en: "Jumada al-thani" },
-  { n: 7, ar: "رجب", en: "Rajab" },
-  { n: 8, ar: "شعبان", en: "Sha'ban" },
-  { n: 9, ar: "رمضان", en: "Ramadan" },
-  { n: 10, ar: "شوال", en: "Shawwal" },
-  { n: 11, ar: "ذو القعدة", en: "Dhu al-Qi'dah" },
-  { n: 12, ar: "ذو الحجة", en: "Dhu al-Hijjah" },
-];
+// Re-export so existing consumers keep working.
+export { HIJRI_MONTHS };
 export const HIJRI_YEAR_MIN = 1350;
-export const HIJRI_YEAR_MAX = 1447;
 
-export function HijriDatePicker({ value, onChange, ar }: { value: string; onChange: (v: string) => void; ar: boolean }) {
+// Approximate the current Hijri year dynamically so the picker always
+// includes "this year" (and a small buffer) instead of being hard-coded.
+// One Hijri year ≈ 354.36667 days; the epoch anchor is 1 Muharram 1 AH
+// ≈ 16 July 622 CE (Julian) ≈ 19 July 622 (proleptic Gregorian).
+function currentHijriYear(): number {
+  const now = new Date();
+  const gregorianDays =
+    (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+      Date.UTC(622, 6, 19)) /
+    86_400_000;
+  return Math.floor(gregorianDays / 354.36667) + 1;
+}
+
+export const HIJRI_YEAR_MAX = Math.max(currentHijriYear() + 5, 1450);
+
+export function HijriDatePicker({ value, onChange, ar, showConversion = true }: { value: string; onChange: (v: string) => void; ar: boolean; showConversion?: boolean }) {
   const parse = (v: string) => ({
     y: v.length === 8 ? parseInt(v.slice(0, 4), 10) : undefined,
     m: v.length === 8 ? parseInt(v.slice(4, 6), 10) : undefined,
@@ -45,6 +47,8 @@ export function HijriDatePicker({ value, onChange, ar }: { value: string; onChan
     }
   }, [value]);
 
+  const convertedGregorian = useMemo(() => hijriToGregorianStr(value), [value]);
+
   const compose = (ny?: number, nm?: number, nd?: number) => {
     setYear(ny);
     setMonth(nm);
@@ -57,25 +61,32 @@ export function HijriDatePicker({ value, onChange, ar }: { value: string; onChan
   };
 
   return (
-    <div className="flex gap-2">
-      <Select value={day ?? ""} onChange={(e) => compose(year, month, Number(e.target.value))} className="flex-1">
-        <option value="" disabled>{T("Day", "يوم", ar)}</option>
-        {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
-          <option key={d} value={d}>{d}</option>
-        ))}
-      </Select>
-      <Select value={month ?? ""} onChange={(e) => compose(year, Number(e.target.value), day)} className="flex-1">
-        <option value="" disabled>{T("Month", "شهر", ar)}</option>
-        {HIJRI_MONTHS.map((month) => (
-          <option key={month.n} value={month.n}>{ar ? month.ar : month.en}</option>
-        ))}
-      </Select>
-      <Select value={year ?? ""} onChange={(e) => compose(Number(e.target.value), month, day)} className="flex-1">
-        <option value="" disabled>{T("Year", "سنة", ar)}</option>
-        {Array.from({ length: HIJRI_YEAR_MAX - HIJRI_YEAR_MIN + 1 }, (_, i) => HIJRI_YEAR_MAX - i).map((y) => (
-          <option key={y} value={y}>{y}</option>
-        ))}
-      </Select>
+    <div>
+      <div className="flex gap-2">
+        <Select value={day ?? ""} onChange={(e) => compose(year, month, Number(e.target.value))} className="flex-1">
+          <option value="" disabled>{T("Day", "يوم", ar)}</option>
+          {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </Select>
+        <Select value={month ?? ""} onChange={(e) => compose(year, Number(e.target.value), day)} className="flex-1">
+          <option value="" disabled>{T("Month", "شهر", ar)}</option>
+          {HIJRI_MONTHS.map((month) => (
+            <option key={month.n} value={month.n}>{ar ? month.ar : month.en}</option>
+          ))}
+        </Select>
+        <Select value={year ?? ""} onChange={(e) => compose(Number(e.target.value), month, day)} className="flex-1">
+          <option value="" disabled>{T("Year", "سنة", ar)}</option>
+          {Array.from({ length: HIJRI_YEAR_MAX - HIJRI_YEAR_MIN + 1 }, (_, i) => HIJRI_YEAR_MAX - i).map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </Select>
+      </div>
+      {showConversion && convertedGregorian && (
+        <p className="mt-1 text-xs text-mk-green-400">
+          {T("Gregorian", "ميلادي", ar)}: {convertedGregorian}
+        </p>
+      )}
     </div>
   );
 }
