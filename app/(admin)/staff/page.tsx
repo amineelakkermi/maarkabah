@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Loader2, Edit, Power, PowerOff, KeyRound, Lock, Search, X } from "lucide-react";
+import { Plus, Loader2, Edit, Power, PowerOff, KeyRound, Lock, Search, X, Eye, EyeOff } from "lucide-react";
 import { Avatar, Badge, Button, Table, Th, Td, type BadgeVariant, Drawer, DrawerHeader, DrawerFooter, useToast, Input, Select, Modal } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { tenantUserService, tenantRoleService, branchService } from "@/lib/api-services";
@@ -68,6 +68,8 @@ export default function StaffPage() {
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const { showToast } = useToast();
 
   const [userName, setUserName] = useState("");
@@ -684,13 +686,23 @@ export default function StaffPage() {
             {T("Set a new password for", "تعيين كلمة مرور جديدة لـ", ar)}
             <span className="font-semibold text-mk-ink-900 ms-1">{resetUser?.name || resetUser?.fullName}</span>
           </p>
-          <Input
-            type="password"
-            label={T("New password", "كلمة المرور الجديدة", ar)}
-            placeholder={T("At least 8 characters with a digit", "8 أحرف على الأقل مع رقم", ar)}
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
+          <div className="relative">
+            <Input
+              type={showNewPassword ? "text" : "password"}
+              label={T("New password", "كلمة المرور الجديدة", ar)}
+              placeholder={T("At least 8 characters with a digit", "8 أحرف على الأقل مع رقم", ar)}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="absolute end-3 top-[38px] text-mk-ink-400 hover:text-mk-ink-700"
+              onClick={() => setShowNewPassword(!showNewPassword)}
+              tabIndex={-1}
+            >
+              {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
           <div className="flex items-center gap-3 mt-2">
             <Button variant="outline" className="flex-1" onClick={() => { setResetUser(null); setNewPassword(""); }} disabled={resetting}>
               {T("Cancel", "إلغاء", ar)}
@@ -736,13 +748,23 @@ export default function StaffPage() {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />
-              <Input
-                label={T("Password *", "كلمة المرور *", ar)}
-                type="password"
-                placeholder={T("Enter password", "أدخل كلمة المرور", ar)}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  label={T("Password *", "كلمة المرور *", ar)}
+                  type={showPassword ? "text" : "password"}
+                  placeholder={T("Enter password", "أدخل كلمة المرور", ar)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="absolute end-3 top-[38px] text-mk-ink-400 hover:text-mk-ink-700"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               <Select
                 label={T("Role *", "الدور *", ar)}
                 value={roleName}
