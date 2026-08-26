@@ -17,7 +17,7 @@ import { OtpVerificationPanel } from "@/components/employee/OtpVerification";
 
 type EditableFields = Pick<ClientProfile,
   "name" | "nameAr" | "phone" | "email" | "idType" | "idNumber" | "idExpiryDate" |
-  "birthDate" | "hijriBirthDate" | "nationality" | "licenseNumber" | "licenseExpiryDate" |
+  "birthDate" | "hijriBirthDate" | "nationality" | "nationalityCode" | "licenseNumber" | "licenseExpiryDate" |
   "personAddress" | "idCopyNumber" | "licenseIssuePlace" | "borderNumber"
 >;
 
@@ -122,6 +122,7 @@ function mapApiToClientProfile(item: any): ClientProfile {
       item.visitor?.nationality,
       item.gulf?.nationality
     ) || undefined,
+    nationalityCode: item.countryId ?? item.visitor?.countryId ?? item.gulf?.countryId ?? undefined,
     personAddress: item.address,
     idCopyNumber: firstString(
       item.idCopyNumber,
@@ -268,6 +269,7 @@ export default function CustomerDetailPage() {
       birthDate: client.birthDate ?? "",
       hijriBirthDate: client.hijriBirthDate,
       nationality: client.nationality ?? "",
+      nationalityCode: client.nationalityCode,
       licenseNumber: client.licenseNumber,
       licenseExpiryDate: client.licenseExpiryDate ?? "",
       personAddress: client.personAddress ?? "",
@@ -285,12 +287,29 @@ export default function CustomerDetailPage() {
 
   async function saveEditing() {
     if (!draft || !client) return;
-    try {
-      const isSaudi = draft.idType === "Saudi ID";
-      const isIqama = draft.idType === "Iqama";
-      const isPassport = draft.idType === "Passport";
-      const isGulf = draft.idType === "GCC ID";
 
+    const isSaudi = draft.idType === "Saudi ID";
+    const isIqama = draft.idType === "Iqama";
+    const isPassport = draft.idType === "Passport";
+    const isGulf = draft.idType === "GCC ID";
+    const email = draft.email?.trim() ?? "";
+    const phone = draft.phone.replace(/[\s()+-]/g, "");
+    const isValidEmail = !email || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    const isValidSaudiPhone = /^(?:9665|05|5)\d{8}$/.test(phone);
+    const requiredIdentityFieldMissing = identityFieldsFor(draft).some(
+      (field) => field.required && !String(field.value ?? "").trim()
+    );
+
+    if (!draft.nameAr.trim() || !isValidSaudiPhone || !isValidEmail || requiredIdentityFieldMissing) {
+      alert(T("Please complete all required fields with valid values.", "يرجى تعبئة جميع الحقول المطلوبة بقيم صحيحة.", ar));
+      return;
+    }
+    if ((isPassport || isGulf) && (!email || !draft.nationalityCode)) {
+      alert(T("Email and country are required for Visitor and GCC customers.", "البريد الإلكتروني والدولة مطلوبان للعملاء الزائرين والخليجيين.", ar));
+      return;
+    }
+
+    try {
       const updatePayload: any = {
         fullNameEn: draft.name || undefined,
         fullNameAr: draft.nameAr || undefined,
@@ -324,7 +343,7 @@ export default function CustomerDetailPage() {
           licenseNumber: draft.licenseNumber || undefined,
           licenseExpiryDate: draft.licenseExpiryDate || undefined,
           licenseIssuePlace: draft.licenseIssuePlace || undefined,
-          countryId: 1,
+          countryId: draft.nationalityCode,
           identityCopyNumber: draft.idCopyNumber || undefined,
           identityExpiryDate: draft.idExpiryDate || undefined,
         };
@@ -336,7 +355,7 @@ export default function CustomerDetailPage() {
           licenseNumber: draft.licenseNumber || undefined,
           licenseExpiryDate: draft.licenseExpiryDate || undefined,
           licenseIssuePlace: draft.licenseIssuePlace || undefined,
-          countryId: 1,
+          countryId: draft.nationalityCode,
           identityCopyNumber: draft.idCopyNumber || undefined,
           identityExpiryDate: draft.idExpiryDate || undefined,
         };
@@ -423,7 +442,7 @@ export default function CustomerDetailPage() {
         { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: d.licenseNumber, onChange: (v) => updateDraft("licenseNumber", v) },
         { key: "idExpiry", labelEn: "ID Expiry Date", labelAr: "تاريخ انتهاء الهوية", required: true, type: "date", value: d.idExpiryDate ?? "", onChange: (v) => updateDraft("idExpiryDate", v) },
         { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: d.licenseIssuePlace ?? "", onChange: (v) => updateDraft("licenseIssuePlace", v) },
-        { key: "country", labelEn: "Country", labelAr: "الدولة", required: true, type: "text", value: d.nationality ?? "", onChange: (v) => updateDraft("nationality", v) },
+        { key: "country", labelEn: "Country ID", labelAr: "رقم الدولة", required: true, type: "text", value: d.nationalityCode ? String(d.nationalityCode) : "", onChange: (v) => updateDraft("nationalityCode", v ? Number(v) : undefined) },
         idCopyNumberField,
         { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: d.licenseExpiryDate ?? "", onChange: (v) => updateDraft("licenseExpiryDate", v) },
       ];
@@ -437,7 +456,7 @@ export default function CustomerDetailPage() {
       { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: d.licenseNumber, onChange: (v) => updateDraft("licenseNumber", v) },
       { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: d.licenseExpiryDate ?? "", onChange: (v) => updateDraft("licenseExpiryDate", v) },
       { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: d.licenseIssuePlace ?? "", onChange: (v) => updateDraft("licenseIssuePlace", v) },
-      { key: "country", labelEn: "Country", labelAr: "الدولة", required: true, type: "text", value: d.nationality ?? "", onChange: (v) => updateDraft("nationality", v) },
+      { key: "country", labelEn: "Country ID", labelAr: "رقم الدولة", required: true, type: "text", value: d.nationalityCode ? String(d.nationalityCode) : "", onChange: (v) => updateDraft("nationalityCode", v ? Number(v) : undefined) },
       idCopyNumberField,
       { key: "idExpiry", labelEn: "ID Expiry Date", labelAr: "تاريخ انتهاء الهوية", required: true, type: "date", value: d.idExpiryDate ?? "", onChange: (v) => updateDraft("idExpiryDate", v) },
     ];
@@ -577,7 +596,7 @@ export default function CustomerDetailPage() {
                 <Button variant="outline" size="sm" onClick={cancelEditing}>
                   <XIcon size={12} /> {T("Cancel", "إلغاء", ar)}
                 </Button>
-                <Button variant="primary" size="sm" disabled={!draft.name || !draft.phone} onClick={saveEditing}>
+                <Button variant="primary" size="sm" disabled={!draft.nameAr.trim()} onClick={saveEditing}>
                   <Check size={12} /> {T("Save changes", "حفظ التعديلات", ar)}
                 </Button>
               </div>
@@ -662,7 +681,7 @@ export default function CustomerDetailPage() {
                   isRtl={false}
                 />
                 <EditField
-                  label={T("Email", "البريد الإلكتروني", ar)}
+                  label={`${T("Email", "البريد الإلكتروني", ar)}${draft.idType === "Passport" || draft.idType === "GCC ID" ? " *" : ""}`}
                   value={draft.email ?? ""}
                   onChange={(v) => updateDraft("email", v)}
                   type="email"

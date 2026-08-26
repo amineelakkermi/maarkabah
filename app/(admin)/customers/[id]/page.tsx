@@ -633,7 +633,7 @@ export default function CustomerDetailPage() {
                 <Button variant="outline" size="sm" onClick={cancelEditing}>
                   <XIcon size={12} /> {T("Cancel", "إلغاء", ar)}
                 </Button>
-                <Button variant="primary" size="sm" disabled={!draft.name || !draft.phone} onClick={saveEditing}>
+                <Button variant="primary" size="sm" disabled={!draft.nameAr.trim()} onClick={saveEditing}>
                   <Check size={12} /> {T("Save changes", "حفظ التعديلات", ar)}
                 </Button>
               </div>
