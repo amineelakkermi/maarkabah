@@ -199,21 +199,10 @@ export function VehicleForm({
                     onChange={(e) => setForm((f: any) => ({ ...f, vin: e.target.value }))}
                   />
                   <Input
-                    label={T("Engine number", "رقم المحرك", ar)}
-                    value={form.engineNumber}
-                    onChange={(e) => setForm((f: any) => ({ ...f, engineNumber: e.target.value }))}
-                  />
-                  <Input
                     label={T("Seats", "عدد المقاعد", ar)}
                     type="number"
                     value={form.seats}
                     onChange={(e) => setForm((f: any) => ({ ...f, seats: e.target.value }))}
-                  />
-                  <Input
-                    label={T("Cylinders", "عدد السلندرات", ar)}
-                    type="number"
-                    value={form.cylinders}
-                    onChange={(e) => setForm((f: any) => ({ ...f, cylinders: e.target.value }))}
                   />
                   <Select
                     label={T("Body type *", "نوع الهيكل *", ar)}
@@ -270,7 +259,11 @@ export function VehicleForm({
                   <Input
                     label={T("Plate number", "رقم اللوحة", ar)}
                     value={form.plateNumber}
-                    onChange={(e) => setForm((f: any) => ({ ...f, plateNumber: e.target.value }))}
+                    maxLength={4}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setForm((f: any) => ({ ...f, plateNumber: v }));
+                    }}
                   />
                   <div className="flex flex-col gap-2">
                     <label className="mk-body-sm text-mk-fg-1">
@@ -290,12 +283,14 @@ export function VehicleForm({
                           inputMode="text"
                           maxLength={1}
                           value={form[field] ?? ""}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const ch = e.target.value.slice(-1);
+                            if (ch && /\d/.test(ch)) return;
                             setForm((f: any) => ({
                               ...f,
-                              [field]: e.target.value.slice(-1),
-                            }))
-                          }
+                              [field]: ch,
+                            }));
+                          }}
                           className="font-[family-name:var(--font-body)] mk-body-sm h-10 w-full min-w-0 px-0 text-center uppercase border border-mk-ink-200 bg-white rounded-md text-mk-fg-1 transition-[border-color,box-shadow] duration-base ease-standard focus:outline-none focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)]"
                         />
                       ))}

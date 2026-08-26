@@ -182,10 +182,10 @@ export enum VehicleFleetStatus {
 }
 
 export enum VehicleFuelType {
-  Petrol = 1,
-  Diesel = 2,
-  Electric = 3,
-  Hybrid = 4,
+  Petrol95 = 1,
+  Petrol91 = 2,
+  Diesel = 3,
+  Electric = 4,
 }
 
 export enum VehicleBodyType {
