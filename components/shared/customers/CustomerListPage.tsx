@@ -275,14 +275,41 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
     );
   });
 
+ 
+
+  function customerFormErrors() {
+    const errors: string[] = [];
+    const email = newEmail.trim();
+    const phone = newPhone.replace(/[\s()+-]/g, "");
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    const isValidSaudiPhone = /^(?:9665|05|5)\d{8}$/.test(phone);
+    const requiresEmailAndCountry = newIdType === "Passport" || newIdType === "GCC ID";
+
+    if (!newNameAr.trim()) errors.push(T("Arabic full name is required", "الاسم الكامل بالعربية مطلوب", ar));
+    if (!isValidSaudiPhone) errors.push(T("Enter a valid Saudi phone number", "أدخل رقم هاتف سعودي صحيح", ar));
+    if (email && !isValidEmail) errors.push(T("Enter a valid email address", "أدخل بريدًا إلكترونيًا صحيحا", ar));
+    if (requiresEmailAndCountry && !email) errors.push(T("Email is required", "البريد الإلكتروني مطلوب", ar));
+    if (requiresEmailAndCountry && !newCountryId) errors.push(T("Country is required", "الدولة مطلوبة", ar));
+
+    newCustomerIdentityFields().forEach((field) => {
+      if (field.required && !String(field.value ?? "").trim()) {
+        errors.push(T(`${field.labelEn} is required`, `${field.labelAr} مطلوب`, ar));
+      }
+    });
+
+    return errors;
+  }
+
   function isCustomerFormInvalid() {
-    if (!newNameAr || !newName || !newPhone) return true;
-    if ((newIdType === "Passport" || newIdType === "GCC ID") && !newCountryId) return true;
-    return newCustomerIdentityFields().some((f) => f.required && !f.value);
+    return customerFormErrors().length > 0;
   }
 
   async function handleAdd() {
-    if (isCustomerFormInvalid()) return;
+    const validationErrors = customerFormErrors();
+    if (validationErrors.length > 0) {
+      showToast(validationErrors[0]);
+      return;
+    }
 
     try {
       setAdded(true);
@@ -649,7 +676,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
               />
               <Input
                 variant="muted"
-                label={<>{T("Full name (English)", "الاسم الكامل (إنجليزي)", ar)} <span className="text-mk-danger">*</span></>}
+                label={<>{T("Full name (English)", "الاسم الكامل (إنجليزي)", ar)} </>}
                 placeholder="e.g. Ahmed Al-Mutairi"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -667,7 +694,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
               <Input
                 variant="muted"
                 type="email"
-                label={T("Email", "البريد الإلكتروني", ar)}
+                label={<> {T("Email", "البريد الإلكتروني", ar)} {(newIdType === "Passport" || newIdType === "GCC ID") && <span className="text-mk-danger">*</span>}</>}
                 placeholder="example@email.com"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
@@ -770,7 +797,13 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
             </div>
           </div>
 
-          <DrawerFooter className="mt-4 pt-4 border-t border-mk-border justify-stretch">
+          <DrawerFooter className="mt-4 pt-4 border-t border-mk-border justify-stretch flex-col">
+            {isCustomerFormInvalid() && (
+              <div className="w-full rounded-md bg-mk-danger/8 px-3 py-2 mk-caption text-mk-danger">
+                {customerFormErrors()[0]}
+              </div>
+            )}
+            <div className="flex w-full gap-2">
             <Button variant="outline" onClick={() => setShowAdd(false)}>
               {T("Cancel", "إلغاء", ar)}
             </Button>
@@ -782,6 +815,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
             >
               {added ? (<><CheckCircle size={16} /> {T("Added!", "تمت الإضافة!", ar)}</>) : (<><UserPlus size={16} /> {T("Add Customer", "إضافة عميل", ar)}</>)}
             </Button>
+            </div>
           </DrawerFooter>
         </div>
       </Drawer>

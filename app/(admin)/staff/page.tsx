@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Loader2, Edit, Power, PowerOff, KeyRound, Lock } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Loader2, Edit, Power, PowerOff, KeyRound, Lock, Search, X } from "lucide-react";
 import { Avatar, Badge, Button, Table, Th, Td, type BadgeVariant, Drawer, DrawerHeader, DrawerFooter, useToast, Input, Select, Modal } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { tenantUserService, tenantRoleService, branchService } from "@/lib/api-services";
@@ -54,6 +54,7 @@ export default function StaffPage() {
   const ar = dir === "rtl";
 
   const [users, setUsers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [roleOptions, setRoleOptions] = useState<any[]>([]);
   const [branchOptions, setBranchOptions] = useState<any[]>([]);
@@ -117,8 +118,10 @@ export default function StaffPage() {
 
       const transformedUsers = rawUsers.map((item: any) => ({
         id: item.id,
+        userName: item.userName || '',
         name: item.fullName || '',
         email: item.email || '',
+        phoneNumber: item.phoneNumber || '',
         role: item.roleDisplayName
           || item.role?.displayName
           || item.role?.name
@@ -385,6 +388,24 @@ export default function StaffPage() {
     },
   ];
 
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return users;
+
+    return users.filter((user) =>
+      [
+        user.name,
+        user.userName,
+        user.email,
+        user.phoneNumber,
+        user.role,
+        user.roleName,
+        user.branch,
+        user.isActive ? T("Active", "نشط", ar) : T("Inactive", "غير نشط", ar),
+      ].some((value) => String(value ?? "").toLocaleLowerCase().includes(query))
+    );
+  }, [users, searchQuery, ar]);
+
   return (
     <div>
       {/* Header row */}
@@ -400,6 +421,33 @@ export default function StaffPage() {
           <Plus size={14} />
           {T("Add staff", "إضافة موظف", ar)}
         </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="w-full sm:max-w-md">
+          <Input
+            variant="search"
+            icon={<Search size={14} />}
+            placeholder={T("Search by name, email, username, role or branch...", "البحث بالاسم أو البريد أو اسم المستخدم أو الدور أو الفرع...", ar)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            suffix={searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="flex items-center justify-center border-0 bg-transparent text-mk-ink-400 hover:text-mk-ink-700 cursor-pointer"
+                aria-label={T("Clear search", "مسح البحث", ar)}
+              >
+                <X size={14} />
+              </button>
+            ) : undefined}
+          />
+        </div>
+        {searchQuery && (
+          <div className="mk-caption text-mk-ink-500">
+            {filteredUsers.length} {T("result(s)", "نتيجة", ar)}
+          </div>
+        )}
       </div>
 
       {/* Staff table */}
@@ -424,14 +472,16 @@ export default function StaffPage() {
                   <Loader2 className="animate-spin text-mk-blue-500 mx-auto" size={32} />
                 </td>
               </tr>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-12 mk-label text-mk-ink-400">
-                  {T("No staff members found", "لم يتم العثور على أعضاء الفريق", ar)}
+                  {searchQuery
+                    ? T("No staff members match your search", "لا يوجد موظفون يطابقون البحث", ar)
+                    : T("No staff members found", "لم يتم العثور على أعضاء الفريق", ar)}
                 </td>
               </tr>
             ) : (
-              users.map((p) => (
+              filteredUsers.map((p) => (
                 <tr
                   key={p.id}
                   onClick={() => handleViewUser(p)}

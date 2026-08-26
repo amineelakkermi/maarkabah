@@ -181,11 +181,21 @@ export default function RolesPage() {
       showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar));
       return;
     }
+  
+    const normalizedName = name.trim().toLocaleLowerCase();
+    const roleExists = roles.some(
+      (role) => role.name?.trim().toLocaleLowerCase() === normalizedName
+    );
+
+    if (roleExists) {
+      showToast(T("Role already exists", "الدور موجود بالفعل", ar));
+      return;
+    }
 
     try {
       await tenantRoleService.create({
-        name,
-        description,
+        name: name.trim(),
+        description: description.trim(),
         permissions: selectedPermissions,
       });
 
@@ -196,9 +206,28 @@ export default function RolesPage() {
       setDescription("");
       setSelectedPermissions([]);
       showToast(T("🟢 Role created successfully!", "🟢 تم إضافة الدور الجديد بنجاح!", ar));
-    } catch (error) {
-      console.error('Error creating role:', error);
-      showToast(T('Failed to create role', 'فشل إنشاء الدور', ar));
+    } catch (error: any) {
+      console.error("Error creating role:", error);
+
+      const response = error?.response;
+      const errorText = [
+        response?.code,
+        response?.message,
+        response?.title,
+        response?.error,
+        ...(response?.errors ? Object.values(response.errors).flat() : []),
+        error?.message,
+      ].filter(Boolean).join(" ");
+
+      const isDuplicate =
+        error?.status === 409 ||
+        /already exists|duplicate|name exists|role.*exists|موجود بالفعل|مكرر/i.test(errorText);
+
+      showToast(
+        isDuplicate
+          ? T("Role already exists", "الدور موجود بالفعل", ar)
+          : errorText || T("Failed to create role", "فشل إنشاء الدور", ar)
+      );
     }
   };
 

@@ -15,9 +15,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
+      const text = await response.text();
+      let errorData: any = null;
+
+      try {
+        errorData = text ? JSON.parse(text) : null;
+      } catch {
+        errorData = text ? { error: text } : null;
+      }
+
       return NextResponse.json(
-        { error: errorData?.message || 'Failed to create role' },
+        errorData || { error: response.statusText || 'Failed to create role' },
         { status: response.status }
       );
     }
