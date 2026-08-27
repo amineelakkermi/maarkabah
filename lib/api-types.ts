@@ -395,13 +395,22 @@ export interface UpdateTenantUserRequest {
 
 // ─── Lookup ─────────────────────────────────────────────────────
 
-export interface LookupSection {
-  // Add lookup section fields
-  [key: string]: any;
-}
+export type LookupSectionName =
+  | "VehicleMakes"
+  | "VehicleModels"
+  | "PlateTypes"
+  | "InsuranceCompanies"
+  | "InsuranceTypes"
+  | "VehicleFeatureTypes"
+  | "VehicleEnums"
+  | "Countries"
+  | "Branches"
+  | "PersonEnums"
+  | "AdditionalServiceEnums"
+  | "RentPolicyEnums";
 
 export interface SystemLookupContextRequest {
-  sections?: LookupSection[];
+  sections?: LookupSectionName[];
 }
 
 // ─── Generic Search ─────────────────────────────────────────────
@@ -507,3 +516,49 @@ export interface AdditionalServiceSearchRequest {
 export interface AdditionalServicePickerRequest {
   branchId?: number;
 }
+
+export enum RentPolicySource {
+  Tajeer = 1,
+  Custom = 2,
+}
+
+export interface RentPolicyDto {
+  id: number;
+  code?: string;
+  tajeerId?: number;
+  nameAr?: string;
+  nameEn?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  extensionPolicy?: number | null;
+  earlyReturnPolicy?: number | null;
+  accidentReportPolicy?: number | null;
+  fuelReturnPolicy?: number | null;
+  breakdownReportPolicy?: number | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  source?: RentPolicySource;
+}
+
+export interface RentPolicySearchRequest {
+  search?: string;
+  isActive?: boolean;
+  source?: RentPolicySource;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface SaveRentPolicyRequest {
+  nameAr: string;
+  nameEn: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  extensionPolicy: number;
+  earlyReturnPolicy: number;
+  accidentReportPolicy: number;
+  fuelReturnPolicy: number;
+  breakdownReportPolicy: number;
+  sortOrder?: number;
+  isActive: boolean;
+}
+ 

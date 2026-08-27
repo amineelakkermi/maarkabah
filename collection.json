@@ -109,6 +109,10 @@
       "value": "1"
     },
     {
+      "key": "rentPolicyId",
+      "value": "1"
+    },
+    {
       "key": "roleName",
       "value": "Sales Lead"
     },
@@ -986,6 +990,140 @@
       ]
     },
     {
+      "name": "Rent Policies",
+      "item": [
+        {
+          "name": "Search rent policies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('rentPolicyId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"isActive\": null,\n  \"source\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/rent-policies/search",
+            "description": "Requires Permissions.RentPolicies.View. Flat paged rows. source: 1=Tajeer (read-only), 2=Custom. Term chips are null on Tajeer-synced rows unless Tajeer later sends equivalent fields."
+          }
+        },
+        {
+          "name": "Get rent policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rent-policies/{{rentPolicyId}}",
+            "description": "Requires Permissions.RentPolicies.View. 404 if missing."
+          }
+        },
+        {
+          "name": "Picker (contract bootstrap)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/api/rent-policies/picker",
+            "description": "Requires Permissions.RentPolicies.View. Not paged. Active Tajeer + custom policies. Use tajeerId on Save Contract for Source=Tajeer rows."
+          }
+        },
+        {
+          "name": "Sync from Tajeer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/rent-policies/sync",
+            "description": "Requires Permissions.RentPolicies.Edit. Pulls GET /rent-policy/all, upserts Tajeer rows, deactivates missing Tajeer rows. Does not touch custom policies. 400 RentPolicy.TajeerSyncFailed when Elm is inactive or the call fails."
+          }
+        },
+        {
+          "name": "Create custom rent policy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const id = json.id || (json.data && json.data.id) || json.data;",
+                  "  if (id) pm.collectionVariables.set('rentPolicyId', String(id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"سياسة نهاية الأسبوع\",\n  \"nameEn\": \"Weekend Policy\",\n  \"extensionPolicy\": 2,\n  \"earlyReturnPolicy\": 2,\n  \"accidentReportPolicy\": 2,\n  \"fuelReturnPolicy\": 2,\n  \"breakdownReportPolicy\": 2,\n  \"sortOrder\": 10,\n  \"isActive\": true,\n  \"descriptionAr\": \"للعطلة الأسبوعية\",\n  \"descriptionEn\": \"For weekend rentals\"\n}"
+            },
+            "url": "{{baseUrl}}/api/rent-policies",
+            "description": "Requires Permissions.RentPolicies.Create. Always Source=Custom. Term enums from lookups RentPolicyEnums. Code is generated (RP00001…). Not pushed to Tajeer."
+          }
+        },
+        {
+          "name": "Update custom rent policy",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"سياسة نهاية الأسبوع\",\n  \"nameEn\": \"Weekend Policy\",\n  \"extensionPolicy\": 1,\n  \"earlyReturnPolicy\": 1,\n  \"accidentReportPolicy\": 1,\n  \"fuelReturnPolicy\": 1,\n  \"breakdownReportPolicy\": 1,\n  \"sortOrder\": 10,\n  \"isActive\": true,\n  \"descriptionAr\": \"للعطلة الأسبوعية\",\n  \"descriptionEn\": \"For weekend rentals\"\n}"
+            },
+            "url": "{{baseUrl}}/api/rent-policies/{{rentPolicyId}}",
+            "description": "Requires Permissions.RentPolicies.Edit. 400 RentPolicy.TajeerReadOnly if the row was synced from Tajeer."
+          }
+        },
+        {
+          "name": "Delete custom rent policy",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/rent-policies/{{rentPolicyId}}",
+            "description": "Requires Permissions.RentPolicies.Delete. Soft-deletes custom rows. 400 if the row is Tajeer-synced."
+          }
+        }
+      ]
+    },
+    {
       "name": "Countries",
       "item": [
         {
@@ -1086,7 +1224,7 @@
               "raw": "{}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums, additionalServiceEnums (billingUnits)."
+            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums, additionalServiceEnums (billingUnits), rentPolicyEnums (extension / early return / accident / fuel / breakdown)."
           }
         },
         {
@@ -1101,10 +1239,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\", \"AdditionalServiceEnums\"]\n}"
+              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\"]\n}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\", \"AdditionalServiceEnums\") or their integer values."
+            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\") or their integer values."
           }
         },
         {
@@ -1141,6 +1279,24 @@
             },
             "url": "{{baseUrl}}/api/lookups/context",
             "description": "Bootstrap for additional-service forms. additionalServiceEnums.billingUnits is Once / PerDay / PerKm. Service rows themselves come from POST /api/additional-services/picker — not this endpoint."
+          }
+        },
+        {
+          "name": "System lookup context (RentPolicyEnums)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sections\": [\"RentPolicyEnums\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/lookups/context",
+            "description": "Bootstrap for rent-policy forms. rentPolicyEnums returns extensionPolicies, earlyReturnPolicies, accidentReportPolicies, fuelReturnPolicies, breakdownReportPolicies. Policy rows themselves come from POST /api/rent-policies/picker — not this endpoint."
           }
         },
         {

@@ -1296,6 +1296,36 @@ export const additionalServiceService = {
   },
 };
 
+export const rentPolicyService = {
+  async search(request: Types.RentPolicySearchRequest): Promise<any> {
+    return apiClient.request('/rent-policies/search', { method: 'POST', body: request });
+  },
+
+  async picker(): Promise<any> {
+    return apiClient.request('/rent-policies/picker', { method: 'POST', body: {} });
+  },
+
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/rent-policies/${id}`, { method: 'GET' });
+  },
+
+  async create(request: Types.SaveRentPolicyRequest): Promise<any> {
+    return apiClient.request('/rent-policies', { method: 'POST', body: request });
+  },
+
+  async update(id: number | string, request: Types.SaveRentPolicyRequest): Promise<any> {
+    return apiClient.request(`/rent-policies/${id}`, { method: 'PUT', body: request });
+  },
+
+  async delete(id: number | string): Promise<void> {
+    await apiClient.request(`/rent-policies/${id}`, { method: 'DELETE' });
+  },
+
+  async sync(): Promise<any> {
+    return apiClient.request('/rent-policies/sync', { method: 'POST' });
+  },
+};
+
 // ─── Customer Warehouse Service ─────────────────────────────────
 
 export const customerWarehouseService = {
