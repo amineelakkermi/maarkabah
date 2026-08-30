@@ -103,34 +103,36 @@
   --text-overline: 11px;
   --text-mono: 14px;
 
-  /* ── Font Sizes — Internal aliases (--fs-*) used in utility classes below ── */
+  /* ── Font Sizes — Internal aliases (--fs-*) used in utility classes below ──
+     Line-heights are absolute px on a 4px grid (not unitless ratios). ── */
   --fs-display-xl: 72px;
-  --lh-display-xl: 1.05;
+  --lh-display-xl: 76px;
   --fs-display-lg: 56px;
-  --lh-display-lg: 1.08;
+  --lh-display-lg: 60px;
   --fs-display: 44px;
-  --lh-display: 1.1;
+  --lh-display: 48px;
   --fs-h1: 36px;
-  --lh-h1: 1.15;
+  --lh-h1: 40px;
   --fs-h2: 28px;
-  --lh-h2: 1.2;
+  --lh-h2: 32px;
   --fs-h3: 22px;
-  --lh-h3: 1.3;
+  --lh-h3: 28px;
   --fs-h4: 16px;
-  --lh-h4: 1.35;
+  --lh-h4: 20px;
   --fs-body-lg: 18px;
-  --lh-body-lg: 1.55;
+  --lh-body-lg: 28px;
   --fs-body: 16px;
-  --lh-body: 1.55;
+  --lh-body: 24px;
   --fs-body-sm: 14px;
-  --lh-body-sm: 1.5;
+  --lh-body-sm: 20px;
   --fs-label: 13px;
-  --lh-label: 1.45;
+  --lh-label: 20px;
   --fs-caption: 12px;
-  --lh-caption: 1.4;
+  --lh-caption: 16px;
   --fs-overline: 11px;
-  --lh-overline: 1.3;
+  --lh-overline: 16px;
   --fs-mono: 14px;
+  --lh-mono: 20px;
 
   /* ── Font Weights ────────────────────────────────────────────────────────── */
   --fw-regular: 400;
@@ -167,18 +169,19 @@
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-2xl: 32px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
   --radius-pill: 999px;
   --radius-stadium: 999px;
   /* alias of pill — used for buttons */
   --radius-card: var(--radius-lg);
-  /* semantic: card corners  */
+  /* semantic: card corners (16px)  */
   --radius-badge: var(--radius-pill);
   /* semantic: badge/chip    */
-  --radius-input: var(--radius-sm);
-  /* semantic: input fields  */
+  --radius-input: var(--radius-md);
+  /* semantic: input fields (12px) */
 
   /* ── Box Shadows ─────────────────────────────────────────────────────────── */
   --shadow-card: 0 1px 2px rgba(15, 20, 48, 0.04);
@@ -220,6 +223,15 @@
   --dur-base: 220ms;
   --dur-slow: 360ms;
   --dur-slower: 500ms;
+
+  /* Tailwind's duration-* utilities read --duration-*, not --dur-* — alias
+     them so classes like `duration-fast` actually generate a rule instead
+     of silently emitting nothing. */
+  --duration-instant: var(--dur-instant);
+  --duration-fast: var(--dur-fast);
+  --duration-base: var(--dur-base);
+  --duration-slow: var(--dur-slow);
+  --duration-slower: var(--dur-slower);
 }
 
 /* ---------- CSS Variables (semantic aliases) ------------------ */
@@ -266,7 +278,7 @@
 
   /* Ink scale (light mode values) */
   --ink-900: #0F1430;
-  --ink-800: #1F2547;
+  --ink-800: #161C3B;
   --ink-700: #2D335A;
   --ink-600: #4A4F73;
   --ink-500: #6E738F;
@@ -298,9 +310,13 @@
 
 :root[data-theme="dark"],
 [data-theme="dark"] {
+  /* --bg matches Ink-900 (#0F1430), --bg-elevated matches Ink-800
+     (#161C3B) — see the Ink scale in the design system's Colours
+     section. Elevated surfaces (cards, sidebar, modals) all key off
+     --bg-elevated, so they stay one consistent dark navy. */
   --bg: #0F1430;
-  --bg-muted: #1F2547;
-  --bg-elevated: #1F2547;
+  --bg-muted: #161C3B;
+  --bg-elevated: #161C3B;
   --bg-inverse: #FFFFFF;
 
   --fg-1: #FFFFFF;
@@ -385,10 +401,12 @@
   background-color: var(--bg-elevated);
 }
 
-/* Map .mk-surface to elevated background in dark mode */
-:root[data-theme="dark"] .mk-surface,
-[data-theme="dark"] .mk-surface {
-  background-color: var(--bg-elevated);
+/* Login page's form panel — white in light mode, but the deepest --bg
+   (Ink-900) rather than the --bg-elevated card tone .bg-white normally
+   maps to in dark mode. */
+:root[data-theme="dark"] .mk-login-panel,
+[data-theme="dark"] .mk-login-panel {
+  background-color: var(--bg);
 }
 
 /* Map .mk-drawer to elevated background in dark mode */
@@ -397,16 +415,42 @@
   background-color: var(--bg-elevated);
 }
 
+/* Input/Select field labels — owns its own color outright (no separate
+   text-mk-fg-* utility needed on the element): --fg-1 at rest, softer
+   secondary --fg-2 in dark mode so the label reads less prominently than
+   the field's own value. */
+.mk-field-label {
+  color: var(--fg-1);
+}
+:root[data-theme="dark"] .mk-field-label,
+[data-theme="dark"] .mk-field-label {
+  color: var(--fg-2);
+}
+
+/* Map .mk-view-toggle to the page canvas (--bg, same as .bg-mk-bg) in
+   dark mode, no border. */
+:root[data-theme="dark"] .mk-view-toggle,
+[data-theme="dark"] .mk-view-toggle {
+  background-color: var(--bg);
+  border: none;
+}
+
 /* Map .bg-mk-midnight to dark navy background in dark mode */
 :root[data-theme="dark"] .bg-mk-midnight,
 [data-theme="dark"] .bg-mk-midnight {
   background-color: #16224F;
 }
 
-/* Fix view-toggle in dark mode — match the navy+blue-icon reference */
+/* View-toggle buttons in dark mode — slate text for inactive, bright blue for active */
 :root[data-theme="dark"] .mk-view-btn,
 [data-theme="dark"] .mk-view-btn {
-  color: var(--color-mk-ink-400);
+  color: #9DA3C4;
+}
+
+:root[data-theme="dark"] .mk-view-btn:hover:not(.mk-view-btn--active),
+[data-theme="dark"] .mk-view-btn:hover:not(.mk-view-btn--active) {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Fix Chip active state in dark mode — ink-900 becomes white, causing white-on-white */
@@ -426,7 +470,7 @@
 /* ── Dark mode "well" surfaces ─────────────────────────────────────────
    In light mode bg-mk-ink-50 = very light gray (fine).
    In dark mode --ink-50 resolves to #0F1430 (page bg), which is the same
-   or darker than the --bg-elevated (#1F2547) cards it's nested inside —
+   or darker than the --bg-elevated (#161C3B) cards it's nested inside —
    producing a flat, too-dark "hole" wherever it's used as an inner panel
    (info rows, drawer sections, edit-form wells, spec grids). Override to
    a subtle white overlay so nested surfaces lighten instead of darken. */
@@ -515,7 +559,7 @@ body {
   color: var(--fg-1);
   font-family: "Madani Arabic", "Inter", system-ui, sans-serif;
   font-size: 16px;
-  line-height: 1.55;
+  line-height: 24px;
 }
 
 [dir="rtl"] {
@@ -533,7 +577,7 @@ body {
   inset-inline-start: -16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
+  width: 4px;
   height: 22px;
   background: var(--color-mk-blue-500);
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
@@ -683,7 +727,7 @@ body {
   font-family: var(--font-mono);
   font-weight: var(--fw-regular);
   font-size: var(--fs-mono);
-  line-height: 1.5;
+  line-height: var(--lh-mono);
 }
 
 /* ── Layout utilities ───────────────────────────────────────────── */
@@ -702,25 +746,83 @@ body {
 }
 
 /* ── Contract Drawer ────────────────────────────────────────────── */
+/* .mk-drawer only owns position/shape (fixed placement, rounded corners,
+   shadow) — it does NOT scroll itself. A scrollbar rendered on the same
+   element as border-radius gets its track chrome drawn square, ignoring
+   the radius, so the corners nearest the rail looked clipped/unrounded.
+   .mk-drawer-body (the inner child, see Drawer.tsx) owns padding and
+   scrolling instead; .mk-drawer just clips it to the rounded shape via
+   overflow: hidden. */
 .mk-drawer {
   position: fixed;
-  top: 18px;
-  right: 18px;
-  bottom: 18px;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  bottom: var(--space-lg);
   width: 480px;
   background: white;
-  border-radius: 24px;
-  box-shadow: 0 24px 64px -12px rgba(15, 20, 48, 0.28);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
   z-index: 100;
-  padding: 24px;
+  overflow: hidden;
+}
+
+@media (max-width: 639px) {
+  .mk-drawer {
+    left: var(--space-lg);
+    width: auto;
+  }
+}
+
+.mk-drawer-body {
+  height: 100%;
+  padding: var(--space-2xl);
+  /* Plain `auto`, no forced-on `scroll` and no `scrollbar-gutter: stable`.
+     Every attempt at guaranteeing zero shift (forcing the rail always on,
+     manually shrinking one side's padding to compensate, reserving a
+     stable gutter) ended up reserving space inconsistently with what
+     actually renders and threw the left/right balance off instead. Plain
+     `auto` has no reservation to get wrong — the scrollbar only takes
+     space on the rare form that's actually tall enough to need it. */
   overflow-y: auto;
-  scrollbar-width: none;
 }
 
 /* ── Hide scrollbar (Firefox) — pair with a webkit ::-webkit-scrollbar
    rule if needed; used on scroll containers that shouldn't show a rail ── */
 .mk-scrollbar-none {
   scrollbar-width: none;
+}
+.mk-scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Themed scrollbar — thin neutral-ink rail for scroll containers that
+   should show one (dropdown option lists, long in-panel lists, drawers,
+   scrollable cards) rather than the browser's default gray bar. Ink tokens
+   (not a brand accent color) so the rail stays legible and unobtrusive in
+   both themes — --color-mk-ink-300/400 already resolve to the right
+   contrast against --bg-elevated in light and dark mode. Kept hairline-thin
+   with a transparent track so it reads as an inset accent, not a
+   layout-shifting gutter — callers that need breathing room between their
+   content and the rail add it themselves (e.g. `pe-2`), since baking
+   padding into this shared class would fight the padding containers like
+   .mk-drawer-body already carry. ── */
+.mk-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-mk-ink-300) transparent;
+}
+.mk-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.mk-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mk-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-mk-ink-300);
+  border-radius: var(--radius-pill);
+}
+.mk-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-mk-ink-400);
 }
 
 .mk-drawer-backdrop {
@@ -745,18 +847,22 @@ body {
     width: 100% !important;
     max-width: 100% !important;
     border-radius: 0 !important;
-    padding: 16px !important;
+  }
+  .mk-drawer-body {
+    padding: var(--space-lg) !important;
   }
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {
   .mk-drawer {
-    top: 12px;
-    bottom: 12px;
+    top: var(--space-md);
+    bottom: var(--space-md);
     width: 420px;
-    max-width: calc(100vw - 24px);
-    border-radius: 16px;
-    padding: 20px;
+    max-width: calc(100vw - var(--space-2xl));
+    border-radius: var(--radius-lg);
+  }
+  .mk-drawer-body {
+    padding: var(--space-xl);
   }
 
   [dir="rtl"] .mk-drawer {
@@ -797,14 +903,17 @@ body {
 }
 
 .mk-step.active {
-  background: var(--color-mk-blue-500);
-  color: white;
+  background: var(--color-mk-blue-surface);
+  color: var(--color-mk-blue-500);
   font-weight: var(--fw-semibold);
-  box-shadow: var(--shadow-glow-blue);
+  /* blue-surface alone reads too close to the light-mode page background —
+     pair it with the same inset ring .mk-option--on uses for its tonal
+     selected state, so the active step stays legible in both themes. */
+  box-shadow: inset 0 0 0 1px var(--color-mk-blue-500), var(--shadow-card);
 }
 
 .mk-step.done {
-  color: var(--success);
+  color: var(--color-mk-blue-500);
 }
 
 .mk-step-num {
@@ -821,13 +930,13 @@ body {
 }
 
 .mk-step.active .mk-step-num {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--color-mk-blue-500);
   color: white;
 }
 
 .mk-step.done .mk-step-num {
-  background: var(--success);
-  color: white;
+  background: var(--color-mk-blue-500) !important;
+  color: white !important;
 }
 
 /* ── Grid column utilities ──────────────────────────────────────── */
@@ -915,9 +1024,9 @@ body {
   box-shadow: inset 0 0 0 1px var(--color-mk-blue-500), 0 2px 10px rgba(15, 20, 48, 0.07);
 }
 
-/* ── Surface panel (white card + card shadow) ───────────────────── */
+/* ── Surface panel (card + card shadow) ───────────────────── */
 .mk-surface {
-  background: white;
+  background: var(--bg-elevated);
   box-shadow: var(--shadow-card);
 }
 
@@ -942,9 +1051,40 @@ body {
   box-shadow: 0 2px 12px rgba(15, 20, 48, 0.07);
 }
 
-/* ── Dropdown / overflow-menu shadow — pair with .mk-surface ── */
+/* ── Dropdown / overflow-menu shadow — pair with .mk-surface ──
+   The shadow alone reads fine in light mode (a dark blur against a white
+   panel on an even-lighter page), but in dark mode --bg-elevated and the
+   page's own --bg are both near-black, so a dark-tinted shadow disappears
+   completely and the menu blends into the page. --color-mk-border already
+   flips to a soft light hairline in dark mode (see --border), so a border
+   is the one edge cue that survives both themes without a separate
+   dark-mode override block here. */
 .mk-shadow-menu {
   box-shadow: 0 8px 32px -4px rgba(15, 20, 48, 0.18), 0 1px 4px rgba(15, 20, 48, 0.08);
+  border: 1px solid var(--color-mk-border);
+}
+
+/* ── Dropdown/menu open-close motion ────────────────────────────────
+   Standard entrance/exit for anything that pops open below its trigger —
+   custom Select replacements, "more actions" menus, toggle-driven panels.
+   Opens fading in while sliding up into place; closes fading out while
+   sliding back down. Requires the panel to stay mounted in the DOM (no
+   conditional {open && (...)}) so the exit half of the transition can
+   actually play — toggle the "open" modifier class instead. Pair with
+   .mk-surface + .mk-shadow-menu on the panel itself. */
+.mk-menu-motion {
+  transform-origin: top;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-standard),
+              transform var(--duration-base) var(--ease-standard);
+}
+
+.mk-menu-motion.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 /* ── Car photo placeholder tint — brand-blue/violet wash over ink-100 ── */
@@ -957,24 +1097,36 @@ body {
 }
 
 /* ── Table base ─────────────────────────────────────────────────── */
-/* mk-table-th — shared column header: overline caps, muted bg     */
+/* mk-table-th — shared column header: same surface as the rows below it —
+   no background fill of its own (which had the light/dark contrast bug
+   below) — distinguished purely by weight (bold vs. the rows' regular/
+   medium text) plus the uppercase overline treatment. */
 .mk-table-th {
   text-align: start;
   padding: var(--space-md) var(--space-md);
   font-size: var(--fs-overline);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-bold);
   line-height: var(--lh-overline);
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
   color: var(--ink-500);
-  background-color: var(--ink-50);
+  background: transparent;
   border-bottom: 1px solid var(--ink-100);
+  white-space: nowrap;
 }
 
-/* mk-table-td — shared row cell: consistent padding + border      */
+/* mk-table-td — shared row cell: consistent padding + border. white-space:
+   nowrap keeps every column at its natural desktop width regardless of
+   viewport — without it, the browser's default table layout wraps cell
+   text (e.g. "22:00–08:00" splitting into two lines) to squeeze the table
+   into a narrow container instead of letting <Table>'s overflow-x wrapper
+   do its job, which is exactly the "columns reformat on mobile" bug this
+   prevents. A cell that genuinely needs to wrap (a long description, say)
+   opts back in per-column with its own `whitespace-normal`. */
 .mk-table-td {
-  padding: 14px var(--space-md);
+  padding: var(--space-md) var(--space-md);
   border-bottom: 1px solid var(--ink-100);
+  white-space: nowrap;
 }
 
 .mk-table {
@@ -983,15 +1135,76 @@ body {
   border-spacing: 0;
 }
 
+/* ── Responsive tables — sticky first column ───────────────────────
+   Paired with <Table>'s own overflow-x:auto wrapper (see Table.tsx): on a
+   narrow viewport the table scrolls horizontally instead of squeezing every
+   column unreadably thin, and the first column — whatever identifies the
+   row (a name, a branch, a role) — stays pinned so you never lose track of
+   which row you're looking at while scrolling the rest into view. Needs an
+   opaque background of its own (matching the surface the table sits in) so
+   the columns scrolling underneath don't show through it. */
+.mk-table-sticky-col > thead > tr > :first-child,
+.mk-table-sticky-col > tbody > tr > :first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background-color: var(--bg-elevated);
+  /* Same solid color as .mk-surface (the card the table sits in) — this is
+     what keeps columns scrolling underneath from showing through the
+     pinned one. No border here: the opaque background alone is enough of
+     a seam against the scrolling columns, and a border read as an
+     unwanted extra rule at every width, not just where content scrolls. */
+  /* Matches the row's own hover transition (see the `hover:bg-mk-ink-50`
+     Tailwind class each table row carries) exactly, token-for-token —
+     left implicit, a sticky cell's background-color change can lag a
+     frame or two behind the rest of the row (a `position: sticky` element
+     sometimes needs its own repaint pass on hover), which reads as the
+     pinned column "catching up" late. Declaring the same transition here
+     keeps both halves of the row animating in lockstep, and `will-change`
+     keeps the browser from having to promote the layer on demand right as
+     the hover starts. */
+  transition: background-color var(--duration-fast) var(--ease-standard);
+  will-change: background-color;
+}
+
+/* Below 640px only: the identifying column (name/branch/role — whatever
+   the row is) pins in place and caps at 40% of the table's own width, so a
+   long subtitle can't wrap across several lines and inflate the row; every
+   other column keeps its natural desktop width and scrolls underneath
+   instead of shrinking to fit. Cell padding stays the exact same
+   --space-md rhythm as desktop — same grid, same gaps — no separate mobile
+   scale for either axis. */
+@media (max-width: 639px) {
+  .mk-table-sticky-col > thead > tr > :first-child,
+  .mk-table-sticky-col > tbody > tr > :first-child {
+    max-width: 40%;
+  }
+}
+
+/* Opaque colors only here, never the app's usual translucent hover overlay:
+   a translucent background on the STICKY cell lets whatever's scrolled to
+   sit physically behind it — another column's text — show through, which
+   is invisible on an ordinary (non-sticky, nothing-behind-it) row but reads
+   as a rendering glitch here. #222745 is --bg-elevated (#161C3B) pre-mixed
+   with the same 5% white the rest of the row's hover uses, flattened to a
+   solid color instead of relying on transparency. */
+.mk-table-sticky-col > tbody > tr:hover > :first-child {
+  background-color: var(--ink-50);
+}
+:root[data-theme="dark"] .mk-table-sticky-col > tbody > tr:hover > :first-child,
+[data-theme="dark"] .mk-table-sticky-col > tbody > tr:hover > :first-child {
+  background-color: #222745;
+}
+
 /* ── Quick-action card (dashboard) ─────────────────────────────── */
 .mk-qa-card {
   background: white;
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
-  padding: 14px 18px;
+  padding: var(--space-md) var(--space-lg);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 200px;
   text-decoration: none;
   transition: transform var(--dur-fast) var(--ease-emphasis),
@@ -1004,11 +1217,44 @@ body {
 }
 
 /* ── Contract page — view-toggle wrapper ─────────────────────────── */
-/* Ink-50 tray + a subtle inset ring — reads as a distinct recessed control
-   against whatever it's sitting on (bare page or an elevated card), in
-   both light and dark, without depending on a background-contrast guess. */
+/* Dark mode: unchanged from the original — ink-50 (the page bg's own
+   tone) has always read fine here against the ambient dark surfaces. */
 .mk-view-toggle {
   background: var(--color-mk-ink-50);
+}
+
+:root:not([data-theme="dark"]) .mk-view-toggle {
+  background: var(--color-mk-ink-50);
+  border: none;
+}
+
+/* Dark mode: same --bg page canvas as the rule above, no border. */
+:root[data-theme="dark"] .mk-view-toggle,
+[data-theme="dark"] .mk-view-toggle {
+  background-color: var(--bg);
+  border: none;
+}
+
+/* Settings page Tabs — "reversed" tray fill: the opposite of the default
+   .mk-view-toggle's canvas-matching background. Elevated/card-toned
+   instead: a neutral shade between ink-100 (#EFF0F4) and ink-200
+   (#DEDFE6) — ink-200 alone read too dark, ink-100 too close to canvas
+   (not a brand-blue tint — this tray is a structural surface, not a
+   brand accent) — in light mode so it reads as distinctly raised, and
+   --bg-elevated in dark mode to match other dark surfaces (cards,
+   sidebar). !important because the theme-scoped base rules above
+   (:root[...] .mk-view-toggle) out-specificity a plain class even with
+   later source order — same reasoning as .mk-chip--active elsewhere in
+   this file. Only the tray fill changes — the active-tab button styling
+   stays the shared default, so this isn't part of the tone="light"/
+   "dark" forced-palette system. */
+.mk-view-toggle--reversed {
+  background: #EAEBF0 !important;
+}
+
+:root[data-theme="dark"] .mk-view-toggle--reversed,
+[data-theme="dark"] .mk-view-toggle--reversed {
+  background: var(--bg-elevated) !important;
 }
 
 /* ── Contract page — view-toggle button ─────────────────────────── */
@@ -1024,6 +1270,11 @@ body {
   transition: all 0.15s var(--ease-standard);
 }
 
+.mk-view-btn:hover:not(.mk-view-btn--active) {
+  color: var(--color-mk-ink-900);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
 /* Light mode: white pill lifted off the ink-50 tray with a soft shadow —
    the raised-segment look, not a blue tint. */
 .mk-view-btn--active {
@@ -1032,13 +1283,23 @@ body {
   box-shadow: var(--shadow-xs);
 }
 
-/* Dark mode: blue-surface tint instead of white, no shadow — the surface
-   swap alone reads clearly against the dark ink-50 tray. */
+.mk-view-btn--active:hover {
+  color: var(--color-mk-blue-600);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Dark mode: tonal dark blue active pill (#1B3470) + bright light blue text (#6B9BFA) */
 :root[data-theme="dark"] .mk-view-btn--active,
 [data-theme="dark"] .mk-view-btn--active {
-  background: var(--color-mk-blue-surface);
-  color: var(--color-mk-blue-500);
+  background-color: #1B3470;
+  color: #6B9BFA;
   box-shadow: none;
+}
+
+:root[data-theme="dark"] .mk-view-btn--active:hover,
+[data-theme="dark"] .mk-view-btn--active:hover {
+  background-color: #234188;
+  color: #89B4FF;
 }
 
 /* ── Fixed-tone variants ──────────────────────────────────────────
@@ -1068,14 +1329,19 @@ body {
   transition: all 0.15s var(--ease-standard);
 }
 
+.mk-view-btn--light:hover:not(.mk-view-btn--tone-active) {
+  color: #1A1D2E;
+  background: rgba(0, 0, 0, 0.05);
+}
+
 .mk-view-btn--light.mk-view-btn--tone-active {
   background: #EEF3FC;
   color: #4171E2;
 }
 
-/* Literal elevated navy — same surface .mk-surface resolves to in dark mode. */
+/* Literal --bg-elevated — same surface .mk-surface resolves to in dark mode. */
 .mk-view-toggle--dark {
-  background: #1F2547;
+  background: #161C3B;
 }
 
 .mk-view-btn--dark {
@@ -1090,6 +1356,11 @@ body {
   transition: all 0.15s var(--ease-standard);
 }
 
+.mk-view-btn--dark:hover:not(.mk-view-btn--tone-active) {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .mk-view-btn--dark.mk-view-btn--tone-active {
   background: rgba(65, 113, 226, 0.18);
   color: #5D8BF4;
@@ -1098,8 +1369,8 @@ body {
 /* ── Hero / gradient header ─────────────────────────────────────── */
 .mk-page-hero {
   border-radius: var(--radius-xl);
-  padding: 32px;
-  margin-bottom: 24px;
+  padding: var(--space-3xl);
+  margin-bottom: var(--space-2xl);
   text-align: center;
   position: relative;
   overflow: hidden;

@@ -18,14 +18,12 @@ interface TopbarShellProps {
  * dark-mode toggle) used by both the admin and employee topbars. */
 export function TopbarShell({ onOpenSidebar, titleBlock, searchPlaceholder, isDark, onToggleDark, trailing }: TopbarShellProps) {
   return (
-    <div className="flex items-center gap-3 mb-6 pt-4 lg:pt-0">
+    <div className="flex items-center gap-3 mb-6 mt-4 lg:mt-0 px-4 py-3 rounded-2xl">
       <IconButton size="md" className="lg:hidden" onClick={onOpenSidebar} aria-label="Open menu">
         <Menu size={18} />
       </IconButton>
 
-      <div className="min-w-0">{titleBlock}</div>
-
-      <div className="flex-1" />
+      <div className="flex-1 min-w-0 py-1">{titleBlock}</div>
 
       <div className="hidden md:block w-[260px] xl:w-[320px] shrink-0">
         <Input

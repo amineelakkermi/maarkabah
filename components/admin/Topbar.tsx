@@ -9,6 +9,8 @@ const PAGE_META: Record<string, { en: string; ar: string; crumbEn?: string; crum
   "/fleet-map":    { en: "Fleet Map",           ar: "خريطة الأسطول",     crumbEn: "Map",      crumbAr: "الخريطة"  },
   "/bookings":     { en: "Contracts",           ar: "العقود",             crumbEn: "Contracts",crumbAr: "العقود"   },
   "/fleet":        { en: "Fleet Management",    ar: "إدارة الأسطول",     crumbEn: "Fleet",    crumbAr: "الأسطول"  },
+  "/contracts":    { en: "Contracts",           ar: "العقود",             crumbEn: "Operations", crumbAr: "العمليات" },
+  "/new-contract": { en: "New contract",        ar: "عقد جديد",           crumbEn: "Operations", crumbAr: "العمليات" },
   "/drivers":      { en: "Drivers",             ar: "بيانات السائقين",   crumbEn: "Customer", crumbAr: "العملاء"  },
   "/kyc-queue":    { en: "KYC Queue",           ar: "مراجعة الهوية",     crumbEn: "Customer", crumbAr: "العملاء"  },
   "/drivers-kyc-queue": { en: "Driver KYC Queue", ar: "مراجعة هوية السائقين", crumbEn: "Customer", crumbAr: "العملاء" },
@@ -20,11 +22,19 @@ const PAGE_META: Record<string, { en: string; ar: string; crumbEn?: string; crum
   "/staff":        { en: "Staff & Roles",       ar: "الفريق والأدوار",   crumbEn: "System",   crumbAr: "النظام"   },
 };
 
+function getPageMeta(path: string) {
+  if (path.startsWith("/contracts/") && path !== "/contracts") {
+    const contractId = path.split("/").pop();
+    return { en: `Contract ${contractId}`, ar: `عقد ${contractId}`, crumbEn: "Contracts", crumbAr: "العقود" };
+  }
+  return PAGE_META[path] ?? { en: "Maarkbh", ar: "مركبة" };
+}
+
 export function Topbar() {
   const { isDark, toggleDark, dir, setSidebarOpen } = useAdmin();
   const path = usePathname();
   const ar = dir === "rtl";
-  const meta = PAGE_META[path] ?? { en: "Maarkbh", ar: "مركبة" };
+  const meta = getPageMeta(path);
 
   return (
     <TopbarShell
@@ -37,7 +47,7 @@ export function Topbar() {
           {meta.crumbEn && (
             <div className="mk-body-sm mb-1 text-mk-ink-500 hidden sm:block">{ar ? meta.crumbAr : meta.crumbEn}</div>
           )}
-          <h1 className="mk-h2 leading-none text-mk-ink-900 tracking-tight truncate">{ar ? meta.ar : meta.en}</h1>
+          <h1 className="mk-h2 leading-tight text-mk-ink-900 tracking-tight truncate">{ar ? meta.ar : meta.en}</h1>
         </>
       }
     />

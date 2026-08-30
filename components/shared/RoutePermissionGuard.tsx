@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { getRoutePermissionRule } from "@/lib/route-permissions";
+import { shouldBypassRoutePermissions } from "@/lib/dev-flags";
 import { UnauthorizedView } from "./UnauthorizedView";
 
 interface RoutePermissionGuardProps {
@@ -42,8 +43,17 @@ export function RoutePermissionGuard({ children }: RoutePermissionGuardProps) {
     return <UnauthorizedView homeHref={homeHref} />;
   }
 
+  // Temporary dev override: allows UI development on routes whose backend
+  // permission (e.g. "contracts") is not yet available. Remove once the
+  // permission exists and is returned by /api/tenant/context.
+  const bypassPermissions = shouldBypassRoutePermissions();
+
   // `null` means "visible to any authenticated tenant user".
-  if (routeRule.permission !== null && !hasPermission(routeRule.permission)) {
+  if (
+    routeRule.permission !== null &&
+    !hasPermission(routeRule.permission) &&
+    !bypassPermissions
+  ) {
     return <UnauthorizedView homeHref={homeHref} />;
   }
 

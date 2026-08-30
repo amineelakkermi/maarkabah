@@ -1,0 +1,50 @@
+{
+  "airConditionGrade": {
+    "type": "enum",
+    "values": {
+      "1": "Excellent",
+      "2": "Good",
+      "3": "Weak",
+      "4": "Broken"
+    }
+  },
+  "screenStatus": {
+    "type": "enum",
+    "values": {
+      "1": "Excellent",
+      "2": "Good",
+      "3": "Weak",
+      "4": "Broken"
+    },
+    "changeFrom": "WorkingStatus (0/1)"
+  },
+  "radioStatus": {
+    "type": "enum",
+    "values": {
+      "1": "Excellent",
+      "2": "Good",
+      "3": "Weak",
+      "4": "Broken"
+    },
+    "changeFrom": "WorkingStatus (0/1)"
+  },
+  "oilType": {
+    "type": "string",
+    "input": "free-text",
+    "examples": [
+      "5W-30",
+      "10W-40"
+    ],
+    "changeFrom": "int / enum"
+  },
+  "spareTireStatus": {
+    "type": "enum",
+    "values": {
+      "1": "Excellent",
+      "2": "Good",
+      "3": "Weak"
+    },
+    "changeFrom": "PresenceStatus (0/1)",
+    "sameConditionsAs": "regular tire"
+  }
+}

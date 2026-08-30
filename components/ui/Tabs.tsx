@@ -111,7 +111,7 @@ const TONAL_TONE_STYLES: Record<Exclude<TabsTone, "auto">, {
 
 // Standalone pill buttons (outline/tonal) — fixed height to match Input/Select.
 const pillSizeClasses: Record<TabsSize, string> = {
-  xs: "h-7 px-2.5 text-[12px] gap-1.5",
+  xs: "h-7 px-2.5 mk-caption gap-1.5",
   sm: "h-8 px-3 mk-body-sm gap-1.5",
   md: "h-10 px-4 mk-body-sm gap-2",
 };
@@ -119,7 +119,7 @@ const pillSizeClasses: Record<TabsSize, string> = {
 // Boxed tray (default variant) — tray height matches Input/Select; a fixed
 // p-1 inset leaves the tab itself 8px shorter than the tray on every size.
 const traySizeClasses: Record<TabsSize, string> = { xs: "h-7 p-0.5", sm: "h-8 p-1", md: "h-10 p-1" };
-const trayTabSizeClasses: Record<TabsSize, string> = { xs: "h-6 px-2 text-[12px] gap-1", sm: "h-6 px-2.5 mk-body-sm gap-1.5", md: "h-8 px-3 mk-body-sm gap-2" };
+const trayTabSizeClasses: Record<TabsSize, string> = { xs: "h-6 px-2 mk-caption gap-1", sm: "h-6 px-2.5 mk-body-sm gap-1.5", md: "h-8 px-3 mk-body-sm gap-2" };
 const trayTabSquareClasses: Record<TabsSize, string> = { xs: "w-6 h-6", sm: "w-6 h-6", md: "w-8 h-8" };
 
 function Tabs({ items, value, onChange, size = "md", variant = "default", tone = "auto", rounded = "lg", className = "" }: TabsProps) {

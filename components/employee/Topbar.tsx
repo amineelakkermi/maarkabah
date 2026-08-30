@@ -44,7 +44,7 @@ export function EmployeeTopbar() {
           <div className="mk-body-sm mb-1 text-mk-ink-500 hidden sm:block">
             {ar ? "مركبة · موظف الاستقبال" : "Maarkbh · Front desk"}
           </div>
-          <h1 className="mk-h2 leading-none text-mk-ink-900 tracking-tight truncate">{ar ? meta.ar : meta.en}</h1>
+          <h1 className="mk-h2 leading-tight text-mk-ink-900 tracking-tight truncate">{ar ? meta.ar : meta.en}</h1>
           {(meta.sub || meta.subAr) && (
             <div className="mk-body-sm mt-1 text-mk-ink-500 hidden sm:block">{ar ? meta.subAr : meta.sub}</div>
           )}

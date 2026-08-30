@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Car, CarStatus } from "@/lib/data";
-import { Search, Plus, Loader2, Car as CarIcon, AlertCircle } from "lucide-react";
-import { Button, Tabs, Input, useToast } from "@/components/ui";
+import { Button, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { vehicleService, attachmentService } from "@/lib/api-services";
 import {
@@ -14,12 +13,10 @@ import {
   buildVehiclePayload,
   validateStep,
   mapStatusFromBackend,
-  STATUS_TABS,
-  STATS,
 } from "@/lib/fleet";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
-import { CarCard } from "@/components/fleet/CarCard";
-import { VehicleForm } from "@/components/fleet/VehicleForm";
+import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
+import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
 import { MapModal } from "@/components/employee/MapModal";
 
 export default function EmployeeCarsPage() {
@@ -32,13 +29,14 @@ export default function EmployeeCarsPage() {
   const [vehicles, setVehicles] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllGarageMap, setShowAllGarageMap] = useState(false);
+  const [mapVehicle, setMapVehicle] = useState<Car | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Car | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(emptyVehicleForm());
-  const [step, setStep] = useState(1);
-  const totalSteps = 5;
 
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
   const [vehicleImagePreviews, setVehicleImagePreviews] = useState<string[]>([]);
@@ -57,13 +55,12 @@ export default function EmployeeCarsPage() {
     setVehicleImages([]);
     setVehicleImagePreviews([]);
     setExistingImageFileIds([]);
-    setStep(1);
   };
 
   const handleAddVehicle = () => {
     setEditingVehicleId(null);
     resetForm();
-    setDrawerOpen(true);
+    setDetailsOpen(true);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,12 +89,11 @@ export default function EmployeeCarsPage() {
     setEditingVehicleId(car.id);
     setVehicleImages([]);
     setVehicleImagePreviews([]);
-    setStep(1);
     try {
       const v = await vehicleService.getById(car.id);
       setExistingImageFileIds(extractVehicleImageFileIds(v));
       setForm(mapVehicleToForm(v));
-      setDrawerOpen(true);
+      setDetailsOpen(true);
     } catch (error) {
       console.error("Error loading vehicle details:", error);
       showToast(T("Failed to load vehicle details", "فشل تحميل تفاصيل السيارة", ar));
@@ -108,13 +104,9 @@ export default function EmployeeCarsPage() {
   const handleSaveVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
-    if (step !== totalSteps) return;
 
-    for (let s = 1; s <= totalSteps; s++) {
-      if (!validateStep(form, s, ar, showToast)) {
-        setStep(s);
-        return;
-      }
+    for (let step = 1; step <= 5; step++) {
+      if (!validateStep(form, step, ar, showToast)) return;
     }
 
     setSaving(true);
@@ -162,7 +154,7 @@ export default function EmployeeCarsPage() {
         }
         showToast(T("🟢 Vehicle created successfully!", "🟢 تم إضافة السيارة بنجاح!", ar));
       }
-      setDrawerOpen(false);
+      setDetailsOpen(false);
       setEditingVehicleId(null);
       resetForm();
       await loadVehicles();
@@ -175,14 +167,23 @@ export default function EmployeeCarsPage() {
     }
   };
 
-  const handleDeleteVehicle = async (car: Car) => {
+  const handleDeleteVehicle = (car: Car) => {
+    setDeleteTarget(car);
+  };
+
+  const confirmDeleteVehicle = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
     try {
-      await vehicleService.delete(car.id);
-      showToast(T("🗑️ Vehicle deleted", "🗑️ تم حذف السيارة", ar));
+      await vehicleService.delete(deleteTarget.id);
+      showToast(T("Vehicle deleted", "تم حذف السيارة", ar));
+      setDeleteTarget(null);
       await loadVehicles();
     } catch (error) {
       console.error("Error deleting vehicle:", error);
       showToast(T("Failed to delete vehicle", "فشل حذف السيارة", ar));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -314,137 +315,13 @@ export default function EmployeeCarsPage() {
     inactive: vehicles.filter((c) => c.status === "inactive").length,
   };
 
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {STATS.map(({ labelEn, labelAr, key, cls }) => (
-          <div key={key} className="rounded-md border border-mk-ink-100 p-4 flex flex-col gap-1 mk-surface">
-            <span className={`mk-h2 leading-none ${cls}`}>{counts[key]}</span>
-            <span className="mk-caption normal-case tracking-normal text-mk-ink-500">
-              {ar ? labelAr : labelEn}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Fleet Alert Banners — TODO: wire to real API data */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="flex items-center gap-3 p-3 rounded-md border border-mk-warning/20 bg-mk-warning/5 mk-caption text-mk-warning">
-          <AlertCircle size={14} className="shrink-0 text-mk-warning" />
-          <div className="flex-1">
-            <b>{T("Istamara expiring soon", "تجديد الاستمارة مطلوب", ar)}:</b>{" "}
-            {T("Nissan Patrol (JKL 3456) in 5 days.", "نيسان باترول (JKL 3456) خلال ٥ أيام.", ar)}
-          </div>
-        </div>
-        <div className="flex items-center gap-3 p-3 rounded-md border border-mk-danger/20 bg-mk-danger/5 mk-caption text-mk-danger">
-          <AlertCircle size={14} className="shrink-0 text-mk-danger" />
-          <div className="flex-1">
-            <b>{T("Periodic inspection expired", "الفحص الدوري منتهي", ar)}:</b>{" "}
-            {T("Hyundai Elantra (PQR 1357) is overdue.", "هيونداي إلنترا (PQR 1357) متأخر.", ar)}
-          </div>
-        </div>
-      </div>
-
-      {/* Table card */}
-      <div className="rounded-md border border-mk-ink-100 flex flex-col overflow-hidden mk-surface">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-mk-ink-100 gap-4">
-          {/* Status tabs */}
-          <Tabs
-            variant="default"
-            rounded="full"
-            className="normal-case tracking-normal"
-            value={tab}
-            onChange={(v) => setTab(v as typeof tab)}
-            items={STATUS_TABS.map((t) => ({
-              value: t.key,
-              label: (
-                <>
-                  {ar ? t.labelAr : t.labelEn}
-                  {t.key !== "all" && (
-                    <span className="ms-1 mk-overline normal-case tracking-normal opacity-80">
-                      ({counts[t.key] ?? 0})
-                    </span>
-                  )}
-                </>
-              ),
-            }))}
-          />
-
-          <div className="flex items-center gap-2">
-            {/* Search */}
-            <div className="min-w-48">
-              <Input
-                variant="search"
-                icon={<Search size={14} />}
-                className="!rounded-sm !bg-mk-ink-50 !border-mk-ink-200"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={T("Search by name or plate…", "بحث بالاسم أو اللوحة...", ar)}
-              />
-            </div>
-            {/* Garage map */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-sm normal-case tracking-normal"
-              onClick={() => setShowAllGarageMap(true)}
-            >
-              <CarIcon size={14} className="text-mk-blue-500" />
-              {T("View garage map", "عرض خريطة الكراج", ar)}
-            </Button>
-            {/* Add car */}
-            <Button
-              variant="primary"
-              size="sm"
-              className="rounded-sm shadow-[var(--shadow-glow-blue)] normal-case tracking-normal"
-              onClick={handleAddVehicle}
-            >
-              <Plus size={14} />
-              {T("Add car", "إضافة سيارة", ar)}
-            </Button>
-          </div>
-        </div>
-
-        {/* Grid */}
-        <div
-          className="p-4 grid gap-3"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
-        >
-          {loading ? (
-            <div className="col-span-full flex items-center justify-center py-12 rounded-xl mk-surface">
-              <Loader2 className="animate-spin text-mk-blue-500" size={32} />
-            </div>
-          ) : visible.length === 0 ? (
-            <div className="col-span-full text-center py-12 mk-label text-mk-ink-400">
-              {T("No matching cars", "لا توجد سيارات مطابقة", ar)}
-            </div>
-          ) : (
-            visible.map((car) => (
-              <CarCard key={car.id} car={car} onEdit={handleEditVehicle} onDelete={handleDeleteVehicle} />
-            ))
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-mk-ink-100 mk-caption text-mk-ink-500">
-          <span>
-            {T(`Showing ${visible.length} of ${vehicles.length} cars`, `عرض ${visible.length} من ${vehicles.length} سيارة`, ar)}
-          </span>
-        </div>
-      </div>
-
-      <VehicleForm
-        open={isDrawerOpen}
-        onClose={() => setDrawerOpen(false)}
+  if (isDetailsOpen) {
+    return (
+      <VehicleDetailsPage
         editingVehicleId={editingVehicleId}
         saving={saving}
         form={form}
         setForm={setForm}
-        step={step}
-        setStep={setStep}
-        totalSteps={totalSteps}
         makes={makes}
         models={models}
         plateTypes={plateTypes}
@@ -457,9 +334,53 @@ export default function EmployeeCarsPage() {
         onImageChange={handleImageChange}
         onRemoveImage={removeImage}
         onRemoveExistingImage={removeExistingImage}
+        onBack={() => {
+          setDetailsOpen(false);
+          setEditingVehicleId(null);
+          resetForm();
+        }}
         onSubmit={handleSaveVehicle}
       />
+    );
+  }
 
+  return (
+    <div>
+      <FleetVehicleList
+        vehicles={vehicles}
+        visibleVehicles={visible}
+        loading={loading}
+        tab={tab}
+        search={search}
+        counts={counts}
+        onTabChange={setTab}
+        onSearchChange={setSearch}
+        onAdd={handleAddVehicle}
+        onEdit={handleEditVehicle}
+        onDelete={handleDeleteVehicle}
+        onShowVehicleMap={setMapVehicle}
+        onShowGarageMap={() => setShowAllGarageMap(true)}
+      />
+
+      <Modal open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} variant="centered" size="sm" title={T("Delete vehicle", "حذف السيارة", ar)}>
+        <div className="p-5 flex flex-col gap-5">
+          <p className="mk-body-sm text-mk-ink-700">
+            {T(
+              `Are you sure you want to delete "${deleteTarget?.name ?? ""}"? This action cannot be undone.`,
+              `هل أنت متأكد من حذف "${deleteTarget?.name ?? ""}"؟ لا يمكن التراجع عن هذا الإجراء.`,
+              ar
+            )}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>{T("Cancel", "إلغاء", ar)}</Button>
+            <Button variant="danger" onClick={confirmDeleteVehicle} disabled={deleting}>{deleting ? T("Deleting...", "جارٍ الحذف...", ar) : T("Delete", "حذف", ar)}</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {mapVehicle && (
+        <MapModal ar={ar} car={mapVehicle} onClose={() => setMapVehicle(null)} />
+      )}
       {showAllGarageMap && (
         <MapModal ar={ar} showAll={true} onClose={() => setShowAllGarageMap(false)} />
       )}

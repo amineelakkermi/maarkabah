@@ -44,9 +44,21 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { pattern: "/roles", permission: Permission.Roles.View },
   { pattern: "/staff", permission: Permission.Users.View },
 
+  // TODO: replace `null` with Permission.Contracts.* once the backend ships
+  // the contracts permission. `null` keeps these workflow pages reachable
+  // during UI development. See lib/dev-flags.ts for the temporary bypass.
+  { pattern: "/new-contract", permission: null },
+  { pattern: "/contracts", permission: null },
+  { pattern: "/contracts/:id", permission: null },
+  { pattern: "/pickup", permission: null },
+  { pattern: "/return", permission: null },
+
   // ─── Employee portal ────────────────────────────────────────────────
   { pattern: "/employee", permission: null },
   { pattern: "/employee/today", permission: null },
+  // TODO: replace `null` with Permission.Contracts.* once the backend ships
+  // the contracts permission. `null` keeps these workflow pages reachable
+  // during UI development. See lib/dev-flags.ts for the temporary bypass.
   { pattern: "/employee/new-contract", permission: null },
   { pattern: "/employee/contracts", permission: null },
   { pattern: "/employee/contracts/:id", permission: null },

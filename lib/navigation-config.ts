@@ -40,6 +40,10 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية", requiredPermission: null },
       // fleet-map, bookings, late-returns have no matching backend permission at this time.
       { href: "/fleet", icon: Car, label: "Fleet", labelAr: "الأسطول", requiredPermission: Permission.Vehicles.View },
+      // TODO: switch requiredPermission to Permission.Contracts.* once the
+      // backend provides the contracts permission.
+      { href: "/contracts", icon: CalendarCheck, label: "Contracts", labelAr: "العقود", requiredPermission: null },
+      { href: "/new-contract", icon: PlusCircle, label: "New contract", labelAr: "عقد جديد", requiredPermission: null },
     ],
   },
   {
@@ -85,6 +89,8 @@ export const EMPLOYEE_NAV_SECTIONS: NavSection[] = [
     titleAr: "الوردية",
     items: [
       { href: "/employee/today", icon: Sun, label: "Today", labelAr: "اليوم", requiredPermission: null, badge: 5 },
+      // TODO: switch requiredPermission to Permission.Contracts.* once the
+      // backend provides the contracts permission.
       { href: "/employee/new-contract", icon: PlusCircle, label: "New contract", labelAr: "عقد جديد", requiredPermission: null },
       { href: "/employee/contracts", icon: CalendarCheck, label: "Contracts", labelAr: "العقود", requiredPermission: null, badge: 8 },
     ],

@@ -26,7 +26,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
 
   if (!isInitialized || !isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-mk-ink-50">
+      <div className="min-h-screen flex items-center justify-center bg-mk-bg">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-mk-blue-500 border-t-transparent rounded-full animate-spin" />
           <span className="mk-label text-mk-ink-500">جاري التحقق من الصلاحيات...</span>
@@ -37,7 +37,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
 
   return (
     <div
-      className="min-h-screen bg-mk-ink-50 lg:grid lg:items-start lg:p-5 lg:gap-5 lg:grid-cols-[auto_1fr]"
+      className="min-h-screen bg-mk-bg lg:grid lg:items-start lg:p-5 lg:gap-5 lg:grid-cols-[auto_1fr]"
     >
       {/* Mobile backdrop */}
       {sidebarOpen && (

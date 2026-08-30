@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Car, CarStatus } from "@/lib/data";
-import { Search, Plus, Loader2 } from "lucide-react";
-import { Button, Tabs, Input, useToast, Modal } from "@/components/ui";
+import { Loader2 } from "lucide-react";
+import { useToast, Modal, Button } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { vehicleService, attachmentService } from "@/lib/api-services";
 import {
@@ -14,11 +14,9 @@ import {
   buildVehiclePayload,
   validateStep,
   mapStatusFromBackend,
-  STATUS_TABS,
-  STATS,
 } from "@/lib/fleet";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
-import { CarCard } from "@/components/fleet/CarCard";
+import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
 import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
 
 export default function FleetPage() {
@@ -358,97 +356,20 @@ export default function FleetPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {STATS.map(({ labelEn, labelAr, key, cls }) => (
-          <div key={key} className="rounded-md border border-mk-ink-100 p-4 flex flex-col gap-1 mk-surface">
-            <span className={`mk-h2 leading-none ${cls}`}>{counts[key]}</span>
-            <span className="mk-caption normal-case tracking-normal text-mk-ink-500">
-              {ar ? labelAr : labelEn}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Table card */}
-      <div className="rounded-md border border-mk-ink-100 flex flex-col overflow-hidden mk-surface">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-mk-ink-100 gap-4">
-          {/* Status tabs */}
-          <Tabs
-            variant="default"
-            rounded="full"
-            className="normal-case tracking-normal"
-            value={tab}
-            onChange={(v) => setTab(v as typeof tab)}
-            items={STATUS_TABS.map((t) => ({
-              value: t.key,
-              label: (
-                <>
-                  {ar ? t.labelAr : t.labelEn}
-                  {t.key !== "all" && (
-                    <span className="ms-1 mk-overline normal-case tracking-normal opacity-80">
-                      ({counts[t.key] ?? 0})
-                    </span>
-                  )}
-                </>
-              ),
-            }))}
-          />
-
-          <div className="flex items-center gap-2">
-            {/* Search */}
-            <div className="min-w-48">
-              <Input
-                variant="search"
-                icon={<Search size={14} />}
-                className="!rounded-sm !bg-mk-ink-50 !border-mk-ink-200"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={T("Search by name or plate…", "بحث بالاسم أو اللوحة...", ar)}
-              />
-            </div>
-            {/* Add car */}
-            <Button
-              variant="primary"
-              size="sm"
-              className="rounded-sm shadow-[var(--shadow-glow-blue)] normal-case tracking-normal"
-              onClick={handleAddVehicle}
-            >
-              <Plus size={14} />
-              {T("Add car", "إضافة سيارة", ar)}
-            </Button>
-          </div>
-        </div>
-
-        {/* Grid */}
-        <div
-          className="p-4 grid gap-3"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
-        >
-          {loading ? (
-            <div className="col-span-full flex items-center justify-center py-12 rounded-xl mk-surface">
-              <Loader2 className="animate-spin text-mk-blue-500" size={32} />
-            </div>
-          ) : visible.length === 0 ? (
-            <div className="col-span-full text-center py-12 mk-label text-mk-ink-400">
-              {T("No matching cars", "لا توجد سيارات مطابقة", ar)}
-            </div>
-          ) : (
-            visible.map((car) => (
-              <CarCard key={car.id} car={car} onEdit={handleEditVehicle} onDelete={handleDeleteVehicle} />
-            ))
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-mk-ink-100 mk-caption text-mk-ink-500">
-          <span>
-            {T(`Showing ${visible.length} of ${vehicles.length} cars`, `عرض ${visible.length} من ${vehicles.length} سيارة`, ar)}
-          </span>
-        </div>
-      </div>
+    <div>
+      <FleetVehicleList
+        vehicles={vehicles}
+        visibleVehicles={visible}
+        loading={loading}
+        tab={tab}
+        search={search}
+        counts={counts}
+        onTabChange={setTab}
+        onSearchChange={setSearch}
+        onAdd={handleAddVehicle}
+        onEdit={handleEditVehicle}
+        onDelete={handleDeleteVehicle}
+      />
 
       <Modal
         open={!!deleteTarget}
