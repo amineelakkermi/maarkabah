@@ -1,5 +1,4 @@
 "use client";
-
 import CustomerListPage from "@/components/shared/customers/CustomerListPage";
 
 export default function AdminCustomerListPage() {
