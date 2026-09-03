@@ -745,3 +745,140 @@ export const DYNAMICS_LOOKUP: DynamicsLookupRecord[] = [
 ];
 
 
+
+
+// ── Notifications & Alerts (Owner-only settings) ──────────────────────
+// One rule per alert type the platform can fire, grouped by the area of
+// the product it comes from (fleet condition, contract lifecycle,
+// pickup/return handover, disputes, or the system itself). Each rule
+// carries its own enabled flag, delivery channels, and message template —
+// edited from the /notifications admin screen — plus a log of what was
+// actually sent, kept separately since the log is a record of history and
+// shouldn't change if a rule's settings are edited later.
+export type NotificationCategory = "fleet" | "contracts" | "pickup_return" | "disputes" | "system";
+export type NotificationChannel = "in_app" | "sms" | "whatsapp" | "email";
+
+export interface NotificationRule {
+  id: string;
+  category: NotificationCategory;
+  labelEn: string;
+  labelAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  enabled: boolean;
+  channels: NotificationChannel[];
+  templateEn: string;
+  templateAr: string;
+  /** How far ahead of the actual event this rule fires — only set for
+   * "due soon" style rules (an already-overdue rule like oil_overdue or
+   * inspection_expired fires the moment the threshold is crossed, with
+   * nothing to configure "before"). km and days both present means either
+   * one crossing fires it, matching getOilChangeStatus's own "whichever
+   * comes first" logic. */
+  threshold?: { km?: number; days?: number };
+}
+
+export interface NotificationLogEntry {
+  id: string;
+  ruleId: string;
+  dateISO: string; // yyyy-mm-dd HH:mm
+  /** Who actually got it — the renter/customer, or an internal team/staff
+   * inbox. Drives the "Recipient" column's label; `recipient` stays the
+   * literal phone/email/team-name shown underneath it. */
+  recipientType: "customer" | "system";
+  recipient: string;
+  channel: NotificationChannel;
+  status: "sent" | "failed";
+  previewEn: string;
+  previewAr: string;
+}
+
+export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, { en: string; ar: string }> = {
+  fleet: { en: "Fleet", ar: "الأسطول" },
+  contracts: { en: "Contracts", ar: "العقود" },
+  pickup_return: { en: "Pickup & Return", ar: "التسليم والاستلام" },
+  disputes: { en: "Disputes", ar: "النزاعات" },
+  system: { en: "System", ar: "النظام" },
+};
+
+export const NOTIFICATION_RULES: NotificationRule[] = [
+  { id: "istamara_expiring", category: "fleet", labelEn: "License renewal due soon", labelAr: "تجديد الاستمارة قريب",
+    descriptionEn: "Sent when a vehicle's Istamara is within its renewal window.", descriptionAr: "تُرسل عندما تقترب استمارة المركبة من موعد التجديد.",
+    enabled: true, channels: ["in_app", "sms"], threshold: { days: 14 },
+    templateEn: "Reminder: {car} ({plate}) needs its license renewed by {date}.", templateAr: "تذكير: مركبة {car} ({plate}) تحتاج تجديد الاستمارة قبل {date}." },
+  { id: "inspection_expired", category: "fleet", labelEn: "Periodic inspection expired", labelAr: "انتهاء الفحص الدوري",
+    descriptionEn: "Sent as soon as a vehicle's periodic inspection passes its expiry date.", descriptionAr: "تُرسل فور تجاوز الفحص الدوري لمركبة تاريخ انتهائه.",
+    enabled: true, channels: ["in_app", "email"],
+    templateEn: "{car} ({plate}) periodic inspection expired on {date}. Schedule a re-inspection.", templateAr: "الفحص الدوري لمركبة {car} ({plate}) انتهى بتاريخ {date}. برجاء جدولة إعادة الفحص." },
+  { id: "oil_due_soon", category: "fleet", labelEn: "Oil change due soon", labelAr: "اقتراب موعد تغيير الزيت",
+    descriptionEn: "Sent when a vehicle is within the km or day threshold below of its next oil change.", descriptionAr: "تُرسل عندما تقترب المركبة من موعد تغيير الزيت بحسب الحد المضبوط تحت.",
+    enabled: true, channels: ["in_app"], threshold: { km: 500, days: 7 },
+    templateEn: "{car} ({plate}) is due for an oil change soon.", templateAr: "مركبة {car} ({plate}) قريبة من موعد تغيير الزيت." },
+  { id: "oil_overdue", category: "fleet", labelEn: "Oil change overdue", labelAr: "تأخر تغيير الزيت",
+    descriptionEn: "Sent when a vehicle has passed its oil-change interval.", descriptionAr: "تُرسل عند تجاوز المركبة لموعد تغيير الزيت المحدد.",
+    enabled: true, channels: ["in_app", "sms"],
+    templateEn: "{car} ({plate}) oil change is overdue — please schedule maintenance.", templateAr: "تغيير زيت مركبة {car} ({plate}) متأخر — برجاء جدولة الصيانة." },
+
+  { id: "contract_expiring", category: "contracts", labelEn: "Contract ending soon", labelAr: "اقتراب انتهاء العقد",
+    descriptionEn: "Sent to the renter and office ahead of a contract's scheduled return date.", descriptionAr: "تُرسل للمستأجر والمكتب قبل موعد الإرجاع المحدد بالعقد.",
+    enabled: true, channels: ["in_app", "sms", "whatsapp"],
+    templateEn: "Your rental of {car} ends on {date}. Extend or prepare for return.", templateAr: "إيجار {car} ينتهي بتاريخ {date}. جدّد العقد أو استعد للإرجاع." },
+  { id: "contract_issued", category: "contracts", labelEn: "New contract issued", labelAr: "إصدار عقد جديد",
+    descriptionEn: "Sent to the renter once a Tajeer contract is successfully issued.", descriptionAr: "تُرسل للمستأجر فور إصدار عقد تاجير بنجاح.",
+    enabled: true, channels: ["whatsapp"],
+    templateEn: "Your contract {contractNumber} for {car} is confirmed. Pickup: {date}.", templateAr: "تم تأكيد عقدك رقم {contractNumber} لمركبة {car}. الاستلام: {date}." },
+  { id: "contract_cancelled", category: "contracts", labelEn: "Contract cancelled", labelAr: "إلغاء عقد",
+    descriptionEn: "Sent when a saved contract is cancelled before issuance.", descriptionAr: "تُرسل عند إلغاء عقد محفوظ قبل إبرامه.",
+    enabled: false, channels: ["in_app"],
+    templateEn: "Contract {contractNumber} was cancelled.", templateAr: "تم إلغاء العقد رقم {contractNumber}." },
+
+  { id: "pickup_reminder", category: "pickup_return", labelEn: "Pickup reminder", labelAr: "تذكير موعد التسليم",
+    descriptionEn: "Sent to the renter ahead of their scheduled pickup time.", descriptionAr: "تُرسل للمستأجر قبل موعد الاستلام المحدد.",
+    enabled: true, channels: ["sms", "whatsapp"],
+    templateEn: "Reminder: pick up {car} today at {time}, {branch}.", templateAr: "تذكير: استلام {car} اليوم الساعة {time}، {branch}." },
+  { id: "return_reminder", category: "pickup_return", labelEn: "Return reminder", labelAr: "تذكير موعد الإرجاع",
+    descriptionEn: "Sent to the renter ahead of their scheduled return time.", descriptionAr: "تُرسل للمستأجر قبل موعد الإرجاع المحدد.",
+    enabled: true, channels: ["sms", "whatsapp"],
+    templateEn: "Reminder: return {car} today by {time}, {branch}.", templateAr: "تذكير: إرجاع {car} اليوم قبل الساعة {time}، {branch}." },
+  { id: "return_late", category: "pickup_return", labelEn: "Late return", labelAr: "تأخر الإرجاع",
+    descriptionEn: "Sent once a contract passes its grace period without being returned.", descriptionAr: "تُرسل عند تجاوز العقد لفترة السماح دون إرجاع المركبة.",
+    enabled: true, channels: ["in_app", "sms", "whatsapp"],
+    templateEn: "{car} is overdue for return. Late fees now apply: {rate}/hr.", templateAr: "مركبة {car} متأخرة عن الإرجاع. غرامة التأخير سارية: {rate}/ساعة." },
+  { id: "return_completed", category: "pickup_return", labelEn: "Return completed", labelAr: "تأكيد إتمام الإرجاع",
+    descriptionEn: "Sent to the renter once the return is processed and closed.", descriptionAr: "تُرسل للمستأجر فور معالجة الإرجاع وإغلاق العقد.",
+    enabled: false, channels: ["whatsapp", "email"],
+    templateEn: "Thanks for renting with Maarkbh — {car} return is confirmed.", templateAr: "شكرًا لاستئجارك من مركبة — تم تأكيد إرجاع {car}." },
+
+  { id: "dispute_opened", category: "disputes", labelEn: "New dispute opened", labelAr: "فتح نزاع جديد",
+    descriptionEn: "Sent to the office when a customer disputes a charge or fine.", descriptionAr: "تُرسل للمكتب عند اعتراض عميل على رسوم أو مخالفة.",
+    enabled: true, channels: ["in_app", "email"],
+    templateEn: "New dispute opened on contract {contractNumber}: {reason}.", templateAr: "تم فتح نزاع جديد على العقد {contractNumber}: {reason}." },
+  { id: "dispute_resolved", category: "disputes", labelEn: "Dispute resolved", labelAr: "إغلاق نزاع",
+    descriptionEn: "Sent when a dispute is marked resolved.", descriptionAr: "تُرسل عند إغلاق نزاع وتحديد حالته كمُحلول.",
+    enabled: false, channels: ["in_app"],
+    templateEn: "Dispute {disputeId} has been resolved.", templateAr: "تم حل النزاع رقم {disputeId}." },
+
+  { id: "kyc_pending", category: "system", labelEn: "KYC review pending", labelAr: "طلب مراجعة هوية معلّق",
+    descriptionEn: "Sent to staff when a KYC submission has waited over the SLA.", descriptionAr: "تُرسل للموظفين عند تجاوز طلب توثيق الهوية مهلة المراجعة.",
+    enabled: true, channels: ["in_app"],
+    templateEn: "KYC review for {customer} has been pending over 2 hours.", templateAr: "طلب توثيق هوية {customer} معلّق منذ أكثر من ساعتين." },
+  { id: "staff_added", category: "system", labelEn: "New staff member added", labelAr: "إضافة موظف جديد",
+    descriptionEn: "Sent to the owner when a new employee account is created.", descriptionAr: "تُرسل للمالك عند إنشاء حساب موظف جديد.",
+    enabled: true, channels: ["email"],
+    templateEn: "New staff account created: {name} ({role}).", templateAr: "تم إنشاء حساب موظف جديد: {name} ({role})." },
+];
+
+export const NOTIFICATION_LOG: NotificationLogEntry[] = [
+  { id: "LOG-1042", ruleId: "return_late", dateISO: "2026-08-28 09:15", channel: "sms", recipientType: "customer", recipient: "+966 55 8821 ••", status: "sent", previewEn: "Hyundai Sonata is overdue for return. Late fees now apply: 35 SAR/hr.", previewAr: "مركبة هيونداي سوناتا متأخرة عن الإرجاع. غرامة التأخير سارية: 35 ريال/ساعة." },
+  { id: "LOG-1041", ruleId: "istamara_expiring", dateISO: "2026-08-28 07:00", channel: "in_app", recipientType: "system", recipient: "Fleet team", status: "sent", previewEn: "Nissan Patrol (JKL 3456) needs its license renewed by Sep 2.", previewAr: "مركبة نيسان باترول (JKL 3456) تحتاج تجديد الاستمارة قبل ٢ سبتمبر." },
+  { id: "LOG-1040", ruleId: "pickup_reminder", dateISO: "2026-08-27 12:30", channel: "whatsapp", recipientType: "customer", recipient: "+966 50 4192 ••", status: "sent", previewEn: "Reminder: pick up Toyota Camry today at 14:00, Riyadh — Olaya.", previewAr: "تذكير: استلام تويوتا كامري اليوم الساعة 14:00، الرياض — العليا." },
+  { id: "LOG-1039", ruleId: "oil_overdue", dateISO: "2026-08-27 08:00", channel: "in_app", recipientType: "system", recipient: "Fleet team", status: "sent", previewEn: "Hyundai Elantra (PQR 1357) oil change is overdue.", previewAr: "تغيير زيت مركبة هيونداي إلنترا (PQR 1357) متأخر." },
+  { id: "LOG-1038", ruleId: "contract_issued", dateISO: "2026-08-26 16:42", channel: "whatsapp", recipientType: "customer", recipient: "+966 50 4192 ••", status: "sent", previewEn: "Your contract MK-2419 for Toyota Camry is confirmed. Pickup: Aug 26.", previewAr: "تم تأكيد عقدك رقم MK-2419 لمركبة تويوتا كامري. الاستلام: ٢٦ أغسطس." },
+  { id: "LOG-1037", ruleId: "dispute_opened", dateISO: "2026-08-26 11:05", channel: "email", recipientType: "system", recipient: "ops@maarkbh.sa", status: "failed", previewEn: "New dispute opened on contract MK-2412: Late Return Dispute.", previewAr: "تم فتح نزاع جديد على العقد MK-2412: نزاع حول تأخير تسليم." },
+  { id: "LOG-1036", ruleId: "return_reminder", dateISO: "2026-08-25 09:00", channel: "sms", recipientType: "customer", recipient: "+966 50 2298 ••", status: "sent", previewEn: "Reminder: return Mazda CX-5 today by 10:00, Riyadh — Olaya.", previewAr: "تذكير: إرجاع مازدا CX-5 اليوم قبل الساعة 10:00، الرياض — العليا." },
+  { id: "LOG-1035", ruleId: "kyc_pending", dateISO: "2026-08-24 15:20", channel: "in_app", recipientType: "system", recipient: "Front desk team", status: "sent", previewEn: "KYC review for Saud Al-Ghamdi has been pending over 2 hours.", previewAr: "طلب توثيق هوية سعود الغامدي معلّق منذ أكثر من ساعتين." },
+  { id: "LOG-1034", ruleId: "inspection_expired", dateISO: "2026-08-23 08:00", channel: "email", recipientType: "system", recipient: "fleet@maarkbh.sa", status: "sent", previewEn: "Hyundai Elantra (PQR 1357) periodic inspection expired on Jul 28.", previewAr: "الفحص الدوري لمركبة هيونداي إلنترا (PQR 1357) انتهى بتاريخ ٢٨ يوليو." },
+  { id: "LOG-1033", ruleId: "staff_added", dateISO: "2026-08-20 10:11", channel: "email", recipientType: "system", recipient: "abdullah.otaibi@maarkbh.sa", status: "sent", previewEn: "New staff account created: Yara Al-Faraj (Front Desk).", previewAr: "تم إنشاء حساب موظف جديد: يارا الفرج (موظف استقبال)." },
+  { id: "LOG-1032", ruleId: "contract_expiring", dateISO: "2026-08-19 09:30", channel: "sms", recipientType: "customer", recipient: "+966 55 8821 ••", status: "sent", previewEn: "Your rental of Hyundai Sonata ends on Aug 20. Extend or prepare for return.", previewAr: "إيجار هيونداي سوناتا ينتهي بتاريخ ٢٠ أغسطس. جدّد العقد أو استعد للإرجاع." },
+  { id: "LOG-1031", ruleId: "oil_due_soon", dateISO: "2026-08-18 08:00", channel: "in_app", recipientType: "system", recipient: "Fleet team", status: "sent", previewEn: "Chevrolet Tahoe (VWX 1098) is due for an oil change soon.", previewAr: "مركبة شيفروليه تاهو (VWX 1098) قريبة من موعد تغيير الزيت." },
+];

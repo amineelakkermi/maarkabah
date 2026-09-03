@@ -20,6 +20,8 @@ const PAGE_META: Record<string, { en: string; ar: string; crumbEn?: string; crum
   "/refunds":      { en: "Refunds",             ar: "المستردات",          crumbEn: "Finance",  crumbAr: "المالية"  },
   "/pricing":      { en: "Pricing & Policies",  ar: "الأسعار والسياسات", crumbEn: "Finance",  crumbAr: "المالية"  },
   "/staff":        { en: "Staff & Roles",       ar: "الفريق والأدوار",   crumbEn: "System",   crumbAr: "النظام"   },
+  "/settings":     { en: "Settings",            ar: "الإعدادات",          crumbEn: "System",   crumbAr: "النظام"   },
+  "/notifications": { en: "Notifications & Alerts", ar: "الإشعارات والتنبيهات", crumbEn: "System", crumbAr: "النظام" },
 };
 
 function getPageMeta(path: string) {

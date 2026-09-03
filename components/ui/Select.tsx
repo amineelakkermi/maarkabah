@@ -4,12 +4,23 @@ import { SelectHTMLAttributes, forwardRef } from "react";
 import { ChevronDown } from "lucide-react";
 
 type SelectSize = "sm" | "md" | "lg";
+type SelectVariant = "default" | "search" | "muted";
 
 interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> {
   label?: string;
   helpText?: string;
   size?: SelectSize;
+  /** Mirrors Input's variants so a Select can sit next to a search field or
+   * inside a drawer form without looking mismatched. */
+  variant?: SelectVariant;
 }
+
+// Same shape/border split as Input.tsx — keeps the two controls in lockstep.
+const variantClasses: Record<SelectVariant, string> = {
+  default: "rounded-md border-mk-ink-200 bg-white",
+  search: "rounded-pill border-transparent mk-surface",
+  muted: "rounded-md border-mk-ink-100 bg-mk-ink-50",
+};
 
 // Same rule as Button: sm/md share one type-scale rung (only padding/height
 // grow), lg steps up one rung.
@@ -26,7 +37,7 @@ const chevronSizeClasses: Record<SelectSize, { size: number; className: string }
 };
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, helpText, size = "md", className = "", id, children, ...props }, ref) => {
+  ({ label, helpText, size = "md", variant = "default", className = "", id, children, ...props }, ref) => {
     const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
     const chevron = chevronSizeClasses[size];
 
@@ -46,10 +57,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             className={`
               font-[family-name:var(--font-body)] w-full
-              rounded-md border border-mk-ink-200 bg-white text-mk-fg-1
+              border text-mk-fg-1
               transition-[border-color,box-shadow] duration-base ease-standard
               focus:outline-none focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)]
               appearance-none cursor-pointer
+              ${variantClasses[variant]}
               ${sizeClasses[size]}
               ${className}
             `}
@@ -69,4 +81,4 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
 Select.displayName = "Select";
 export { Select };
-export type { SelectProps, SelectSize };
+export type { SelectProps, SelectSize, SelectVariant };

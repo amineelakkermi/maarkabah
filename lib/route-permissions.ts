@@ -40,9 +40,16 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { pattern: "/blacklist", permission: Permission.Blacklist.View },
   { pattern: "/pricing", permission: Permission.AdditionalServices.View },
 
+  // Settings hosts Branches / Staff / Roles as tabs; each tab is gated by its
+  // own permission inside the page. The old standalone routes stay mapped
+  // (they redirect to the matching tab) so existing links keep their gate.
+  { pattern: "/settings", permission: null },
   { pattern: "/branches", permission: Permission.Branches.View },
   { pattern: "/roles", permission: Permission.Roles.View },
   { pattern: "/staff", permission: Permission.Users.View },
+  // TODO: replace `null` with Permission.Notifications.* once the backend
+  // ships the notifications permission.
+  { pattern: "/notifications", permission: null },
 
   // TODO: replace `null` with Permission.Contracts.* once the backend ships
   // the contracts permission. `null` keeps these workflow pages reachable

@@ -375,6 +375,35 @@ export async function tajeerValidateContract(
   throw new Error("Not implemented");
 }
 
+export interface TajeerVerifyOfficeRequest {
+  crNumber: string;
+  clientId: string;
+  appId: string;
+  appKey: string;
+  authToken: string;
+}
+
+export interface TajeerVerifyOfficeResponse {
+  verified: boolean;
+  message?: string;
+}
+
+// Verifies the office's Tajeer credentials (Rabet portal app-id/app-key/
+// client-id + Tajeer-issued Authorization token) against its CR number.
+export async function tajeerVerifyOffice(
+  data: TajeerVerifyOfficeRequest
+): Promise<TajeerVerifyOfficeResponse> {
+  if (MOCK_MODE) {
+    await delay(rand(900, 1400));
+    if (!data.crNumber) return { verified: false, message: "CR number is required" };
+    if (!data.clientId || !data.appId || !data.appKey || !data.authToken) {
+      return { verified: false, message: "All Tajeer credentials are required" };
+    }
+    return { verified: true };
+  }
+  throw new Error("Not implemented");
+}
+
 export async function tajeerGetContractPDF(
   contractNumber: number
 ): Promise<Blob> {

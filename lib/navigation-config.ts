@@ -2,10 +2,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, Car,
   ShieldCheck, Ban, Search, Globe,
-  Tag, Users, Building, Shield, IdCard,
+  Tag, Users, IdCard,
   Sun, PlusCircle, CalendarCheck,
   KeyRound, Undo2,
-  CarFront, UserSearch, User,
+  CarFront, UserSearch, User, Bell, Settings,
 } from "lucide-react";
 import { Permission, type PermissionRequirement } from "./permissions";
 
@@ -70,9 +70,12 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     title: "System",
     titleAr: "النظام",
     items: [
-      { href: "/branches", icon: Building, label: "Branches", labelAr: "الفروع", requiredPermission: Permission.Branches.View },
-      { href: "/roles", icon: Shield, label: "Roles", labelAr: "الأدوار", requiredPermission: Permission.Roles.View },
-      { href: "/staff", icon: Users, label: "Staff", labelAr: "الفريق", requiredPermission: Permission.Users.View },
+      // Branches / Staff / Roles are tabs inside Settings now; each tab is
+      // still gated by its own permission in app/(admin)/settings/page.tsx.
+      { href: "/settings", icon: Settings, label: "Settings", labelAr: "الإعدادات", requiredPermission: null },
+      // TODO: switch requiredPermission to Permission.Notifications.* once the
+      // backend provides the notifications permission.
+      { href: "/notifications", icon: Bell, label: "Notifications & Alerts", labelAr: "الإشعارات والتنبيهات", requiredPermission: null },
     ],
   },
 ];
