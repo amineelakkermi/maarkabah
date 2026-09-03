@@ -16,6 +16,9 @@ export type { InputProps, InputVariant } from "./Input";
 export { Select } from "./Select";
 export type { SelectProps, SelectSize } from "./Select";
 
+export { SearchableSelect } from "./SearchableSelect";
+export type { SearchableSelectProps, SearchableSelectOption } from "./SearchableSelect";
+
 export { Toggle } from "./Toggle";
 export type { ToggleProps } from "./Toggle";
 

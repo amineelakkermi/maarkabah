@@ -6,7 +6,7 @@ import {
   Camera, X, Loader2, AlertCircle, CheckCircle2, Info, Zap,
 } from "lucide-react";
 import * as Types from "@/lib/api-types";
-import { Button, Input, Select, Toggle, Tabs } from "@/components/ui";
+import { Button, Input, Select, SearchableSelect, Toggle, Tabs } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { vehicleService } from "@/lib/api-services";
 import { SketchComponent } from "@/components/employee/SketchComponent";
@@ -381,31 +381,25 @@ export function VehicleDetailsPage({
                 <div className="pt-4 border-t border-mk-ink-100">
                   <SectionBadge>{T("Vehicle Details", "بيانات المركبة", ar)}</SectionBadge>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Select
+                    <SearchableSelect
                       label={T("Make *", "الصانع *", ar)}
-                      value={form.makeId}
-                      onChange={(e) => setForm((f: any) => ({ ...f, makeId: e.target.value, modelId: "" }))}
-                    >
-                      <option value="">{T("Select make", "اختر الصانع", ar)}</option>
-                      {makes.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {ar ? m.nameAr || m.name : m.nameEn || m.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
+                      value={String(form.makeId ?? "")}
+                      onChange={(v) => setForm((f: any) => ({ ...f, makeId: v, modelId: "" }))}
+                      options={makes.map((m) => ({ value: String(m.id), label: ar ? m.nameAr || m.name : m.nameEn || m.name }))}
+                      placeholder={T("Select make", "اختر الصانع", ar)}
+                      searchPlaceholder={T("Search make…", "ابحث عن الصانع…", ar)}
+                      emptyText={T("No results found", "لا توجد نتائج", ar)}
+                    />
+                    <SearchableSelect
                       label={T("Model *", "الموديل *", ar)}
-                      value={form.modelId}
-                      onChange={(e) => setForm((f: any) => ({ ...f, modelId: e.target.value }))}
+                      value={String(form.modelId ?? "")}
+                      onChange={(v) => setForm((f: any) => ({ ...f, modelId: v }))}
                       disabled={!form.makeId}
-                    >
-                      <option value="">{T("Select model", "اختر الموديل", ar)}</option>
-                      {models.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {ar ? m.nameAr || m.name : m.nameEn || m.name}
-                        </option>
-                      ))}
-                    </Select>
+                      options={models.map((m) => ({ value: String(m.id), label: ar ? m.nameAr || m.name : m.nameEn || m.name }))}
+                      placeholder={T("Select model", "اختر الموديل", ar)}
+                      searchPlaceholder={T("Search model…", "ابحث عن الموديل…", ar)}
+                      emptyText={T("No results found", "لا توجد نتائج", ar)}
+                    />
                     <Input
                       label={T("Year *", "سنة الصنع *", ar)}
                       type="number"
