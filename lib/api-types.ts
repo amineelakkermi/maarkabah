@@ -269,10 +269,12 @@ export interface VehicleInfoRequest {
   payloadKg?: number;
 }
 
+// Used by airConditionGrade / radioStatus / screenStatus (1–4).
 export enum ConditionGrade {
   Excellent = 1,
   Good = 2,
   Weak = 3,
+  Broken = 4,
 }
 
 export enum WorkingStatus {
@@ -285,6 +287,7 @@ export enum CleanlinessStatus {
   Dirty = 2,
 }
 
+// Used by tireCondition / spareTireStatus (1–3).
 export enum TireCondition {
   Excellent = 1,
   Good = 2,
@@ -304,6 +307,8 @@ export enum FuelLevel {
   Empty = 4,
 }
 
+/** @deprecated oilType is free text on the API now (e.g. "5W-30"). Kept for
+ * any legacy numeric values still coming back from older vehicles. */
 export enum VehicleOilType {
   Synthetic = 1,
   SemiSynthetic = 2,
@@ -318,17 +323,18 @@ export interface TajeerStatusRequest {
   odometerReading: number;
   fuelLevel: FuelLevel;
   enduranceAmount: number;
-  oilType: VehicleOilType;
+  /** Free text, e.g. "5W-30". */
+  oilType: string;
   lastOilChangeDate: string;
   oilChangeDistance: number;
   airConditionGrade: ConditionGrade;
-  radioStatus: WorkingStatus;
-  screenStatus: WorkingStatus;
+  radioStatus: ConditionGrade;
+  screenStatus: ConditionGrade;
   odometerStatus: WorkingStatus;
   seatCleanliness: CleanlinessStatus;
   keyStatus: WorkingStatus;
   tireCondition: TireCondition;
-  spareTireStatus: PresenceStatus;
+  spareTireStatus: TireCondition;
   fireExtinguisherStatus: PresenceStatus;
   firstAidKitStatus: PresenceStatus;
   safetyTriangleStatus: PresenceStatus;
@@ -560,5 +566,44 @@ export interface SaveRentPolicyRequest {
   breakdownReportPolicy: number;
   sortOrder?: number;
   isActive: boolean;
+}
+
+// ─── Cancellation Policies ───────────────────────────────────────
+// Internal Maarkbh catalog (no Tajeer source). Each policy is a ladder of
+// refund tiers: "if cancelled at least N hours before start, refund X%".
+
+export interface CancellationPolicyTier {
+  hoursBeforeStart: number;
+  refundPercent: number;
+}
+
+export interface CancellationPolicyDto {
+  id: number;
+  nameAr?: string;
+  nameEn?: string;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  /** Seeded DEFAULT policy — cannot be deleted (backend returns 400). */
+  isSystem?: boolean;
+  tiers?: CancellationPolicyTier[];
+}
+
+export interface CancellationPolicySearchRequest {
+  search?: string;
+  isActive?: boolean | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface SaveCancellationPolicyRequest {
+  nameAr: string;
+  nameEn: string;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  sortOrder?: number;
+  isActive: boolean;
+  tiers: CancellationPolicyTier[];
 }
  

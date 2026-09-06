@@ -19,6 +19,7 @@ interface SearchableSelectProps {
   onChange: (value: string) => void;
   label?: ReactNode;
   helpText?: string;
+  error?: string;
   /** Shown on the trigger when nothing is selected. */
   placeholder?: string;
   searchPlaceholder?: string;
@@ -61,6 +62,7 @@ export function SearchableSelect({
   onChange,
   label,
   helpText,
+  error,
   placeholder = "Select…",
   searchPlaceholder = "Search…",
   emptyText = "No results found",
@@ -160,7 +162,7 @@ export function SearchableSelect({
             cursor-pointer disabled:cursor-not-allowed disabled:opacity-60
             ${open ? "border-mk-blue-500 shadow-[var(--shadow-focus)]" : ""}
             ${selected ? "text-mk-fg-1" : "text-mk-ink-400"}
-            ${variantClasses[variant]}
+            ${error ? "border-mk-danger" : variantClasses[variant]}
             ${sizeClasses[size]}
             ${className}
           `}
@@ -169,7 +171,8 @@ export function SearchableSelect({
         </button>
         <ChevronDown size={chevron.size} className={`absolute top-1/2 -translate-y-1/2 text-mk-ink-400 pointer-events-none ${chevron.className}`} />
       </div>
-      {helpText && <p className="mk-caption text-mk-fg-3">{helpText}</p>}
+      {error && <p className="mk-caption text-mk-danger">{error}</p>}
+      {helpText && !error && <p className="mk-caption text-mk-fg-3">{helpText}</p>}
 
       <DropdownPortal>
         {open && (

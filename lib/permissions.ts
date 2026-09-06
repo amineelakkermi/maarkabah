@@ -78,6 +78,12 @@ export const Permission = {
     Edit: "Permissions.AdditionalServices.Edit",
     Delete: "Permissions.AdditionalServices.Delete",
   },
+  CancellationPolicies: {
+    View: "Permissions.CancellationPolicies.View",
+    Create: "Permissions.CancellationPolicies.Create",
+    Edit: "Permissions.CancellationPolicies.Edit",
+    Delete: "Permissions.CancellationPolicies.Delete",
+  },
 } as const;
 
 type NestedValues<T> = T extends readonly (infer U)[]

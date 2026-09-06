@@ -12,6 +12,7 @@ import {
   extractVehicleImageFileIds,
   buildVehiclePayload,
   validateStep,
+  extractVehicleValidationErrors,
   mapStatusFromBackend,
 } from "@/lib/fleet";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
@@ -36,6 +37,7 @@ export default function EmployeeCarsPage() {
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<any>(emptyVehicleForm());
 
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
@@ -51,6 +53,7 @@ export default function EmployeeCarsPage() {
   }, [tab, search]);
 
   const resetForm = () => {
+    setFieldErrors({});
     setForm(emptyVehicleForm());
     setVehicleImages([]);
     setVehicleImagePreviews([]);
@@ -109,6 +112,7 @@ export default function EmployeeCarsPage() {
       if (!validateStep(form, step, ar, showToast)) return;
     }
 
+    setFieldErrors({});
     setSaving(true);
     try {
       // Upload selected vehicle images first, then merge with existing ones
@@ -160,8 +164,12 @@ export default function EmployeeCarsPage() {
       await loadVehicles();
     } catch (error: any) {
       console.error("Error saving vehicle:", error);
-      const msg = error?.message || error?.response?.message || "Failed to save vehicle";
-      showToast(T(msg, msg, ar));
+      const validationErrors = extractVehicleValidationErrors(error);
+      setFieldErrors(validationErrors);
+      if (Object.keys(validationErrors).length === 0) {
+        const msg = error?.message || error?.response?.message || "Failed to save vehicle";
+        showToast(T(msg, msg, ar), "error");
+      }
     } finally {
       setSaving(false);
     }
@@ -322,6 +330,7 @@ export default function EmployeeCarsPage() {
         saving={saving}
         form={form}
         setForm={setForm}
+        fieldErrors={fieldErrors}
         makes={makes}
         models={models}
         plateTypes={plateTypes}

@@ -113,6 +113,22 @@
       "value": "1"
     },
     {
+      "key": "cancellationPolicyId",
+      "value": "1"
+    },
+    {
+      "key": "extendedCoverageId",
+      "value": "1"
+    },
+    {
+      "key": "contractId",
+      "value": "1"
+    },
+    {
+      "key": "tajeerApiLogId",
+      "value": "1"
+    },
+    {
       "key": "roleName",
       "value": "Sales Lead"
     },
@@ -1124,6 +1140,396 @@
       ]
     },
     {
+      "name": "Extended Coverages",
+      "item": [
+        {
+          "name": "Search extended coverages",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('extendedCoverageId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"isActive\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/extended-coverages/search",
+            "description": "Requires Permissions.ExtendedCoverages.View. Flat paged rows. Cost is Maarkbh-local (editable)."
+          }
+        },
+        {
+          "name": "Get extended coverage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/extended-coverages/{{extendedCoverageId}}",
+            "description": "Requires Permissions.ExtendedCoverages.View."
+          }
+        },
+        {
+          "name": "Picker (contract bootstrap)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/api/extended-coverages/picker",
+            "description": "Requires Permissions.ExtendedCoverages.View. Active packages with cost. Not paged."
+          }
+        },
+        {
+          "name": "Sync from Tajeer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/extended-coverages/sync",
+            "description": "Requires Permissions.ExtendedCoverages.Edit. GET /extended-coverage/all; upserts by tajeerId (preserves Cost); deactivates missing. 400 ExtendedCoverage.TajeerSyncFailed when Elm inactive."
+          }
+        },
+        {
+          "name": "Update cost",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cost\": 150,\n  \"sortOrder\": 1,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/extended-coverages/{{extendedCoverageId}}",
+            "description": "Requires Permissions.ExtendedCoverages.Edit. Sets local Cost snapshotted onto contracts when selected."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancellation Policies",
+      "item": [
+        {
+          "name": "Search cancellation policies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('cancellationPolicyId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"isActive\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/cancellation-policies/search",
+            "description": "Requires Permissions.CancellationPolicies.View. Internal Maarkbh catalog (no Tajeer Source)."
+          }
+        },
+        {
+          "name": "Picker",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/api/cancellation-policies/picker",
+            "description": "Active policies with tiers for contract create."
+          }
+        },
+        {
+          "name": "Get cancellation policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/cancellation-policies/{{cancellationPolicyId}}"
+          }
+        },
+        {
+          "name": "Create cancellation policy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const id = json.id || (json.data && json.data.id);",
+                  "  if (id) pm.collectionVariables.set('cancellationPolicyId', String(id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"سياسة مرنة\",\n  \"nameEn\": \"Flexible cancel\",\n  \"sortOrder\": 10,\n  \"isActive\": true,\n  \"descriptionAr\": null,\n  \"descriptionEn\": null,\n  \"tiers\": [\n    { \"hoursBeforeStart\": 48, \"refundPercent\": 100 },\n    { \"hoursBeforeStart\": 12, \"refundPercent\": 50 },\n    { \"hoursBeforeStart\": 0, \"refundPercent\": 0 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/cancellation-policies"
+          }
+        },
+        {
+          "name": "Update cancellation policy",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"سياسة مرنة\",\n  \"nameEn\": \"Flexible cancel\",\n  \"sortOrder\": 10,\n  \"isActive\": true,\n  \"tiers\": [\n    { \"hoursBeforeStart\": 24, \"refundPercent\": 100 },\n    { \"hoursBeforeStart\": 2, \"refundPercent\": 50 },\n    { \"hoursBeforeStart\": 0, \"refundPercent\": 0 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/cancellation-policies/{{cancellationPolicyId}}"
+          }
+        },
+        {
+          "name": "Delete cancellation policy",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/cancellation-policies/{{cancellationPolicyId}}",
+            "description": "400 if IsSystem (DEFAULT seed)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contracts",
+      "item": [
+        {
+          "name": "Search contracts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('contractId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"status\": null,\n  \"statuses\": null,\n  \"branchId\": null,\n  \"customerId\": null,\n  \"vehicleId\": null,\n  \"from\": null,\n  \"to\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/search",
+            "description": "Requires Permissions.Contracts.View. Branch-scoped on workingBranchId. Flat rows include customer/vehicle/branch display fields. Search matches contract number, Tajeer number, customer name/phone, plate. statuses[] for multi-status tabs (pending = [1,2]). from/to filter StartAt."
+          }
+        },
+        {
+          "name": "Contract status counts",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"branchId\": null,\n  \"customerId\": null,\n  \"vehicleId\": null,\n  \"from\": null,\n  \"to\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/status-counts",
+            "description": "Requires Permissions.Contracts.View. Same filters as search except status. Returns all/draft/pendingIssuance/active/overdue/completed/cancelled plus pending (draft+pendingIssuance) and late (overdue)."
+          }
+        },
+        {
+          "name": "Get contract",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}",
+            "description": "Detail with customer/vehicle/branch display fields and durationDays. Timeline via Search contract activities."
+          }
+        },
+        {
+          "name": "Create draft contract",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const id = json.id || (json.data && json.data.id);",
+                  "  if (id) pm.collectionVariables.set('contractId', String(id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"vehicleId\": {{vehicleId}},\n  \"workingBranchId\": {{branchId}},\n  \"receiveBranchId\": {{branchId}},\n  \"returnBranchId\": {{branchId}},\n  \"contractType\": 1,\n  \"startAt\": \"2026-09-01T10:00:00Z\",\n  \"endAt\": \"2026-09-03T10:00:00Z\",\n  \"rentPolicyId\": {{rentPolicyId}},\n  \"cancellationPolicyId\": {{cancellationPolicyId}},\n  \"allowedKmPerDay\": 200,\n  \"unlimitedKm\": false,\n  \"allowedLateHours\": 2,\n  \"rentDayCost\": 200,\n  \"rentHourCost\": 0,\n  \"extraKmCost\": 1,\n  \"fullFuelCost\": 100,\n  \"driverFarePerDay\": 0,\n  \"driverFarePerHour\": 0,\n  \"vehicleTransferCost\": 0,\n  \"extraDriverCost\": 0,\n  \"internationalAuthorizationCost\": 0,\n  \"discountPercent\": 0,\n  \"paymentType\": 1,\n  \"paidAmount\": 230,\n  \"paymentMethodCode\": \"1\",\n  \"otherPaymentMethodCode\": null,\n  \"depositAmount\": 500,\n  \"extendedCoverageId\": null,\n  \"odometerReading\": 10000,\n  \"fuelLevel\": 1,\n  \"enduranceAmount\": 1500,\n  \"additionalServices\": []\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts",
+            "description": "Creates Draft. paymentType: 1=Full, 2=Advance. paymentMethodCode required when paidAmount > 0 (1=Cash, 2=POS). extendedCoverageId is optional (null = none); set after Extended Coverages → Sync + Update cost if needed. depositAmount is Maarkbh-only. Check integrations.tajeerEnabled before activate vs submit-tajeer."
+          }
+        },
+        {
+          "name": "Activate (local / Tajeer OFF)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/activate",
+            "description": "Fails with Contract.TajeerRequired when ElmTajeer IsActive."
+          }
+        },
+        {
+          "name": "Submit to Tajeer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/submit-tajeer",
+            "description": "Fails with Contract.TajeerNotConfigured when integration inactive."
+          }
+        },
+        {
+          "name": "Refresh from Tajeer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/refresh-tajeer"
+          }
+        },
+        {
+          "name": "Extend contract",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newEndAt\": \"2026-09-05T10:00:00Z\"\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/extend"
+          }
+        },
+        {
+          "name": "Cancel contract",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer request\"\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/cancel"
+          }
+        },
+        {
+          "name": "Mark overdue",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/mark-overdue"
+          }
+        },
+        {
+          "name": "Search contract activities",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/activities/search",
+            "description": "Requires Permissions.Contracts.View. Append-only user action timeline (Created=1 … MarkedOverdue=9). Branch-scoped NotFound. Flat paged rows."
+          }
+        },
+        {
+          "name": "Contract Tajeer logs",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer-logs/search",
+            "description": "Request/response history for this contract's Tajeer calls."
+          }
+        },
+        {
+          "name": "Delete draft",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tajeer API Logs",
+      "item": [
+        {
+          "name": "Search Tajeer API logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('tajeerApiLogId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"operation\": null,\n  \"contractId\": null,\n  \"isSuccess\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/tajeer-api-logs/search",
+            "description": "Persisted Tajeer request/response history. Operations: SyncRentPolicies, RegisterContract, GetContractStatus, CancelContract."
+          }
+        },
+        {
+          "name": "Get Tajeer API log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tajeer-api-logs/{{tajeerApiLogId}}",
+            "description": "Full request/response bodies."
+          }
+        }
+      ]
+    },
+    {
       "name": "Countries",
       "item": [
         {
@@ -1239,7 +1645,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\"]\n}"
+              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\", \"ContractEnums\"]\n}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
             "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\") or their integer values."
@@ -1897,10 +2303,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": null,\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready\",\n    \"isListingActive\": true,\n    \"odometerReading\": 47820,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": 1,\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 3,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 1,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}],\n  \"images\": [],\n  \"damagePoints\": [\n    {\n      \"damageType\": 1,\n      \"positionX\": 62.5,\n      \"positionY\": 48.0,\n      \"note\": \"Scratch 5cm\",\n      \"fileId\": null\n    }\n  ]\n}"
+              "raw": "{\n  \"id\": null,\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready\",\n    \"isListingActive\": true,\n    \"odometerReading\": 47820,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": \"5W-30\",\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 1,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 2,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}],\n  \"images\": [],\n  \"damagePoints\": [\n    {\n      \"damageType\": 1,\n      \"positionX\": 62.5,\n      \"positionY\": 48.0,\n      \"note\": \"Scratch 5cm\",\n      \"fileId\": null\n    }\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/vehicles",
-            "description": "Requires Permissions.Vehicles.Save. id=null → create (201). Returns { id } on create."
+            "description": "Requires Permissions.Vehicles.Save. id=null → create (201). Returns { id } on create. tajeerStatus.oilType is free-text (e.g. \"5W-30\"). airConditionGrade/radioStatus/screenStatus use ConditionGrade 1=Excellent,2=Good,3=Weak,4=Broken. tireCondition/spareTireStatus use TireCondition 1=Excellent,2=Good,3=Weak."
           }
         },
         {
@@ -1915,10 +2321,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": {{vehicleId}},\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White - updated\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready - updated\",\n    \"isListingActive\": true,\n    \"odometerReading\": 48000,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": 1,\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 3,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 1,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}, 2],\n  \"images\": [],\n  \"damagePoints\": []\n}"
+              "raw": "{\n  \"id\": {{vehicleId}},\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White - updated\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready - updated\",\n    \"isListingActive\": true,\n    \"odometerReading\": 48000,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": \"5W-30\",\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 1,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 2,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}, 2],\n  \"images\": [],\n  \"damagePoints\": []\n}"
             },
             "url": "{{baseUrl}}/api/vehicles",
-            "description": "Requires Permissions.Vehicles.Save. id=non-null → update (204 No Content)."
+            "description": "Requires Permissions.Vehicles.Save. id=non-null → update (204 No Content). Same tajeerStatus enum/string contract as create (oilType free-text; radio/screen/AC 1–4; tires/spare 1–3)."
           }
         },
         {

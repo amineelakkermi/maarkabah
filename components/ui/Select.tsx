@@ -9,6 +9,7 @@ type SelectVariant = "default" | "search" | "muted";
 interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> {
   label?: string;
   helpText?: string;
+  error?: string;
   size?: SelectSize;
   /** Mirrors Input's variants so a Select can sit next to a search field or
    * inside a drawer form without looking mismatched. */
@@ -37,7 +38,7 @@ const chevronSizeClasses: Record<SelectSize, { size: number; className: string }
 };
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, helpText, size = "md", variant = "default", className = "", id, children, ...props }, ref) => {
+  ({ label, helpText, error, size = "md", variant = "default", className = "", id, children, ...props }, ref) => {
     const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
     const chevron = chevronSizeClasses[size];
 
@@ -61,7 +62,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
               transition-[border-color,box-shadow] duration-base ease-standard
               focus:outline-none focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)]
               appearance-none cursor-pointer
-              ${variantClasses[variant]}
+              ${error ? "border-mk-danger" : variantClasses[variant]}
               ${sizeClasses[size]}
               ${className}
             `}
@@ -71,7 +72,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </select>
           <ChevronDown size={chevron.size} className={`absolute top-1/2 -translate-y-1/2 text-mk-ink-400 pointer-events-none ${chevron.className}`} />
         </div>
-        {helpText && (
+        {error && <p className="mk-caption text-mk-danger">{error}</p>}
+        {helpText && !error && (
           <p className="mk-caption text-mk-fg-3">{helpText}</p>
         )}
       </div>

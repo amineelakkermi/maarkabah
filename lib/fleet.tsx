@@ -41,7 +41,7 @@ export const AR_LABELS: Record<string, string> = {
   Electric: "كهربائي",
   Automatic: "أوتوماتيك",
   Manual: "يدوي",
-  Available: "متاح",
+  Available: "يوجد",
   Rented: "مؤجر",
   Maintenance: "صيانة",
   Reserved: "محجوز",
@@ -60,11 +60,12 @@ export const AR_LABELS: Record<string, string> = {
   Excellent: "ممتاز",
   Good: "جيد",
   Weak: "ضعيف",
+  Broken: "معطّل",
   NotWorking: "متعطل",
   Working: "يعمل",
   Clean: "نظيف",
   Dirty: "متسخ",
-  NotAvailable: "غير متوفر",
+  NotAvailable: "لا يوجد",
 };
 
 export const STATUS_BADGE_VARIANT: Record<CarStatus, "success" | "info" | "danger" | "warning" | "violet" | "neutral"> = {
@@ -130,17 +131,17 @@ export function emptyVehicleForm() {
     odometerReading: "",
     fuelLevel: Types.FuelLevel.Full,
     enduranceAmount: "",
-    oilType: Types.VehicleOilType.Synthetic,
+    oilType: "",
     lastOilChangeDate: new Date().toISOString().split("T")[0],
     oilChangeDistance: "",
     airConditionGrade: Types.ConditionGrade.Good,
-    radioStatus: Types.WorkingStatus.Working,
-    screenStatus: Types.WorkingStatus.Working,
+    radioStatus: Types.ConditionGrade.Good,
+    screenStatus: Types.ConditionGrade.Good,
     odometerStatus: Types.WorkingStatus.Working,
     seatCleanliness: Types.CleanlinessStatus.Clean,
     keyStatus: Types.WorkingStatus.Working,
     tireCondition: Types.TireCondition.Good,
-    spareTireStatus: Types.PresenceStatus.Available,
+    spareTireStatus: Types.TireCondition.Good,
     fireExtinguisherStatus: Types.PresenceStatus.Available,
     firstAidKitStatus: Types.PresenceStatus.Available,
     safetyTriangleStatus: Types.PresenceStatus.Available,
@@ -197,6 +198,17 @@ const firstDefined = (...values: any[]) => {
 
 const toDateInput = (value: any) =>
   typeof value === "string" && value.length >= 10 ? value.slice(0, 10) : "";
+
+// oilType is free text on the API now, but vehicles saved before that change
+// can still come back with the old numeric enum — turn those into a label so
+// the field isn't blank (or "1") when editing.
+const normalizeOilType = (value: any): string => {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value === "number" || /^\d+$/.test(String(value))) {
+    return Types.VehicleOilType[Number(value)] ?? String(value);
+  }
+  return String(value);
+};
 
 export function mapVehicleToForm(raw: any) {
   const v = raw?.data ?? raw ?? {};
@@ -271,7 +283,7 @@ export function mapVehicleToForm(raw: any) {
     odometerReading: firstDefined(tajeer.odometerReading, v.odometerReading) ?? "",
     fuelLevel: firstDefined(tajeer.fuelLevel, v.fuelLevel) ?? empty.fuelLevel,
     enduranceAmount: firstDefined(tajeer.enduranceAmount, v.enduranceAmount) ?? "",
-    oilType: firstDefined(tajeer.oilType, v.oilType) ?? empty.oilType,
+    oilType: normalizeOilType(firstDefined(tajeer.oilType, v.oilType)),
     lastOilChangeDate:
       toDateInput(firstDefined(tajeer.lastOilChangeDate, v.lastOilChangeDate, v.oilChangeDate)) ||
       empty.lastOilChangeDate,
@@ -304,6 +316,27 @@ export function extractVehicleImageFileIds(raw: any): number[] {
   return (Array.isArray(images) ? images : [])
     .map((img: any) => img?.fileId ?? img?.id ?? img?.attachmentId)
     .filter((id: any): id is number => typeof id === "number");
+}
+
+export function extractVehicleValidationErrors(error: any): Record<string, string> {
+  const result: Record<string, string> = {};
+  const sources = [error?.response?.errors, error?.response?.details?.errors, error?.response?.details, error?.errors];
+
+  const collect = (value: unknown, path = "") => {
+    if (Array.isArray(value) || typeof value === "string") {
+      const field = path.split(".").filter(Boolean).pop();
+      if (!field) return;
+      const key = field.charAt(0).toLowerCase() + field.slice(1);
+      const message = Array.isArray(value) ? value.filter((item) => typeof item === "string").join(" ") : value;
+      if (message) result[key] = message;
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    Object.entries(value).forEach(([key, child]) => collect(child, path ? `${path}.${key}` : key));
+  };
+
+  sources.forEach((source) => collect(source));
+  return result;
 }
 
 export const buildVehiclePayload = (form: any, imageFileIds: number[] = []) => ({
@@ -362,10 +395,7 @@ export const buildVehiclePayload = (form: any, imageFileIds: number[] = []) => (
         ? Types.FuelLevel.Full
         : Number(form.fuelLevel),
     enduranceAmount: Number(form.enduranceAmount) || 0,
-    oilType:
-      form.oilType === "" || form.oilType == null
-        ? Types.VehicleOilType.Synthetic
-        : Number(form.oilType),
+    oilType: String(form.oilType ?? "").trim(),
     lastOilChangeDate: form.lastOilChangeDate || new Date().toISOString().split("T")[0],
     oilChangeDistance: Number(form.oilChangeDistance) || 0,
     airConditionGrade:
@@ -374,11 +404,11 @@ export const buildVehiclePayload = (form: any, imageFileIds: number[] = []) => (
         : Number(form.airConditionGrade),
     radioStatus:
       form.radioStatus === "" || form.radioStatus == null
-        ? Types.WorkingStatus.Working
+        ? Types.ConditionGrade.Good
         : Number(form.radioStatus),
     screenStatus:
       form.screenStatus === "" || form.screenStatus == null
-        ? Types.WorkingStatus.Working
+        ? Types.ConditionGrade.Good
         : Number(form.screenStatus),
     odometerStatus:
       form.odometerStatus === "" || form.odometerStatus == null
@@ -398,7 +428,7 @@ export const buildVehiclePayload = (form: any, imageFileIds: number[] = []) => (
         : Number(form.tireCondition),
     spareTireStatus:
       form.spareTireStatus === "" || form.spareTireStatus == null
-        ? Types.PresenceStatus.Available
+        ? Types.TireCondition.Good
         : Number(form.spareTireStatus),
     fireExtinguisherStatus:
       form.fireExtinguisherStatus === "" || form.fireExtinguisherStatus == null

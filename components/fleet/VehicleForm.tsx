@@ -434,13 +434,12 @@ export function VehicleForm({
                     value={form.enduranceAmount}
                     onChange={(e) => setForm((f: any) => ({ ...f, enduranceAmount: e.target.value }))}
                   />
-                  <Select
+                  <Input
                     label={T("Oil type", "نوع الزيت", ar)}
-                    value={form.oilType}
+                    placeholder="5W-30"
+                    value={form.oilType ?? ""}
                     onChange={(e) => setForm((f: any) => ({ ...f, oilType: e.target.value }))}
-                  >
-                    {enumOptions(Types.VehicleOilType, AR_LABELS)}
-                  </Select>
+                  />
                   <Input
                     label={T("Last oil change", "آخر تغيير زيت", ar)}
                     type="date"
@@ -465,14 +464,14 @@ export function VehicleForm({
                     value={form.radioStatus}
                     onChange={(e) => setForm((f: any) => ({ ...f, radioStatus: e.target.value }))}
                   >
-                    {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                    {enumOptions(Types.ConditionGrade, AR_LABELS)}
                   </Select>
                   <Select
                     label={T("Screen", "الشاشة", ar)}
                     value={form.screenStatus}
                     onChange={(e) => setForm((f: any) => ({ ...f, screenStatus: e.target.value }))}
                   >
-                    {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                    {enumOptions(Types.ConditionGrade, AR_LABELS)}
                   </Select>
                   <Select
                     label={T("Odometer", "العداد", ar)}
@@ -507,7 +506,7 @@ export function VehicleForm({
                     value={form.spareTireStatus}
                     onChange={(e) => setForm((f: any) => ({ ...f, spareTireStatus: e.target.value }))}
                   >
-                    {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                    {enumOptions(Types.TireCondition, AR_LABELS)}
                   </Select>
                   <Select
                     label={T("Fire extinguisher", "طفاية الحريق", ar)}

@@ -25,6 +25,7 @@ interface VehicleDetailsPageProps {
   saving: boolean;
   form: any;
   setForm: React.Dispatch<React.SetStateAction<any>>;
+  fieldErrors: Record<string, string>;
   makes: any[];
   models: any[];
   plateTypes: any[];
@@ -147,6 +148,7 @@ export function VehicleDetailsPage({
   saving,
   form,
   setForm,
+  fieldErrors,
   makes,
   models,
   plateTypes,
@@ -279,6 +281,7 @@ export function VehicleDetailsPage({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Select
                       label={T("Plate type *", "نوع اللوحة *", ar)}
+                      error={fieldErrors.plateTypeId}
                       value={form.plateTypeId}
                       onChange={(e) => setForm((f: any) => ({ ...f, plateTypeId: e.target.value }))}
                     >
@@ -291,6 +294,7 @@ export function VehicleDetailsPage({
                     </Select>
                     <Input
                       label={T("Plate number *", "رقم اللوحة *", ar)}
+                      error={fieldErrors.plateNumber}
                       value={form.plateNumber}
                       maxLength={4}
                       onChange={(e) => {
@@ -383,6 +387,7 @@ export function VehicleDetailsPage({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <SearchableSelect
                       label={T("Make *", "الصانع *", ar)}
+                      error={fieldErrors.makeId}
                       value={String(form.makeId ?? "")}
                       onChange={(v) => setForm((f: any) => ({ ...f, makeId: v, modelId: "" }))}
                       options={makes.map((m) => ({ value: String(m.id), label: ar ? m.nameAr || m.name : m.nameEn || m.name }))}
@@ -392,6 +397,7 @@ export function VehicleDetailsPage({
                     />
                     <SearchableSelect
                       label={T("Model *", "الموديل *", ar)}
+                      error={fieldErrors.modelId}
                       value={String(form.modelId ?? "")}
                       onChange={(v) => setForm((f: any) => ({ ...f, modelId: v }))}
                       disabled={!form.makeId}
@@ -402,6 +408,7 @@ export function VehicleDetailsPage({
                     />
                     <Input
                       label={T("Year *", "سنة الصنع *", ar)}
+                      error={fieldErrors.year}
                       type="number"
                       value={form.year}
                       onChange={(e) => setForm((f: any) => ({ ...f, year: e.target.value }))}
@@ -418,12 +425,14 @@ export function VehicleDetailsPage({
                     />
                     <Input
                       label={T("Seats *", "عدد المقاعد *", ar)}
+                      error={fieldErrors.seats}
                       type="number"
                       value={form.seats}
                       onChange={(e) => setForm((f: any) => ({ ...f, seats: e.target.value }))}
                     />
                     <Select
                       label={T("Body type *", "نوع الهيكل *", ar)}
+                      error={fieldErrors.bodyType}
                       value={form.bodyType}
                       onChange={(e) => setForm((f: any) => ({ ...f, bodyType: e.target.value }))}
                     >
@@ -432,6 +441,7 @@ export function VehicleDetailsPage({
                     </Select>
                     <Select
                       label={T("Category *", "الفئة *", ar)}
+                      error={fieldErrors.category}
                       value={form.category}
                       onChange={(e) => setForm((f: any) => ({ ...f, category: e.target.value }))}
                     >
@@ -440,6 +450,7 @@ export function VehicleDetailsPage({
                     </Select>
                     <Select
                       label={T("Fuel type *", "نوع الوقود *", ar)}
+                      error={fieldErrors.fuelType}
                       value={form.fuelType}
                       onChange={(e) => setForm((f: any) => ({ ...f, fuelType: e.target.value }))}
                     >
@@ -448,6 +459,7 @@ export function VehicleDetailsPage({
                     </Select>
                     <Select
                       label={T("Transmission *", "ناقل الحركة *", ar)}
+                      error={fieldErrors.transmissionType}
                       value={form.transmissionType}
                       onChange={(e) => setForm((f: any) => ({ ...f, transmissionType: e.target.value }))}
                     >
@@ -623,13 +635,12 @@ export function VehicleDetailsPage({
                       value={form.enduranceAmount}
                       onChange={(e) => setForm((f: any) => ({ ...f, enduranceAmount: e.target.value }))}
                     />
-                    <Select
+                    <Input
                       label={T("Oil type", "نوع الزيت", ar)}
-                      value={form.oilType}
+                      placeholder="5W-30"
+                      value={form.oilType ?? ""}
                       onChange={(e) => setForm((f: any) => ({ ...f, oilType: e.target.value }))}
-                    >
-                      {enumOptions(Types.VehicleOilType, AR_LABELS)}
-                    </Select>
+                    />
                     <Input
                       label={T("Last oil change *", "آخر تغيير زيت *", ar)}
                       type="date"
@@ -660,14 +671,14 @@ export function VehicleDetailsPage({
                       value={form.radioStatus}
                       onChange={(e) => setForm((f: any) => ({ ...f, radioStatus: e.target.value }))}
                     >
-                      {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                      {enumOptions(Types.ConditionGrade, AR_LABELS)}
                     </Select>
                     <Select
                       label={T("Screen", "الشاشة", ar)}
                       value={form.screenStatus}
                       onChange={(e) => setForm((f: any) => ({ ...f, screenStatus: e.target.value }))}
                     >
-                      {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                      {enumOptions(Types.ConditionGrade, AR_LABELS)}
                     </Select>
                     <Select
                       label={T("Odometer", "العداد", ar)}
@@ -702,7 +713,7 @@ export function VehicleDetailsPage({
                       value={form.spareTireStatus}
                       onChange={(e) => setForm((f: any) => ({ ...f, spareTireStatus: e.target.value }))}
                     >
-                      {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                      {enumOptions(Types.TireCondition, AR_LABELS)}
                     </Select>
                     <Select
                       label={T("Fire extinguisher", "طفاية الحريق", ar)}

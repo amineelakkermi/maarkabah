@@ -13,6 +13,7 @@ import {
   extractVehicleImageFileIds,
   buildVehiclePayload,
   validateStep,
+  extractVehicleValidationErrors,
   mapStatusFromBackend,
 } from "@/lib/fleet";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
@@ -32,6 +33,7 @@ export default function FleetPage() {
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<any>(emptyVehicleForm());
 
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
@@ -40,6 +42,21 @@ export default function FleetPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Car | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const setVehicleForm: React.Dispatch<React.SetStateAction<any>> = (action) => {
+    setForm((previous: any) => {
+      const next = typeof action === "function" ? action(previous) : action;
+      const changedFields = Object.keys(next).filter((field) => next[field] !== previous[field]);
+      if (changedFields.length > 0) {
+        setFieldErrors((current) => {
+          const remaining = { ...current };
+          changedFields.forEach((field) => delete remaining[field]);
+          return remaining;
+        });
+      }
+      return next;
+    });
+  };
 
   const { makes, models, branches, plateTypes, insuranceCompanies, insuranceTypes } =
     useVehicleLookups(form.makeId);
@@ -50,6 +67,7 @@ export default function FleetPage() {
   }, [tab]);
 
   const resetForm = () => {
+    setFieldErrors({});
     setForm(emptyVehicleForm());
     setVehicleImages([]);
     setVehicleImagePreviews([]);
@@ -111,6 +129,7 @@ export default function FleetPage() {
       }
     }
 
+    setFieldErrors({});
     setSaving(true);
     try {
       // Upload selected vehicle images first, then merge with existing ones
@@ -171,8 +190,12 @@ export default function FleetPage() {
       await loadVehicles();
     } catch (error: any) {
       console.error("Error saving vehicle:", error);
-      const msg = error?.message || error?.response?.message || "Failed to save vehicle";
-      showToast(T(msg, msg, ar));
+      const validationErrors = extractVehicleValidationErrors(error);
+      setFieldErrors(validationErrors);
+      if (Object.keys(validationErrors).length === 0) {
+        const msg = error?.message || error?.response?.message || "Failed to save vehicle";
+        showToast(T(msg, msg, ar), "error");
+      }
     } finally {
       setSaving(false);
     }
@@ -332,7 +355,8 @@ export default function FleetPage() {
         editingVehicleId={editingVehicleId}
         saving={saving}
         form={form}
-        setForm={setForm}
+        setForm={setVehicleForm}
+        fieldErrors={fieldErrors}
         makes={makes}
         models={models}
         plateTypes={plateTypes}

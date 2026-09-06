@@ -1326,6 +1326,32 @@ export const rentPolicyService = {
   },
 };
 
+export const cancellationPolicyService = {
+  async search(request: Types.CancellationPolicySearchRequest): Promise<any> {
+    return apiClient.request('/cancellation-policies/search', { method: 'POST', body: request });
+  },
+
+  async picker(): Promise<any> {
+    return apiClient.request('/cancellation-policies/picker', { method: 'POST', body: {} });
+  },
+
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/cancellation-policies/${id}`, { method: 'GET' });
+  },
+
+  async create(request: Types.SaveCancellationPolicyRequest): Promise<any> {
+    return apiClient.request('/cancellation-policies', { method: 'POST', body: request });
+  },
+
+  async update(id: number | string, request: Types.SaveCancellationPolicyRequest): Promise<any> {
+    return apiClient.request(`/cancellation-policies/${id}`, { method: 'PUT', body: request });
+  },
+
+  async delete(id: number | string): Promise<void> {
+    await apiClient.request(`/cancellation-policies/${id}`, { method: 'DELETE' });
+  },
+};
+
 // ─── Customer Warehouse Service ─────────────────────────────────
 
 export const customerWarehouseService = {

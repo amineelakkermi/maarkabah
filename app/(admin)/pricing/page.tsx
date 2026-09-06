@@ -7,6 +7,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { Button, Badge, Table, Th, Td, Tabs, Input, Modal, IconButton } from "@/components/ui";
 import AdditionalServicesSection from "@/components/shared/additional-services/AdditionalServicesSection";
 import RentPoliciesSection from "@/components/shared/rent-policies/RentPoliciesSection";
+import CancellationPoliciesSection from "@/components/shared/cancellation-policies/CancellationPoliciesSection";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -62,12 +63,6 @@ export default function PricingPage() {
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState<DiscountItem | null>(null);
   const [discountForm, setDiscountForm] = useState({ nameEn: "", nameAr: "", pct: 0 });
-
-  const CANCEL_POLICY = [
-    { windowEn: "24h+ before pickup", windowAr: "قبل ٢٤س+ من التسليم", refundEn: "100%", refundAr: "١٠٠٪", cls: "text-mk-mint-600" },
-    { windowEn: "2 – 24h before", windowAr: "قبل ٢ – ٢٤ ساعة", refundEn: "50%", refundAr: "٥٠٪", cls: "text-mk-warning" },
-    { windowEn: "Under 2h", windowAr: "أقل من ساعتين", refundEn: "No refund", refundAr: "لا استرداد", cls: "text-mk-danger" },
-  ];
 
   function openAddDiscount() {
     setEditingDiscount(null);
@@ -143,18 +138,8 @@ export default function PricingPage() {
         <div className="flex flex-col gap-4">
           <RentPoliciesSection />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          {/* Right column */}
-          {/* Cancellation policy */}
-          <SectionCard title={T("Cancellation policy", "سياسة الإلغاء", ar)}>
-            <div className="flex flex-col gap-2">
-              {CANCEL_POLICY.map((policy) => (
-                <div key={policy.windowEn} className="flex items-center justify-between gap-3 px-3 py-3 rounded-md bg-mk-ink-50">
-                  <span className="mk-label text-mk-ink-900">{ar ? policy.windowAr : policy.windowEn}</span>
-                  <span className={`mk-label ${policy.cls}`}>{ar ? policy.refundAr : policy.refundEn}</span>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
+          {/* Cancellation policies — live catalog (POST /cancellation-policies) */}
+          <CancellationPoliciesSection />
 
           {/* Late return rules */}
           <SectionCard title={T("Late-return penalty", "غرامة التأخر في الإرجاع", ar)}>
