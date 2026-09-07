@@ -2,18 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { adminTenantService } from "@/lib/api-services";
-import { Table, Th, Td, useToast } from "@/components/ui";
+import { Badge, Table, Th, Td, useToast } from "@/components/ui";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
+
+function displayRole(name?: string, description?: string) {
+  if (description) return description;
+  if (!name) return "—";
+  return name.replace(/_\d+$/, "").replace(/_/g, " ");
+}
 
 interface TenantRole {
   id: number;
   name?: string;
   description?: string;
-  permissions?: string[];
 }
 
 export default function SuperAdminTenantRolesPage() {
@@ -58,14 +63,13 @@ export default function SuperAdminTenantRolesPage() {
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden mk-surface">
+      <div className="rounded-xl overflow-x-auto mk-surface">
         <Table>
           <thead>
             <tr>
               {[
                 T("Name", "الاسم", ar),
                 T("Description", "الوصف", ar),
-                T("Permissions", "الصلاحيات", ar),
               ].map((h, i) => (
                 <Th key={i}>{h}</Th>
               ))}
@@ -74,39 +78,24 @@ export default function SuperAdminTenantRolesPage() {
           <tbody>
             {loading ? (
               <tr>
-                <Td colSpan={3} className="text-center py-12 text-mk-ink-400">
+                <Td colSpan={2} className="text-center py-12 text-mk-ink-400">
                   <Loader2 size={32} className="animate-spin mx-auto mb-3" />
                   {T("Loading...", "جاري التحميل...", ar)}
                 </Td>
               </tr>
             ) : roles.length === 0 ? (
               <tr>
-                <Td colSpan={3} className="text-center py-12 text-mk-ink-400">
+                <Td colSpan={2} className="text-center py-12 text-mk-ink-400">
                   {T("No roles found.", "لم يتم العثور على أدوار.", ar)}
                 </Td>
               </tr>
             ) : (
               roles.map((role) => (
-                <tr key={role.id} className="hover:bg-mk-ink-50 transition-colors">
-                  <Td className="mk-label text-mk-ink-900">{role.name ?? "—"}</Td>
-                  <Td>{role.description ?? "—"}</Td>
+                <tr key={role.id} className="hover:bg-mk-ink-50 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]">
                   <Td>
-                    <div className="flex flex-wrap gap-1">
-                      {(role.permissions ?? []).slice(0, 5).map((p) => (
-                        <span
-                          key={p}
-                          className="px-2 py-0.5 rounded-full bg-mk-blue-50 text-mk-blue-600 mk-caption text-[11px]"
-                        >
-                          {p}
-                        </span>
-                      ))}
-                      {(role.permissions?.length ?? 0) > 5 && (
-                        <span className="px-2 py-0.5 rounded-full bg-mk-ink-100 text-mk-ink-500 mk-caption text-[11px]">
-                          +{role.permissions!.length - 5}
-                        </span>
-                      )}
-                    </div>
+                    <Badge variant="info">{displayRole(role.name)}</Badge>
                   </Td>
+                  <Td className="mk-body text-mk-ink-700">{role.description || displayRole(role.name)}</Td>
                 </tr>
               ))
             )}

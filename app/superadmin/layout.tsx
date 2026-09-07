@@ -33,7 +33,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="min-h-screen bg-mk-ink-50 lg:grid lg:items-start lg:p-5 lg:gap-5 lg:grid-cols-[auto_1fr]">
+    <div className="min-h-screen bg-mk-bg lg:grid lg:items-start lg:p-5 lg:gap-5 lg:grid-cols-[auto_1fr]">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"

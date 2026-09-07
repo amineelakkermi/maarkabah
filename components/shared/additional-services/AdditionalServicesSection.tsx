@@ -239,8 +239,8 @@ export default function AdditionalServicesSection() {
   };
 
   const handleAdd = async () => {
-    if (!newNameAr && !newNameEn) {
-      alert(T("Name is required", "الاسم مطلوب", ar));
+    if (ar ? !newNameAr.trim() : !newNameEn.trim()) {
+      alert(T("English name is required", "الاسم العربي مطلوب", ar));
       return;
     }
     setCreating(true);
@@ -526,32 +526,65 @@ export default function AdditionalServicesSection() {
               className="mb-0 pb-4 border-b border-mk-border"
             />
             <div className="flex flex-col gap-4 mt-5">
-              <Input
-                variant="muted"
-                label={<>{T("Name (English)", "الاسم (إنجليزي)", ar)} <span className="text-mk-danger">*</span></>}
-                value={newNameEn}
-                onChange={(e) => setNewNameEn(e.target.value)}
-              />
-              <Input
-                variant="muted"
-                dir="rtl"
-                label={<>{T("Name (Arabic)", "الاسم (عربي)", ar)} <span className="text-mk-danger">*</span></>}
-                value={newNameAr}
-                onChange={(e) => setNewNameAr(e.target.value)}
-              />
-              <Input
-                variant="muted"
-                label={T("Description (English)", "الوصف (إنجليزي)", ar)}
-                value={newDescEn}
-                onChange={(e) => setNewDescEn(e.target.value)}
-              />
-              <Input
-                variant="muted"
-                dir="rtl"
-                label={T("Description (Arabic)", "الوصف (عربي)", ar)}
-                value={newDescAr}
-                onChange={(e) => setNewDescAr(e.target.value)}
-              />
+              {ar ? (
+                <>
+                  <Input
+                    variant="muted"
+                    dir="rtl"
+                    label={<>الاسم عربي <span className="text-mk-danger">*</span></>}
+                    value={newNameAr}
+                    onChange={(e) => setNewNameAr(e.target.value)}
+                  />
+                  <Input
+                    variant="muted"
+                    dir="rtl"
+                    label="الوصف عربي"
+                    value={newDescAr}
+                    onChange={(e) => setNewDescAr(e.target.value)}
+                  />
+                  <Input
+                    variant="muted"
+                    label="الاسم إنجليزي (اختياري)"
+                    value={newNameEn}
+                    onChange={(e) => setNewNameEn(e.target.value)}
+                  />
+                  <Input
+                    variant="muted"
+                    label="الوصف إنجليزي (اختياري)"
+                    value={newDescEn}
+                    onChange={(e) => setNewDescEn(e.target.value)}
+                  />
+                </>
+              ) : (
+                <>
+                  <Input
+                    variant="muted"
+                    label={<>English name <span className="text-mk-danger">*</span></>}
+                    value={newNameEn}
+                    onChange={(e) => setNewNameEn(e.target.value)}
+                  />
+                  <Input
+                    variant="muted"
+                    label="English description"
+                    value={newDescEn}
+                    onChange={(e) => setNewDescEn(e.target.value)}
+                  />
+                  <Input
+                    variant="muted"
+                    dir="rtl"
+                    label="Arabic name (optional)"
+                    value={newNameAr}
+                    onChange={(e) => setNewNameAr(e.target.value)}
+                  />
+                  <Input
+                    variant="muted"
+                    dir="rtl"
+                    label="Arabic description (optional)"
+                    value={newDescAr}
+                    onChange={(e) => setNewDescAr(e.target.value)}
+                  />
+                </>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                   <label className="mk-caption text-mk-ink-700">{T("Billing unit", "وحدة الفوترة", ar)}</label>
@@ -622,7 +655,7 @@ export default function AdditionalServicesSection() {
             </Button>
             <Button
               variant="primary"
-              disabled={(!newNameAr && !newNameEn) || creating}
+              disabled={(ar ? !newNameAr.trim() : !newNameEn.trim()) || creating}
               onClick={handleAdd}
               className="flex-1"
             >
