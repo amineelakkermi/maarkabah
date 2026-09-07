@@ -37,13 +37,13 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     title: "Operations",
     titleAr: "العمليات",
     items: [
-      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية", requiredPermission: null },
+      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية ( غير مكتمل )", requiredPermission: null },
       // fleet-map, bookings, late-returns have no matching backend permission at this time.
       { href: "/fleet", icon: Car, label: "Fleet", labelAr: "الأسطول", requiredPermission: Permission.Vehicles.View },
       // TODO: switch requiredPermission to Permission.Contracts.* once the
       // backend provides the contracts permission.
-      { href: "/contracts", icon: CalendarCheck, label: "Contracts", labelAr: "العقود", requiredPermission: null },
-      { href: "/new-contract", icon: PlusCircle, label: "New contract", labelAr: "عقد جديد", requiredPermission: null },
+{ href: "/contracts", icon: CalendarCheck, label: "Contracts (In progress)", labelAr: "العقود ( غير مكتمل )", requiredPermission: null },
+{ href: "/new-contract", icon: PlusCircle, label: "New contract (In progress)", labelAr: "عقد جديد ( غير مكتمل )", requiredPermission: null },
     ],
   },
   {
@@ -75,7 +75,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       { href: "/settings", icon: Settings, label: "Settings", labelAr: "الإعدادات", requiredPermission: null },
       // TODO: switch requiredPermission to Permission.Notifications.* once the
       // backend provides the notifications permission.
-      { href: "/notifications", icon: Bell, label: "Notifications & Alerts", labelAr: "الإشعارات والتنبيهات", requiredPermission: null },
+      { href: "/notifications", icon: Bell, label: "Notifications & Alerts", labelAr: "الإشعارات و التنبيهات ( غير مكتمل )", requiredPermission: null },
     ],
   },
 ];

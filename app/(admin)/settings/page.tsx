@@ -163,8 +163,8 @@ function SettingsContent() {
   const wide = activeTab === "staff" || activeTab === "roles" || activeTab === "branches";
 
   const TAB_LABELS: Record<SettingsTab, { en: string; ar: string }> = {
-    profile: { en: "General Settings", ar: "إعدادات عامة" },
-    system: { en: "System", ar: "النظام" },
+    profile: { en: "General Settings (Not ready)", ar: "إعدادات عامة (غير مكتمل)" },
+    system: { en: "System (Not ready)", ar: "النظام (غير مكتمل)" },
     branches: { en: "Branches", ar: "الفروع" },
     staff: { en: "Staff", ar: "الفريق" },
     roles: { en: "Roles & Permissions", ar: "الأدوار والصلاحيات" },
