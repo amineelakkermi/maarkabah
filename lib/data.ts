@@ -147,6 +147,41 @@ export interface RevenueDay {
   prev?: number;
 }
 
+// Oil-change reminder: due when either the projected km-remaining or the
+// projected date threshold is crossed, whichever comes first.
+export type OilChangeStatus = "ok" | "due-soon" | "overdue";
+
+export interface OilChangeInfo {
+  status: OilChangeStatus;
+  remainingKm: number | null;
+  remainingDays: number | null;
+  dueDate: string | null; // yyyy-mm-dd, projected — null when there isn't enough usage history yet
+  currentOdometer: number | null; // latest reading from the pickup/return log
+}
+
+const OIL_CHANGE_KM_WARNING = 500;
+const OIL_CHANGE_DAYS_WARNING = 7;
+
+export function getOilChangeStatus(car: Car, today: Date = new Date()): OilChangeInfo {
+  const dueDate = car.oilChangeDate ?? null;
+  const remainingKm: number | null = null;
+  const currentOdometer: number | null = null;
+
+  if (!dueDate) return { status: "ok", remainingKm, remainingDays: null, dueDate, currentOdometer };
+
+  const due = new Date(`${dueDate}T00:00:00`);
+  const current = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const remainingDays = Math.ceil((due.getTime() - current.getTime()) / 86_400_000);
+  const status: OilChangeStatus = remainingDays < 0
+    ? "overdue"
+    : remainingDays <= OIL_CHANGE_DAYS_WARNING || (remainingKm !== null && remainingKm <= OIL_CHANGE_KM_WARNING)
+      ? "due-soon"
+      : "ok";
+
+  return { status, remainingKm, remainingDays, dueDate, currentOdometer };
+}
+
+
 // =============================================================
 //  Mock data
 // =============================================================

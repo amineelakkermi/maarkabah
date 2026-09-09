@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search, ChevronLeft, ChevronRight, Check,
-  UserPlus, UserCheck, Calendar, Shield, ShieldCheck, Users, Baby, Fuel, Gauge,
+  UserPlus, UserCheck, Shield, ShieldCheck, Users, Baby, Fuel, Gauge,
   CreditCard, ArrowRight, ArrowLeft, Printer,
   FileText, Mail, MessageSquare, Download, KeyRound, X,
   LayoutGrid, List, Map as MapIcon, Banknote, Copy,
@@ -12,9 +12,10 @@ import {
   Armchair, Flame, Wifi, MapPin, Compass, Accessibility, Lock, Tag, RotateCcw, Info, Wallet,
 } from "lucide-react";
 import Image from "next/image";
-import { Avatar, Badge, AlertBanner, RiyalSymbol, Input, Select, Button, Chip, IconButton, Tabs, Modal, Drawer, DrawerHeader, DrawerFooter } from "@/components/ui";
+import { Avatar, Badge, AlertBanner, RiyalSymbol, Input, Select, Button, Chip, IconButton, Tabs, Modal, Drawer, DrawerHeader, DrawerFooter, DatePicker, DateTimePicker } from "@/components/ui";
 import ContractPreview from "./ContractPreview";
-import { CARS, CAR_IMAGES, MOCK_DRIVERS, CLIENTS, type DriverProfile, type ClientProfile, type CarStatus } from "@/lib/data";
+import { CARS, CAR_IMAGES, MOCK_DRIVERS, CLIENTS, getOilChangeStatus, type DriverProfile, type ClientProfile, type CarStatus } from "@/lib/data";
+import { FleetAlertBadgeList, FleetAlertImageOverlay } from "@/components/employee/FleetAlertBadges";
 import { useAdmin } from "@/contexts/AdminContext";
 import {
   tajeerGetBranches, tajeerGetRentPolicies, tajeerGetExtendedCoverage,
@@ -29,6 +30,10 @@ import { PersonRegistrationDrawer, type NewPersonProfile } from "@/components/em
 import { getAvailabilityText, loadGoogleMapsScript, getGoogleMapsStyle, getCarLatLng, createCustomMarker } from "@/lib/maps";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
+const toLocalDateTimeValue = (date: Date) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+};
 
 /* ── Mock data ───────────────────────────────────────────────────── */
 const CUSTOMERS = MOCK_DRIVERS;
@@ -473,6 +478,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [extraDriverIdNumber, setExtraDriverIdNumber] = useState("");
   const [extraDriverAddress, setExtraDriverAddress] = useState("");
   const [extraDriverBirthDate, setExtraDriverBirthDate] = useState("");
+  const [showExtraDriverAddNew, setShowExtraDriverAddNew] = useState(false);
 
   // ── Tajeer: renter extra fields ────────────────────────────────
   const [renterEmail, setRenterEmail] = useState("");
@@ -487,9 +493,9 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [renterAddress, setRenterAddress] = useState("Riyadh");
   const [renterLicenseIssuePlace, setRenterLicenseIssuePlace] = useState("");
   const [renterBorderNumber, setRenterBorderNumber] = useState("");
-  const [isHourlyRental, setIsHourlyRental] = useState(false);
-  const [pickupDateTime, setPickupDateTime] = useState("2026-05-24T14:00");
-  const [returnDateTime, setReturnDateTime] = useState("2026-05-28T18:00");
+  const [pickupDateTime, setPickupDateTime] = useState(() => toLocalDateTimeValue(new Date()));
+  const [returnDateTime, setReturnDateTime] = useState(() => toLocalDateTimeValue(new Date(Date.now() + 4 * 24 * 60 * 60 * 1000)));
+  const isHourlyRental = new Date(returnDateTime).getTime() - new Date(pickupDateTime).getTime() < 24 * 60 * 60 * 1000;
 
   // ── Insurance ────────────────────────────────────────────────
   const [insuranceAmount, setInsuranceAmount] = useState<number>(100000);
@@ -587,7 +593,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
       setRentStatus((s) => ({
         ...s,
         odometerReading: odometer,
-        oilChangeDate: selectedCar.oilChangeDate ?? s.oilChangeDate,
+        oilChangeDate: getOilChangeStatus(selectedCar).dueDate ?? s.oilChangeDate,
         fuelTypeCode: selectedCar.fuelTypeCode,
         enduranceAmount: selectedCar.enduranceAmount,
       }));
@@ -1034,6 +1040,43 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
     setShowAuthDriverAddNew(false);
   };
 
+  const handleCreateExtraDriverFromDrawer = (p: NewPersonProfile) => {
+    const newDriver: DriverProfile = {
+      id: `D-${1000 + customersList.length + 1}`,
+      name: p.name,
+      nameAr: p.nameAr,
+      phone: p.phone,
+      idType: p.idType,
+      idTypeCode: ID_TYPE_CODE_MAP[p.idType],
+      nationalId: p.idNumber,
+      idExpiryDate: p.idExpiryDate,
+      birthDate: p.birthDate,
+      hijriBirthDate: p.hijriBirthDate,
+      email: p.email,
+      nationality: p.nationality,
+      personAddress: p.personAddress ?? "Riyadh",
+      idCopyNumber: p.idCopyNumber,
+      licenseIssuePlace: p.licenseIssuePlace,
+      borderNumber: p.borderNumber,
+      licenseNumber: p.licenseNumber || `LIC-${Math.floor(10000 + Math.random() * 90000)}`,
+      licenseExpiryDate: p.licenseExpiryDate,
+      bookings: 0,
+      status: "verified",
+      lastBooking: null,
+      rating: 5.0,
+      blacklisted: false,
+      joinDate: new Date().toISOString().split("T")[0],
+    };
+
+    setCustomersList((prev) => [newDriver, ...prev]);
+    setSelectedExtraDriver(newDriver);
+    setExtraDriverIdType(newDriver.idTypeCode as TajeerIdType);
+    setExtraDriverIdNumber(newDriver.nationalId);
+    setExtraDriverBirthDate(newDriver.birthDate || (newDriver.hijriBirthDate ? String(newDriver.hijriBirthDate) : ""));
+    setExtraDriverAddress(newDriver.personAddress || "Riyadh");
+    setShowExtraDriverAddNew(false);
+  };
+
   // ── Renter identity fields — the required field set depends on idTypeCode ──
   type RenterFieldDef = {
     key: string; labelEn: string; labelAr: string; required: boolean;
@@ -1300,56 +1343,28 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
 
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="mk-overline mb-2 block text-mk-ink-600">
-                            {T("Pickup date & time", "تاريخ ووقت التسليم", ar)}
-                          </label>
-                          <div className="flex items-center gap-2 px-4 h-10 rounded-md bg-mk-ink-50 border border-mk-ink-100 focus-within:border-mk-blue-500 transition-all">
-                            <Calendar size={14} className="shrink-0 text-mk-blue-500" />
-                            <input
-                              type="datetime-local"
-                              value={pickupDateTime}
-                              onChange={(e) => setPickupDateTime(e.target.value)}
-                              className="flex-1 bg-transparent border-none outline-none mk-body-sm text-mk-ink-900 cursor-pointer [font-family:inherit]"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="mk-overline mb-2 block text-mk-ink-600">
-                            {T("Return date & time", "تاريخ ووقت الإرجاع", ar)}
-                          </label>
-                          <div className="flex items-center gap-2 px-4 h-10 rounded-md bg-mk-ink-50 border border-mk-ink-100 focus-within:border-mk-blue-500 transition-all">
-                            <Calendar size={14} className="shrink-0 text-mk-blue-500" />
-                            <input
-                              type="datetime-local"
-                              value={returnDateTime}
-                              onChange={(e) => setReturnDateTime(e.target.value)}
-                              className="flex-1 bg-transparent border-none outline-none mk-body-sm text-mk-ink-900 cursor-pointer [font-family:inherit]"
-                            />
-                          </div>
-                        </div>
+                        <DateTimePicker
+                          label={T("Pickup date & time", "تاريخ ووقت التسليم", ar)}
+                          value={pickupDateTime}
+                          onChange={setPickupDateTime}
+                          ar={ar}
+                          variant="muted"
+                        />
+                        <DateTimePicker
+                          label={T("Return date & time", "تاريخ ووقت الإرجاع", ar)}
+                          value={returnDateTime}
+                          onChange={setReturnDateTime}
+                          ar={ar}
+                          variant="muted"
+                        />
                       </div>
                     </div>
 
                     {/* Rental type — with the (dynamic) duration shown inline */}
-                    <div className="mt-6 flex items-end justify-between gap-3">
-                      <div>
-                        <label className="mk-overline mb-2 block text-mk-ink-600">
-                          {T("Rental type", "نوع التأجير", ar)}<span className="text-mk-danger"> *</span>
-                        </label>
-                        <div className="flex gap-2 mt-2">
-                          <Chip active={!isHourlyRental} onClick={() => setIsHourlyRental(false)}>
-                            {T("Daily", "يومي", ar)}
-                          </Chip>
-                          <Chip active={isHourlyRental} onClick={() => setIsHourlyRental(true)}>
-                            {T("Hourly", "ساعة", ar)}
-                          </Chip>
-                        </div>
-                      </div>
-                      <div className="text-end">
-                        <div className="mk-overline  text-mk-ink-600">{T("Rental duration", "مدة الإيجار", ar)}</div>
-                        <span className="mk-caption text-mk-ink-700">{rentalDurationLabel}</span>
-                      </div>
+                    <div className="mt-2 text-start">
+                      <span className="mk-caption text-mk-ink-700">
+                        {rentalDurationLabel} · {isHourlyRental ? T("Hourly", "ساعة", ar) : T("Daily", "يومي", ar)}
+                      </span>
                     </div>
                   </div>
 
@@ -1365,26 +1380,20 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
                   <div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="mk-overline mb-2 block text-mk-ink-600">
-                          {T("Authorization start date", "تاريخ بداية التفويض", ar)}
-                        </label>
-                        <div className="flex items-center gap-2 px-3 h-10 rounded-md bg-mk-ink-50 border border-mk-ink-100 focus-within:border-mk-blue-500 transition-all">
-                          <Calendar size={14} className="shrink-0 text-mk-blue-500" />
-                          <input type="date" value={authorizationStartDate} onChange={(e) => setAuthorizationStartDate(e.target.value)}
-                            className="flex-1 bg-transparent border-none outline-none mk-body-sm text-mk-ink-900 cursor-pointer [font-family:inherit]" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="mk-overline mb-2 block text-mk-ink-600">
-                          {T("Authorization end date", "تاريخ نهاية التفويض", ar)}<span className="text-mk-danger"> *</span>
-                        </label>
-                        <div className="flex items-center gap-2 px-3 h-10 rounded-md bg-mk-ink-50 border border-mk-ink-100 focus-within:border-mk-blue-500 transition-all">
-                          <Calendar size={14} className="shrink-0 text-mk-blue-500" />
-                          <input type="date" value={authorizationEndDate} onChange={(e) => setAuthorizationEndDate(e.target.value)}
-                            className="flex-1 bg-transparent border-none outline-none mk-body-sm text-mk-ink-900 cursor-pointer [font-family:inherit]" />
-                        </div>
-                      </div>
+                      <DatePicker
+                        label={T("Authorization start date", "تاريخ بداية التفويض", ar)}
+                        value={authorizationStartDate}
+                        onChange={setAuthorizationStartDate}
+                        ar={ar}
+                        variant="muted"
+                      />
+                      <DatePicker
+                        label={<>{T("Authorization end date", "تاريخ نهاية التفويض", ar)}<span className="text-mk-danger"> *</span></>}
+                        value={authorizationEndDate}
+                        onChange={setAuthorizationEndDate}
+                        ar={ar}
+                        variant="muted"
+                      />
                       <div>
                         <label className="mk-overline mb-2 block text-mk-ink-600">
                           {T("Authorization type", "نوع التفويض", ar)}
@@ -1618,10 +1627,11 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
                               <CarCardCarousel images={CAR_IMAGES[c.model] || []} picked={picked} />
                               {/* Selected checkmark */}
                               {picked && (
-                                <span className="absolute top-2 start-2 w-5 h-5 rounded-full flex items-center justify-center bg-mk-blue-500 z-30">
+                                <span className="absolute top-2 end-2 w-5 h-5 rounded-full flex items-center justify-center bg-mk-blue-500 z-30">
                                   <Check size={11} className="text-white" />
                                 </span>
                               )}
+                              <FleetAlertImageOverlay car={c} ar={ar} />
                               {/* View condition & diagram */}
                               <button
                                 type="button"
@@ -1758,6 +1768,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
                                     · {getAvailabilityText(c.status, c.id, ar)}
                                   </span>
                                 )}
+                                <FleetAlertBadgeList car={c} ar={ar} showEmpty={false} />
                               </div>
                               <div className="flex items-center gap-3 mt-1 flex-wrap">
                                 <span className="mk-caption text-mk-ink-500">{c.plate}</span>
@@ -2240,7 +2251,13 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
 
                     {addons.driver && (
                       <div className="p-4 rounded-lg bg-mk-ink-50 border border-mk-ink-200 flex flex-col gap-3">
-                        <label className="mk-overline text-mk-ink-600">{T("Select from drivers list:", "اختر من قائمة السائقين:", ar)}</label>
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="mk-overline text-mk-ink-600">{T("Select from drivers list:", "اختر من قائمة السائقين:", ar)}</label>
+                          <Button type="button" variant="tonal" size="sm" onClick={() => setShowExtraDriverAddNew(true)}>
+                            <UserPlus size={14} />
+                            {T("Add new driver", "إضافة سائق جديد", ar)}
+                          </Button>
+                        </div>
 
                         {selectedExtraDriver ? (
                           <div className="flex items-center gap-3 p-3 rounded-lg mk-row-bg border border-mk-blue-500/30">
@@ -2279,7 +2296,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
                             <div
                               className="absolute top-full inset-x-0 mt-2 z-20 flex flex-col gap-2 max-h-[220px] overflow-y-auto p-2 rounded-lg border border-mk-ink-200 shadow-lg bg-mk-bg-elevated"
                             >
-                              {MOCK_DRIVERS
+                              {customersList
                                 .filter((d) => {
                                   const q = extraDriverQuery.trim().toLowerCase();
                                   if (!q) return true;
@@ -3467,6 +3484,17 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         submitLabelEn="Add Authorized Driver"
         submitLabelAr="إضافة مفوض"
         allowedIdTypes={["Saudi ID", "Iqama"]}
+      />
+      <PersonRegistrationDrawer
+        open={showExtraDriverAddNew}
+        onClose={() => setShowExtraDriverAddNew(false)}
+        onCreate={handleCreateExtraDriverFromDrawer}
+        ar={ar}
+        titleEn="Add new driver"
+        titleAr="إضافة سائق جديد"
+        submitLabelEn="Add Driver"
+        submitLabelAr="إضافة سائق"
+        allowedIdTypes={["Saudi ID", "Iqama", "GCC ID", "Passport"]}
       />
     </div>
   );
