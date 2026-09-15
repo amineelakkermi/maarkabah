@@ -143,6 +143,7 @@ export interface UpdateBranchRequest {
 
 export interface BranchSearchRequest {
   search?: string;
+  isActive?: boolean;
   pageNumber?: number;
   pageSize?: number;
 }
@@ -172,13 +173,13 @@ export interface CountrySearchRequest {
 // ─── Vehicle Enums ─────────────────────────────────────────────
 
 export enum VehicleFleetStatus {
-  Available = 1,
-  Rented = 2,
-  Overdue = 3,
-  Maintenance = 4,
-  Reserved = 5,
-  Inactive = 6,
-  Draft = 7,
+  Draft = 1,
+  Available = 2,
+  Rented = 3,
+  Overdue = 4,
+  Maintenance = 5,
+  Reserved = 6,
+  Inactive = 7,
 }
 
 export enum VehicleFuelType {
@@ -605,5 +606,121 @@ export interface SaveCancellationPolicyRequest {
   sortOrder?: number;
   isActive: boolean;
   tiers: CancellationPolicyTier[];
+}
+
+export interface ExtendedCoverageSearchRequest {
+  search?: string;
+  isActive?: boolean | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface ExtendedCoveragePickerRequest {}
+
+export interface UpdateExtendedCoverageRequest {
+  cost: number;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export type ContractStatus = 1 | 2 | 3 | 4 | 5 | 6;
+export type ContractType = 1 | 2 | 3 | 4;
+export type ContractPaymentType = 1 | 2;
+
+export interface ContractAdditionalServiceInput {
+  additionalServiceId: number;
+  quantity: number;
+}
+
+export interface ContractSearchRequest {
+  search?: string;
+  status?: ContractStatus | null;
+  statuses?: ContractStatus[] | null;
+  branchId?: number | null;
+  customerId?: number | null;
+  vehicleId?: number | null;
+  from?: string | null;
+  to?: string | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface ContractStatusCountsRequest {
+  search?: string;
+  branchId?: number | null;
+  customerId?: number | null;
+  vehicleId?: number | null;
+  from?: string | null;
+  to?: string | null;
+}
+
+export interface ContractRequest {
+  workingBranchId: number;
+  receiveBranchId: number;
+  returnBranchId: number;
+  contractType: ContractType;
+  startAt: string;
+  endAt: string;
+  rentPolicyId: number;
+  cancellationPolicyId: number;
+  allowedKmPerDay?: number | null;
+  allowedKmPerHour?: number | null;
+  unlimitedKm: boolean;
+  allowedLateHours: number;
+  rentDayCost: number;
+  rentHourCost: number;
+  extraKmCost: number;
+  fullFuelCost: number;
+  driverFarePerDay: number;
+  driverFarePerHour: number;
+  vehicleTransferCost: number;
+  extraDriverCost: number;
+  discountPercent: number;
+  paidAmount: number;
+  paymentMethodCode?: string | null;
+  paymentType: ContractPaymentType;
+  otherPaymentMethodCode?: string | null;
+  internationalAuthorizationCost: number;
+  extendedCoverageId?: number | null;
+  depositAmount: number;
+  odometerReading: number;
+  fuelLevel: FuelLevel;
+  enduranceAmount: number;
+  notes?: string | null;
+  authorizedDriverId?: number | null;
+  extraDriverId?: number | null;
+  additionalServices?: ContractAdditionalServiceInput[] | null;
+}
+
+export interface CreateContractRequest extends ContractRequest {
+  customerId: number;
+  vehicleId: number;
+}
+
+export type UpdateContractRequest = ContractRequest;
+
+export interface ExtendContractRequest {
+  newEndAt: string;
+}
+
+export interface CancelContractRequest {
+  reason?: string | null;
+}
+
+export interface ContractActivitySearchRequest {
+  action?: number | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface ContractTajeerLogSearchRequest {
+  search?: string | null;
+  operation?: string | null;
+  contractId?: number | null;
+  isSuccess?: boolean | null;
+  fromUtc?: string | null;
+  toUtc?: string | null;
+  pageNumber?: number;
+  pageSize?: number;
 }
  

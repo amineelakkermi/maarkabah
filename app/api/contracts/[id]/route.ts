@@ -1,0 +1,21 @@
+import { NextRequest } from 'next/server';
+import { forwardContractRequest } from '../_proxy';
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  return forwardContractRequest(request, `/api/contracts/${id}`, 'GET');
+}
+
+export async function PUT(request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  return forwardContractRequest(request, `/api/contracts/${id}`, 'PUT', true);
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  return forwardContractRequest(request, `/api/contracts/${id}`, 'DELETE');
+}

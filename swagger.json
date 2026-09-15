@@ -14,17 +14,224 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChangePasswordRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.AccountController.ChangePasswordRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChangePasswordRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.AccountController.ChangePasswordRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ChangePasswordRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.AccountController.ChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/additional-services/search": {
+      "post": {
+        "tags": [
+          "AdditionalServices"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.AdditionalServiceSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.AdditionalServiceSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.AdditionalServiceSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/additional-services/picker": {
+      "post": {
+        "tags": [
+          "AdditionalServices"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.AdditionalServicePickerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.AdditionalServicePickerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.AdditionalServicePickerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/additional-services/{id}": {
+      "get": {
+        "tags": [
+          "AdditionalServices"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "AdditionalServices"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.UpdateAdditionalServiceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.UpdateAdditionalServiceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.UpdateAdditionalServiceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "AdditionalServices"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/additional-services": {
+      "post": {
+        "tags": [
+          "AdditionalServices"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.CreateAdditionalServiceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.CreateAdditionalServiceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.AdditionalServices.Dtos.CreateAdditionalServiceRequest"
               }
             }
           }
@@ -67,17 +274,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WarehouseInquiryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.CustomerWarehouse.Dtos.WarehouseInquiryRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/WarehouseInquiryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.CustomerWarehouse.Dtos.WarehouseInquiryRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/WarehouseInquiryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.CustomerWarehouse.Dtos.WarehouseInquiryRequest"
               }
             }
           }
@@ -158,6 +365,42 @@
         ]
       }
     },
+    "/api/admin/tenants": {
+      "post": {
+        "tags": [
+          "AdminTenants"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOfficeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOfficeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOfficeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/admin/tenants/{tenantId}/users": {
       "get": {
         "tags": [
@@ -171,6 +414,13 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "IsActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -220,17 +470,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateTenantUserRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateTenantUserRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateTenantUserRequest"
               }
             }
           }
@@ -311,17 +561,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.UpdateTenantUserRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.UpdateTenantUserRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.UpdateTenantUserRequest"
               }
             }
           }
@@ -370,6 +620,136 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/admin/tenants/{tenantId}/users/{userId}/activate": {
+      "post": {
+        "tags": [
+          "AdminTenants"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/admin/tenants/{tenantId}/users/{userId}/deactivate": {
+      "post": {
+        "tags": [
+          "AdminTenants"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/admin/tenants/{tenantId}/users/{userId}/reset-password": {
+      "post": {
+        "tags": [
+          "AdminTenants"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.ResetTenantUserPasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.ResetTenantUserPasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.ResetTenantUserPasswordRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -557,6 +937,159 @@
         }
       }
     },
+    "/api/blacklist/search": {
+      "post": {
+        "tags": [
+          "Blacklist"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.Dtos.BlacklistSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.Dtos.BlacklistSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.Dtos.BlacklistSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/blacklist/stats": {
+      "get": {
+        "tags": [
+          "Blacklist"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/blacklist/check": {
+      "post": {
+        "tags": [
+          "Blacklist"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.Dtos.BlacklistCheckRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.Dtos.BlacklistCheckRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.Dtos.BlacklistCheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/blacklist/report": {
+      "post": {
+        "tags": [
+          "Blacklist"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.ReportBlacklistCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.ReportBlacklistCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Blacklist.ReportBlacklistCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/blacklist/{id}": {
+      "get": {
+        "tags": [
+          "Blacklist"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/branches/search": {
       "post": {
         "tags": [
@@ -566,17 +1099,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BranchSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Branches.Dtos.BranchSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/BranchSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Branches.Dtos.BranchSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/BranchSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Branches.Dtos.BranchSearchRequest"
               }
             }
           }
@@ -639,17 +1172,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateBranchRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateBranchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateBranchRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateBranchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateBranchRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateBranchRequest"
               }
             }
           }
@@ -701,17 +1234,720 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateBranchCommand"
+                "$ref": "#/components/schemas/Maarkbh.Application.Branches.CreateBranchCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateBranchCommand"
+                "$ref": "#/components/schemas/Maarkbh.Application.Branches.CreateBranchCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateBranchCommand"
+                "$ref": "#/components/schemas/Maarkbh.Application.Branches.CreateBranchCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/cancellation-policies/search": {
+      "post": {
+        "tags": [
+          "CancellationPolicies"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicySearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicySearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicySearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/cancellation-policies/picker": {
+      "post": {
+        "tags": [
+          "CancellationPolicies"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicyPickerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicyPickerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicyPickerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/cancellation-policies/{id}": {
+      "get": {
+        "tags": [
+          "CancellationPolicies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "CancellationPolicies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.UpdateCancellationPolicyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.UpdateCancellationPolicyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.UpdateCancellationPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "CancellationPolicies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/cancellation-policies": {
+      "post": {
+        "tags": [
+          "CancellationPolicies"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CreateCancellationPolicyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CreateCancellationPolicyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CreateCancellationPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/search": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/status-counts": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractStatusCountsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractStatusCountsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractStatusCountsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}": {
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.UpdateContractRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.UpdateContractRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.UpdateContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.CreateContractRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.CreateContractRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.CreateContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}/activate": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}/submit-tajeer": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}/refresh-tajeer": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}/extend": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ExtendContractRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ExtendContractRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ExtendContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.CancelContractRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.CancelContractRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.CancelContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/mark-overdue": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}/activities/search": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractActivitySearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractActivitySearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractActivitySearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/contracts/{id}/tajeer-logs/search": {
+      "post": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.TajeerApiLogs.Dtos.TajeerApiLogSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.TajeerApiLogs.Dtos.TajeerApiLogSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.TajeerApiLogs.Dtos.TajeerApiLogSearchRequest"
               }
             }
           }
@@ -737,17 +1973,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CountrySearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.CountrySearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CountrySearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.CountrySearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CountrySearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.CountrySearchRequest"
               }
             }
           }
@@ -773,17 +2009,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCountryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.CreateCountryRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCountryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.CreateCountryRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCountryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.CreateCountryRequest"
               }
             }
           }
@@ -820,17 +2056,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCountryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.UpdateCountryRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCountryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.UpdateCountryRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCountryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Countries.Dtos.UpdateCountryRequest"
               }
             }
           }
@@ -882,17 +2118,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.CustomerSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.CustomerSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.CustomerSearchRequest"
               }
             }
           }
@@ -955,17 +2191,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCustomerRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateCustomerRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCustomerRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateCustomerRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCustomerRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateCustomerRequest"
               }
             }
           }
@@ -1008,74 +2244,6 @@
         ]
       }
     },
-    "/api/customers/identity-types": {
-      "get": {
-        "tags": [
-          "Customers"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/customers/verification-statuses": {
-      "get": {
-        "tags": [
-          "Customers"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/customers/tajeer-statuses": {
-      "get": {
-        "tags": [
-          "Customers"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/customers/document-types": {
-      "get": {
-        "tags": [
-          "Customers"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
     "/api/customers": {
       "post": {
         "tags": [
@@ -1085,17 +2253,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCustomerCommand"
+                "$ref": "#/components/schemas/Maarkbh.Application.Customers.CreateCustomerCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCustomerCommand"
+                "$ref": "#/components/schemas/Maarkbh.Application.Customers.CreateCustomerCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCustomerCommand"
+                "$ref": "#/components/schemas/Maarkbh.Application.Customers.CreateCustomerCommand"
               }
             }
           }
@@ -1160,17 +2328,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerReasonRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.CustomerReasonRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerReasonRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.CustomerReasonRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerReasonRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.CustomerReasonRequest"
               }
             }
           }
@@ -1207,17 +2375,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerReasonRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.CustomerReasonRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerReasonRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.CustomerReasonRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerReasonRequest"
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.CustomerReasonRequest"
               }
             }
           }
@@ -1269,17 +2437,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WarehouseInquiryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.CustomerWarehouse.Dtos.WarehouseInquiryRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/WarehouseInquiryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.CustomerWarehouse.Dtos.WarehouseInquiryRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/WarehouseInquiryRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.CustomerWarehouse.Dtos.WarehouseInquiryRequest"
               }
             }
           }
@@ -1352,6 +2520,540 @@
         ]
       }
     },
+    "/api/drivers/search": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.DriverSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.DriverSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.DriverSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/drivers/stats": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/drivers/picker": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.DriverPickerSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.DriverPickerSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.DriverPickerSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/drivers/{id}": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateDriverRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateDriverRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.UpdateDriverRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/drivers": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.CreateDriverCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.CreateDriverCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.Drivers.CreateDriverCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/drivers/{id}/verification/verify": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/drivers/{id}/verification/reject": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.DriverReasonRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.DriverReasonRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.DriverReasonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/drivers/{id}/blacklist": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.DriverReasonRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.DriverReasonRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.API.Controllers.DriverReasonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/extended-coverages/search": {
+      "post": {
+        "tags": [
+          "ExtendedCoverages"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoverageSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoverageSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoverageSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/extended-coverages/picker": {
+      "post": {
+        "tags": [
+          "ExtendedCoverages"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoveragePickerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoveragePickerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoveragePickerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/extended-coverages/{id}": {
+      "get": {
+        "tags": [
+          "ExtendedCoverages"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "ExtendedCoverages"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.UpdateExtendedCoverageRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.UpdateExtendedCoverageRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.ExtendedCoverages.Dtos.UpdateExtendedCoverageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/extended-coverages/sync": {
+      "post": {
+        "tags": [
+          "ExtendedCoverages"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/insurance-companies/search": {
       "post": {
         "tags": [
@@ -1361,17 +3063,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             }
           }
@@ -1397,17 +3099,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             }
           }
@@ -1444,17 +3146,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             }
           }
@@ -1506,17 +3208,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             }
           }
@@ -1542,17 +3244,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             }
           }
@@ -1589,17 +3291,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             }
           }
@@ -1651,17 +3353,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemLookupContextRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.SystemLookupContextRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemLookupContextRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.SystemLookupContextRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemLookupContextRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.SystemLookupContextRequest"
               }
             }
           }
@@ -1687,17 +3389,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             }
           }
@@ -1723,17 +3425,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             }
           }
@@ -1770,17 +3472,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             }
           }
@@ -1799,6 +3501,294 @@
       "delete": {
         "tags": [
           "PlateTypes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/rent-policies/search": {
+      "post": {
+        "tags": [
+          "RentPolicies"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.RentPolicySearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.RentPolicySearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.RentPolicySearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/rent-policies/picker": {
+      "post": {
+        "tags": [
+          "RentPolicies"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.RentPolicyPickerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.RentPolicyPickerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.RentPolicyPickerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/rent-policies/{id}": {
+      "get": {
+        "tags": [
+          "RentPolicies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "RentPolicies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.UpdateRentPolicyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.UpdateRentPolicyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.UpdateRentPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "RentPolicies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/rent-policies": {
+      "post": {
+        "tags": [
+          "RentPolicies"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.CreateRentPolicyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.CreateRentPolicyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.RentPolicies.Dtos.CreateRentPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/rent-policies/sync": {
+      "post": {
+        "tags": [
+          "RentPolicies"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/tajeer-api-logs/search": {
+      "post": {
+        "tags": [
+          "TajeerApiLogs"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.TajeerApiLogs.Dtos.TajeerApiLogSearchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.TajeerApiLogs.Dtos.TajeerApiLogSearchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.Application.TajeerApiLogs.Dtos.TajeerApiLogSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/tajeer-api-logs/{id}": {
+      "get": {
+        "tags": [
+          "TajeerApiLogs"
         ],
         "parameters": [
           {
@@ -1849,17 +3839,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.RoleSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.RoleSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.RoleSearchRequest"
               }
             }
           }
@@ -1922,17 +3912,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrUpdateRoleDto"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOrUpdateRoleDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrUpdateRoleDto"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOrUpdateRoleDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrUpdateRoleDto"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOrUpdateRoleDto"
               }
             }
           }
@@ -1984,17 +3974,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrUpdateRoleDto"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOrUpdateRoleDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrUpdateRoleDto"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOrUpdateRoleDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrUpdateRoleDto"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateOrUpdateRoleDto"
               }
             }
           }
@@ -2087,6 +4077,13 @@
         ],
         "parameters": [
           {
+            "name": "IsActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -2122,17 +4119,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateTenantUserRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateTenantUserRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.CreateTenantUserRequest"
               }
             }
           }
@@ -2195,17 +4192,120 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.UpdateTenantUserRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.UpdateTenantUserRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTenantUserRequest"
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.UpdateTenantUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/tenant/users/{userId}/activate": {
+      "post": {
+        "tags": [
+          "TenantUsers"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/tenant/users/{userId}/deactivate": {
+      "post": {
+        "tags": [
+          "TenantUsers"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/tenant/users/{userId}/reset-password": {
+      "post": {
+        "tags": [
+          "TenantUsers"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.ResetTenantUserPasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.ResetTenantUserPasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Maarkbh.MultiTenancy.Services.ResetTenantUserPasswordRequest"
               }
             }
           }
@@ -2231,17 +4331,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             }
           }
@@ -2267,17 +4367,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             }
           }
@@ -2314,17 +4414,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             }
           }
@@ -2376,17 +4476,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleLookupSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest"
               }
             }
           }
@@ -2412,17 +4512,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest"
               }
             }
           }
@@ -2459,17 +4559,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleLookupRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest"
               }
             }
           }
@@ -2521,17 +4621,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleModelSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleModelSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleModelSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleModelSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleModelSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.VehicleModelSearchRequest"
               }
             }
           }
@@ -2557,17 +4657,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleModelRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleModelRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleModelRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleModelRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVehicleModelRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleModelRequest"
               }
             }
           }
@@ -2604,17 +4704,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleModelRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleModelRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleModelRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleModelRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateVehicleModelRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleModelRequest"
               }
             }
           }
@@ -2666,17 +4766,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleSearchRequest"
               }
             }
           }
@@ -2756,17 +4856,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehiclePickerSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehiclePickerSearchRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehiclePickerSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehiclePickerSearchRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehiclePickerSearchRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehiclePickerSearchRequest"
               }
             }
           }
@@ -2792,17 +4892,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleRequest"
+                "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleRequest"
               }
             }
           }
@@ -2822,29 +4922,7 @@
   },
   "components": {
     "schemas": {
-      "BranchSearchRequest": {
-        "type": "object",
-        "properties": {
-          "search": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "ChangePasswordRequest": {
+      "Maarkbh.API.Controllers.AccountController.ChangePasswordRequest": {
         "type": "object",
         "properties": {
           "currentPassword": {
@@ -2858,46 +4936,27 @@
         },
         "additionalProperties": false
       },
-      "CleanlinessStatus": {
-        "enum": [
-          1,
-          2
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "ConditionGrade": {
-        "enum": [
-          1,
-          2,
-          3
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "CountrySearchRequest": {
+      "Maarkbh.API.Controllers.CustomerReasonRequest": {
         "type": "object",
         "properties": {
-          "search": {
+          "reason": {
             "type": "string",
             "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
           }
         },
         "additionalProperties": false
       },
-      "CreateBranchCommand": {
+      "Maarkbh.API.Controllers.DriverReasonRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.API.Controllers.UpdateBranchRequest": {
         "type": "object",
         "properties": {
           "nameAr": {
@@ -2918,32 +4977,16 @@
           "longitude": {
             "type": "number",
             "format": "double"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateCountryRequest": {
-        "type": "object",
-        "properties": {
-          "nameAr": {
-            "type": "string",
-            "nullable": true
           },
-          "nameEn": {
-            "type": "string",
-            "nullable": true
-          },
-          "sortOrder": {
+          "tajeerExternalId": {
             "type": "integer",
-            "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean"
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "CreateCustomerCommand": {
+      "Maarkbh.API.Controllers.UpdateCustomerRequest": {
         "type": "object",
         "properties": {
           "fullNameEn": {
@@ -2959,28 +5002,28 @@
             "nullable": true
           },
           "identityType": {
-            "$ref": "#/components/schemas/IdentityType"
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
           },
           "address": {
             "type": "string",
             "nullable": true
           },
           "national": {
-            "$ref": "#/components/schemas/NationalIdentityInfo"
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.NationalIdentityInfo"
           },
           "residence": {
-            "$ref": "#/components/schemas/ResidenceIdentityInfo"
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.ResidenceIdentityInfo"
           },
           "visitor": {
-            "$ref": "#/components/schemas/VisitorIdentityInfo"
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.VisitorIdentityInfo"
           },
           "gulf": {
-            "$ref": "#/components/schemas/GulfIdentityInfo"
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.GulfIdentityInfo"
           },
           "documents": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CustomerDocumentDto"
+              "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.CustomerDocumentDto"
             },
             "nullable": true
           },
@@ -2990,35 +5033,14 @@
         },
         "additionalProperties": false
       },
-      "CreateOrUpdateRoleDto": {
+      "Maarkbh.API.Controllers.UpdateDriverRequest": {
         "type": "object",
         "properties": {
-          "name": {
+          "fullNameEn": {
             "type": "string",
             "nullable": true
           },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateTenantUserRequest": {
-        "type": "object",
-        "properties": {
-          "userName": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
+          "fullNameAr": {
             "type": "string",
             "nullable": true
           },
@@ -3026,15 +5048,111 @@
             "type": "string",
             "nullable": true
           },
-          "password": {
+          "identityType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
+          },
+          "address": {
             "type": "string",
             "nullable": true
           },
-          "fullName": {
+          "customerId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "national": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.NationalIdentityInfo"
+          },
+          "residence": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.ResidenceIdentityInfo"
+          },
+          "visitor": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.VisitorIdentityInfo"
+          },
+          "gulf": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.GulfIdentityInfo"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.AdditionalServices.Dtos.AdditionalServicePickerRequest": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.AdditionalServices.Dtos.AdditionalServiceSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
             "type": "string",
             "nullable": true
           },
-          "roleName": {
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "billingUnit": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.AdditionalServices.AdditionalServiceBillingUnit"
+          },
+          "branchId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.AdditionalServices.Dtos.CreateAdditionalServiceRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "billingUnit": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.AdditionalServices.AdditionalServiceBillingUnit"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "descriptionAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "iconKey": {
             "type": "string",
             "nullable": true
           },
@@ -3049,7 +5167,314 @@
         },
         "additionalProperties": false
       },
-      "CreateVehicleLookupRequest": {
+      "Maarkbh.Application.AdditionalServices.Dtos.UpdateAdditionalServiceRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "billingUnit": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.AdditionalServices.AdditionalServiceBillingUnit"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "descriptionAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "iconKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Blacklist.Dtos.BlacklistCheckRequest": {
+        "type": "object",
+        "properties": {
+          "identityType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
+          },
+          "idNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Blacklist.Dtos.BlacklistSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Blacklist.ReportBlacklistCommand": {
+        "type": "object",
+        "properties": {
+          "identityType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
+          },
+          "idNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullNameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullNameEn": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Branches.CreateBranchCommand": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "tajeerExternalId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Branches.Dtos.BranchSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicyPickerRequest": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicySearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicyTierInput": {
+        "type": "object",
+        "properties": {
+          "hoursBeforeStart": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refundPercent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.CancellationPolicies.Dtos.CreateCancellationPolicyRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "descriptionAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicyTierInput"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.CancellationPolicies.Dtos.UpdateCancellationPolicyRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "descriptionAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.CancellationPolicies.Dtos.CancellationPolicyTierInput"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Common.LookupSection": {
+        "enum": [
+          "VehicleMakes",
+          "VehicleModels",
+          "PlateTypes",
+          "InsuranceCompanies",
+          "InsuranceTypes",
+          "VehicleFeatureTypes",
+          "VehicleEnums",
+          "Countries",
+          "Branches",
+          "PersonEnums",
+          "AdditionalServiceEnums",
+          "RentPolicyEnums",
+          "ContractEnums"
+        ],
+        "type": "string"
+      },
+      "Maarkbh.Application.Common.SystemLookupContextRequest": {
+        "type": "object",
+        "properties": {
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.Common.LookupSection"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleLookupRequest": {
         "type": "object",
         "properties": {
           "nameAr": {
@@ -3070,7 +5495,7 @@
         },
         "additionalProperties": false
       },
-      "CreateVehicleModelRequest": {
+      "Maarkbh.Application.Common.VehicleCatalogs.CreateVehicleModelRequest": {
         "type": "object",
         "properties": {
           "makeId": {
@@ -3095,11 +5520,682 @@
         },
         "additionalProperties": false
       },
-      "CustomerDocumentDto": {
+      "Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleLookupRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Common.VehicleCatalogs.UpdateVehicleModelRequest": {
+        "type": "object",
+        "properties": {
+          "makeId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Common.VehicleCatalogs.VehicleLookupSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Common.VehicleCatalogs.VehicleModelSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.CancelContractRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.ContractActivitySearchRequest": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Contracts.ContractActivityAction"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.ContractAdditionalServiceInput": {
+        "type": "object",
+        "properties": {
+          "additionalServiceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.ContractSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Contracts.ContractStatus"
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Domain.Contracts.ContractStatus"
+            },
+            "nullable": true
+          },
+          "branchId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "vehicleId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.ContractStatusCountsRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "vehicleId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.CreateContractRequest": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "vehicleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workingBranchId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "receiveBranchId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "returnBranchId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contractType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Contracts.ContractType"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rentPolicyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cancellationPolicyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "allowedKmPerDay": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "allowedKmPerHour": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "unlimitedKm": {
+            "type": "boolean"
+          },
+          "allowedLateHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rentDayCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "rentHourCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "extraKmCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "fullFuelCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "driverFarePerDay": {
+            "type": "number",
+            "format": "double"
+          },
+          "driverFarePerHour": {
+            "type": "number",
+            "format": "double"
+          },
+          "vehicleTransferCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "extraDriverCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "discountPercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "paymentMethodCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Contracts.ContractPaymentType"
+          },
+          "otherPaymentMethodCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "internationalAuthorizationCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "extendedCoverageId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "depositAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "odometerReading": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fuelLevel": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.FuelLevel"
+          },
+          "enduranceAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorizedDriverId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "extraDriverId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "additionalServices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractAdditionalServiceInput"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.ExtendContractRequest": {
+        "type": "object",
+        "properties": {
+          "newEndAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Contracts.Dtos.UpdateContractRequest": {
+        "type": "object",
+        "properties": {
+          "workingBranchId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "receiveBranchId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "returnBranchId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contractType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Contracts.ContractType"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rentPolicyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cancellationPolicyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "allowedKmPerDay": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "allowedKmPerHour": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "unlimitedKm": {
+            "type": "boolean"
+          },
+          "allowedLateHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rentDayCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "rentHourCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "extraKmCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "fullFuelCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "driverFarePerDay": {
+            "type": "number",
+            "format": "double"
+          },
+          "driverFarePerHour": {
+            "type": "number",
+            "format": "double"
+          },
+          "vehicleTransferCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "extraDriverCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "discountPercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "paymentMethodCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Contracts.ContractPaymentType"
+          },
+          "otherPaymentMethodCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "internationalAuthorizationCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "extendedCoverageId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "depositAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "odometerReading": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fuelLevel": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.FuelLevel"
+          },
+          "enduranceAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorizedDriverId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "extraDriverId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "additionalServices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.Contracts.Dtos.ContractAdditionalServiceInput"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Countries.Dtos.CountrySearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Countries.Dtos.CreateCountryRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Countries.Dtos.UpdateCountryRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.CustomerWarehouse.Dtos.WarehouseInquiryRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Customers.CreateCustomerCommand": {
+        "type": "object",
+        "properties": {
+          "fullNameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullNameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "identityType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "national": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.NationalIdentityInfo"
+          },
+          "residence": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.ResidenceIdentityInfo"
+          },
+          "visitor": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.VisitorIdentityInfo"
+          },
+          "gulf": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.GulfIdentityInfo"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.Customers.Dtos.CustomerDocumentDto"
+            },
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Customers.Dtos.CustomerDocumentDto": {
         "type": "object",
         "properties": {
           "documentType": {
-            "$ref": "#/components/schemas/CustomerDocumentType"
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.CustomerDocumentType"
           },
           "fileId": {
             "type": "integer",
@@ -3112,27 +6208,7 @@
         },
         "additionalProperties": false
       },
-      "CustomerDocumentType": {
-        "enum": [
-          1,
-          2,
-          3,
-          4
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "CustomerReasonRequest": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CustomerSearchRequest": {
+      "Maarkbh.Application.Customers.Dtos.CustomerSearchRequest": {
         "type": "object",
         "properties": {
           "search": {
@@ -3140,10 +6216,10 @@
             "nullable": true
           },
           "identityType": {
-            "$ref": "#/components/schemas/IdentityType"
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
           },
           "verificationStatus": {
-            "$ref": "#/components/schemas/VerificationStatus"
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.VerificationStatus"
           },
           "isBlacklisted": {
             "type": "boolean",
@@ -3164,18 +6240,7 @@
         },
         "additionalProperties": false
       },
-      "FuelLevel": {
-        "enum": [
-          0,
-          1,
-          2,
-          3,
-          4
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "GulfIdentityInfo": {
+      "Maarkbh.Application.Customers.Dtos.GulfIdentityInfo": {
         "type": "object",
         "properties": {
           "email": {
@@ -3217,17 +6282,579 @@
         },
         "additionalProperties": false
       },
-      "IdentityType": {
-        "enum": [
-          1,
-          2,
-          3,
-          4
-        ],
-        "type": "integer",
-        "format": "int32"
+      "Maarkbh.Application.Customers.Dtos.NationalIdentityInfo": {
+        "type": "object",
+        "properties": {
+          "beneficiaryIdNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "hijriBirthDate": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "isHijriBirthDate": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
-      "InsurancePricingRequest": {
+      "Maarkbh.Application.Customers.Dtos.ResidenceIdentityInfo": {
+        "type": "object",
+        "properties": {
+          "beneficiaryIdNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "hijriBirthDate": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "isHijriBirthDate": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Customers.Dtos.VisitorIdentityInfo": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "borderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "passportNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseExpiryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "licenseIssuePlace": {
+            "type": "string",
+            "nullable": true
+          },
+          "countryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "identityCopyNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "identityExpiryDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Drivers.CreateDriverCommand": {
+        "type": "object",
+        "properties": {
+          "fullNameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullNameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "identityType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "national": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.NationalIdentityInfo"
+          },
+          "residence": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.ResidenceIdentityInfo"
+          },
+          "visitor": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.VisitorIdentityInfo"
+          },
+          "gulf": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Drivers.Dtos.GulfIdentityInfo"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Drivers.Dtos.DriverPickerSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "identityType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Drivers.Dtos.DriverSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "identityType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.IdentityType"
+          },
+          "verificationStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Customers.VerificationStatus"
+          },
+          "isBlacklisted": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Drivers.Dtos.GulfIdentityInfo": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "beneficiaryIdNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseExpiryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "licenseIssuePlace": {
+            "type": "string",
+            "nullable": true
+          },
+          "countryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "identityCopyNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "identityExpiryDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Drivers.Dtos.NationalIdentityInfo": {
+        "type": "object",
+        "properties": {
+          "beneficiaryIdNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "hijriBirthDate": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "isHijriBirthDate": {
+            "type": "boolean"
+          },
+          "licenseNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseExpiryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "licenseIssuePlace": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Drivers.Dtos.ResidenceIdentityInfo": {
+        "type": "object",
+        "properties": {
+          "beneficiaryIdNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "hijriBirthDate": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "isHijriBirthDate": {
+            "type": "boolean"
+          },
+          "licenseNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseExpiryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "licenseIssuePlace": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Drivers.Dtos.VisitorIdentityInfo": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "borderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "passportNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseExpiryDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "licenseIssuePlace": {
+            "type": "string",
+            "nullable": true
+          },
+          "countryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "identityCopyNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "identityExpiryDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoveragePickerRequest": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.ExtendedCoverages.Dtos.ExtendedCoverageSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.ExtendedCoverages.Dtos.UpdateExtendedCoverageRequest": {
+        "type": "object",
+        "properties": {
+          "cost": {
+            "type": "number",
+            "format": "double"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.RentPolicies.Dtos.CreateRentPolicyRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "extensionPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.ContractExtensionPolicy"
+          },
+          "earlyReturnPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.EarlyReturnPolicy"
+          },
+          "accidentReportPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.AccidentReportPolicy"
+          },
+          "fuelReturnPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.FuelReturnPolicy"
+          },
+          "breakdownReportPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.BreakdownReportPolicy"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "descriptionAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionEn": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.RentPolicies.Dtos.RentPolicyPickerRequest": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.RentPolicies.Dtos.RentPolicySearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "source": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.RentPolicySource"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.RentPolicies.Dtos.UpdateRentPolicyRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "extensionPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.ContractExtensionPolicy"
+          },
+          "earlyReturnPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.EarlyReturnPolicy"
+          },
+          "accidentReportPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.AccidentReportPolicy"
+          },
+          "fuelReturnPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.FuelReturnPolicy"
+          },
+          "breakdownReportPolicy": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.RentPolicies.BreakdownReportPolicy"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "descriptionAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionEn": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.TajeerApiLogs.Dtos.TajeerApiLogSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "operation": {
+            "type": "string",
+            "nullable": true
+          },
+          "contractId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "isSuccess": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "fromUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "toUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Vehicles.Dtos.InsurancePricingRequest": {
         "type": "object",
         "properties": {
           "branchId": {
@@ -3281,48 +6908,7 @@
         },
         "additionalProperties": false
       },
-      "LookupSection": {
-        "enum": [
-          "VehicleMakes",
-          "VehicleModels",
-          "PlateTypes",
-          "InsuranceCompanies",
-          "InsuranceTypes",
-          "VehicleFeatureTypes",
-          "VehicleEnums",
-          "Countries",
-          "Branches"
-        ],
-        "type": "string"
-      },
-      "NationalIdentityInfo": {
-        "type": "object",
-        "properties": {
-          "beneficiaryIdNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "birthDate": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "hijriBirthDate": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "isHijriBirthDate": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "PlateDocsRequest": {
+      "Maarkbh.Application.Vehicles.Dtos.PlateDocsRequest": {
         "type": "object",
         "properties": {
           "plateTypeId": {
@@ -3383,7 +6969,457 @@
         },
         "additionalProperties": false
       },
-      "PresenceStatus": {
+      "Maarkbh.Application.Vehicles.Dtos.TajeerStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleFleetStatus"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isListingActive": {
+            "type": "boolean"
+          },
+          "odometerReading": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fuelLevel": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.FuelLevel"
+          },
+          "enduranceAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "oilType": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastOilChangeDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "oilChangeDistance": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "airConditionGrade": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.ConditionGrade"
+          },
+          "radioStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.ConditionGrade"
+          },
+          "screenStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.ConditionGrade"
+          },
+          "odometerStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.WorkingStatus"
+          },
+          "seatCleanliness": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.CleanlinessStatus"
+          },
+          "keyStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.WorkingStatus"
+          },
+          "tireCondition": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.TireCondition"
+          },
+          "spareTireStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.TireCondition"
+          },
+          "fireExtinguisherStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.PresenceStatus"
+          },
+          "firstAidKitStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.PresenceStatus"
+          },
+          "safetyTriangleStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.PresenceStatus"
+          },
+          "tireToolsStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.PresenceStatus"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Vehicles.Dtos.VehicleDamagePointDto": {
+        "type": "object",
+        "properties": {
+          "damageType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleDamageType"
+          },
+          "positionX": {
+            "type": "number",
+            "format": "double"
+          },
+          "positionY": {
+            "type": "number",
+            "format": "double"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Vehicles.Dtos.VehicleImageDto": {
+        "type": "object",
+        "properties": {
+          "slotCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Vehicles.Dtos.VehicleInfoRequest": {
+        "type": "object",
+        "properties": {
+          "makeId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "modelId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "vin": {
+            "type": "string",
+            "nullable": true
+          },
+          "engineNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "bodyType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleBodyType"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleCategory"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cylinders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fuelType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleFuelType"
+          },
+          "transmissionType": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleTransmissionType"
+          },
+          "payloadKg": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Vehicles.Dtos.VehiclePickerSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleFleetStatus"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleCategory"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Vehicles.Dtos.VehicleRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "plate": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.PlateDocsRequest"
+          },
+          "info": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleInfoRequest"
+          },
+          "insurancePricing": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.InsurancePricingRequest"
+          },
+          "tajeerStatus": {
+            "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.TajeerStatusRequest"
+          },
+          "featureTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleImageDto"
+            },
+            "nullable": true
+          },
+          "damagePoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maarkbh.Application.Vehicles.Dtos.VehicleDamagePointDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Application.Vehicles.Dtos.VehicleSearchRequest": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "makeId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "modelId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/Maarkbh.Domain.Vehicles.VehicleFleetStatus"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.Domain.AdditionalServices.AdditionalServiceBillingUnit": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Contracts.ContractActivityAction": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Contracts.ContractPaymentType": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Contracts.ContractStatus": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Contracts.ContractType": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Customers.CustomerDocumentType": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Customers.IdentityType": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Customers.VerificationStatus": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.RentPolicies.AccidentReportPolicy": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.RentPolicies.BreakdownReportPolicy": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.RentPolicies.ContractExtensionPolicy": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.RentPolicies.EarlyReturnPolicy": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.RentPolicies.FuelReturnPolicy": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.RentPolicies.RentPolicySource": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.CleanlinessStatus": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.ConditionGrade": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.FuelLevel": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.PresenceStatus": {
         "enum": [
           0,
           1
@@ -3391,34 +7427,202 @@
         "type": "integer",
         "format": "int32"
       },
-      "ResidenceIdentityInfo": {
+      "Maarkbh.Domain.Vehicles.TireCondition": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.VehicleBodyType": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.VehicleCategory": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.VehicleDamageType": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.VehicleFleetStatus": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.VehicleFuelType": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.VehicleTransmissionType": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.Domain.Vehicles.WorkingStatus": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "Maarkbh.MultiTenancy.Services.CreateOfficeRequest": {
         "type": "object",
         "properties": {
-          "beneficiaryIdNumber": {
+          "name": {
             "type": "string",
             "nullable": true
           },
-          "birthDate": {
+          "subdomain": {
             "type": "string",
-            "format": "date",
             "nullable": true
           },
-          "hijriBirthDate": {
-            "type": "integer",
-            "format": "int32",
+          "commercialRegistrationNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "mobile": {
+            "type": "string",
             "nullable": true
           },
           "email": {
             "type": "string",
             "nullable": true
           },
-          "isHijriBirthDate": {
-            "type": "boolean"
+          "adminFullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "adminUserName": {
+            "type": "string",
+            "nullable": true
+          },
+          "adminPassword": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "RoleSearchRequest": {
+      "Maarkbh.MultiTenancy.Services.CreateOrUpdateRoleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.MultiTenancy.Services.CreateTenantUserRequest": {
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "roleName": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.MultiTenancy.Services.ResetTenantUserPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Maarkbh.MultiTenancy.Services.RoleSearchRequest": {
         "type": "object",
         "properties": {
           "search": {
@@ -3436,196 +7640,7 @@
         },
         "additionalProperties": false
       },
-      "SystemLookupContextRequest": {
-        "type": "object",
-        "properties": {
-          "sections": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LookupSection"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TajeerStatusRequest": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/VehicleFleetStatus"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "isListingActive": {
-            "type": "boolean"
-          },
-          "odometerReading": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "fuelLevel": {
-            "$ref": "#/components/schemas/FuelLevel"
-          },
-          "enduranceAmount": {
-            "type": "number",
-            "format": "double"
-          },
-          "oilType": {
-            "$ref": "#/components/schemas/VehicleOilType"
-          },
-          "lastOilChangeDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "oilChangeDistance": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "airConditionGrade": {
-            "$ref": "#/components/schemas/ConditionGrade"
-          },
-          "radioStatus": {
-            "$ref": "#/components/schemas/WorkingStatus"
-          },
-          "screenStatus": {
-            "$ref": "#/components/schemas/WorkingStatus"
-          },
-          "odometerStatus": {
-            "$ref": "#/components/schemas/WorkingStatus"
-          },
-          "seatCleanliness": {
-            "$ref": "#/components/schemas/CleanlinessStatus"
-          },
-          "keyStatus": {
-            "$ref": "#/components/schemas/WorkingStatus"
-          },
-          "tireCondition": {
-            "$ref": "#/components/schemas/TireCondition"
-          },
-          "spareTireStatus": {
-            "$ref": "#/components/schemas/PresenceStatus"
-          },
-          "fireExtinguisherStatus": {
-            "$ref": "#/components/schemas/PresenceStatus"
-          },
-          "firstAidKitStatus": {
-            "$ref": "#/components/schemas/PresenceStatus"
-          },
-          "safetyTriangleStatus": {
-            "$ref": "#/components/schemas/PresenceStatus"
-          },
-          "tireToolsStatus": {
-            "$ref": "#/components/schemas/PresenceStatus"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TireCondition": {
-        "enum": [
-          1,
-          2,
-          3
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "UpdateBranchRequest": {
-        "type": "object",
-        "properties": {
-          "nameAr": {
-            "type": "string",
-            "nullable": true
-          },
-          "nameEn": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double"
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateCountryRequest": {
-        "type": "object",
-        "properties": {
-          "nameAr": {
-            "type": "string",
-            "nullable": true
-          },
-          "nameEn": {
-            "type": "string",
-            "nullable": true
-          },
-          "sortOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateCustomerRequest": {
-        "type": "object",
-        "properties": {
-          "fullNameEn": {
-            "type": "string",
-            "nullable": true
-          },
-          "fullNameAr": {
-            "type": "string",
-            "nullable": true
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "identityType": {
-            "$ref": "#/components/schemas/IdentityType"
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "national": {
-            "$ref": "#/components/schemas/NationalIdentityInfo"
-          },
-          "residence": {
-            "$ref": "#/components/schemas/ResidenceIdentityInfo"
-          },
-          "visitor": {
-            "$ref": "#/components/schemas/VisitorIdentityInfo"
-          },
-          "gulf": {
-            "$ref": "#/components/schemas/GulfIdentityInfo"
-          },
-          "documents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CustomerDocumentDto"
-            },
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateTenantUserRequest": {
+      "Maarkbh.MultiTenancy.Services.UpdateTenantUserRequest": {
         "type": "object",
         "properties": {
           "userName": {
@@ -3662,471 +7677,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "UpdateVehicleLookupRequest": {
-        "type": "object",
-        "properties": {
-          "nameAr": {
-            "type": "string",
-            "nullable": true
-          },
-          "nameEn": {
-            "type": "string",
-            "nullable": true
-          },
-          "sortOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateVehicleModelRequest": {
-        "type": "object",
-        "properties": {
-          "makeId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "nameAr": {
-            "type": "string",
-            "nullable": true
-          },
-          "nameEn": {
-            "type": "string",
-            "nullable": true
-          },
-          "sortOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleBodyType": {
-        "enum": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VehicleCategory": {
-        "enum": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VehicleDamagePointDto": {
-        "type": "object",
-        "properties": {
-          "damageType": {
-            "$ref": "#/components/schemas/VehicleDamageType"
-          },
-          "positionX": {
-            "type": "number",
-            "format": "double"
-          },
-          "positionY": {
-            "type": "number",
-            "format": "double"
-          },
-          "note": {
-            "type": "string",
-            "nullable": true
-          },
-          "fileId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleDamageType": {
-        "enum": [
-          1,
-          2,
-          3,
-          4
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VehicleFleetStatus": {
-        "enum": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VehicleFuelType": {
-        "enum": [
-          1,
-          2,
-          3,
-          4
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VehicleImageDto": {
-        "type": "object",
-        "properties": {
-          "slotCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "fileId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "isPrimary": {
-            "type": "boolean"
-          },
-          "sortOrder": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleInfoRequest": {
-        "type": "object",
-        "properties": {
-          "makeId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "modelId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "year": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "color": {
-            "type": "string",
-            "nullable": true
-          },
-          "vin": {
-            "type": "string",
-            "nullable": true
-          },
-          "engineNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "bodyType": {
-            "$ref": "#/components/schemas/VehicleBodyType"
-          },
-          "category": {
-            "$ref": "#/components/schemas/VehicleCategory"
-          },
-          "seats": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "cylinders": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "fuelType": {
-            "$ref": "#/components/schemas/VehicleFuelType"
-          },
-          "transmissionType": {
-            "$ref": "#/components/schemas/VehicleTransmissionType"
-          },
-          "payloadKg": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleLookupSearchRequest": {
-        "type": "object",
-        "properties": {
-          "search": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleModelSearchRequest": {
-        "type": "object",
-        "properties": {
-          "search": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parentId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleOilType": {
-        "enum": [
-          1,
-          2,
-          3,
-          4
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VehiclePickerSearchRequest": {
-        "type": "object",
-        "properties": {
-          "search": {
-            "type": "string",
-            "nullable": true
-          },
-          "branchId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/VehicleFleetStatus"
-          },
-          "category": {
-            "$ref": "#/components/schemas/VehicleCategory"
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleRequest": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "plate": {
-            "$ref": "#/components/schemas/PlateDocsRequest"
-          },
-          "info": {
-            "$ref": "#/components/schemas/VehicleInfoRequest"
-          },
-          "insurancePricing": {
-            "$ref": "#/components/schemas/InsurancePricingRequest"
-          },
-          "tajeerStatus": {
-            "$ref": "#/components/schemas/TajeerStatusRequest"
-          },
-          "featureTypeIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int64"
-            },
-            "nullable": true
-          },
-          "images": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VehicleImageDto"
-            },
-            "nullable": true
-          },
-          "damagePoints": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VehicleDamagePointDto"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleSearchRequest": {
-        "type": "object",
-        "properties": {
-          "search": {
-            "type": "string",
-            "nullable": true
-          },
-          "branchId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "makeId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "modelId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/VehicleFleetStatus"
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "VehicleTransmissionType": {
-        "enum": [
-          1,
-          2
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VerificationStatus": {
-        "enum": [
-          1,
-          2,
-          3
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
-      "VisitorIdentityInfo": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "borderNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "passportNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "licenseNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "licenseExpiryDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "licenseIssuePlace": {
-            "type": "string",
-            "nullable": true
-          },
-          "countryId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "identityCopyNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "identityExpiryDate": {
-            "type": "string",
-            "format": "date"
-          }
-        },
-        "additionalProperties": false
-      },
-      "WarehouseInquiryRequest": {
-        "type": "object",
-        "properties": {
-          "search": {
-            "type": "string",
-            "nullable": true
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "WorkingStatus": {
-        "enum": [
-          0,
-          1
-        ],
-        "type": "integer",
-        "format": "int32"
       }
     },
     "securitySchemes": {

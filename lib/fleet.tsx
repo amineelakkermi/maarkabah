@@ -510,13 +510,13 @@ export const validateStep = (
 
 export const mapStatusFromBackend = (status: number): CarStatus => {
   const statusMap: Record<number, CarStatus> = {
-    1: "available",
-    2: "rented",
-    3: "overdue",
-    4: "maintenance",
-    5: "reserved",
-    6: "inactive",
-    7: "draft",
+    1: "draft",
+    2: "available",
+    3: "rented",
+    4: "overdue",
+    5: "maintenance",
+    6: "reserved",
+    7: "inactive",
   };
   return statusMap[status] || "available";
 };

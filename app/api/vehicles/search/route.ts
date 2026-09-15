@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessTokenFromRequest } from '@/lib/auth-cookies';
+import { backendFetch, isBackendUnavailable } from '@/lib/backend-fetch';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/vehicles/search`, {
+    const response = await backendFetch('/api/vehicles/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
 'Authorization': `Bearer ${getAccessTokenFromRequest(request) || ''}`
       },
       body: JSON.stringify(body),
-    });
+    }, { retry: true });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
@@ -27,8 +28,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error searching vehicles:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { error: isBackendUnavailable(error) ? 'Backend service unavailable' : 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: isBackendUnavailable(error) ? 503 : 500 }
     );
   }
 }

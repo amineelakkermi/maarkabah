@@ -1,0 +1,8 @@
+Ordre d’implémentation sûr
+Vérifier précisément les schémas Swagger de POST /api/contracts et submit-tajeer.
+Écrire un mapper pur buildCreateContractRequest().
+Vérifier le payload avec les données du formulaire.
+Brancher contractService.create().
+Brancher submitToTajeer().
+Adapter le step final et les erreurs.
+Tester avec un seul contrat réel.

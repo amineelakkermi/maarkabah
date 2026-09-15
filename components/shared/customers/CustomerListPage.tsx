@@ -12,6 +12,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { customerService, attachmentService, countryService, customerEvents } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
 import { hijriToGregorianStr, gregorianToHijriStr } from "@/lib/hijri-utils";
+import { ApiError } from "@/lib/api-client";
 import { CLIENTS } from "@/lib/data";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -179,6 +180,9 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
   const [customerToDelete, setCustomerToDelete] = useState<ClientProfile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Duplicate customer state
+  const [duplicateCustomer, setDuplicateCustomer] = useState<ClientProfile | null>(null);
+
   // Blacklist customer state
   const [customerToToggleBlacklist, setCustomerToToggleBlacklist] = useState<ClientProfile | null>(null);
   const [blacklistAction, setBlacklistAction] = useState<"add" | "remove" | null>(null);
@@ -296,6 +300,71 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
 
  
 
+  function getFormIdentityKey(): { identityType: number; idNumber: string } | null {
+    const identityTypeMap: Record<string, number> = {
+      "Saudi ID": 1,
+      "Iqama": 2,
+      "Passport": 3,
+      "GCC ID": 4,
+    };
+    const identityType = identityTypeMap[newIdType];
+    if (!identityType) return null;
+
+    const idNumber = newId;
+    if (!idNumber?.trim()) return null;
+
+    return { identityType, idNumber: idNumber.trim() };
+  }
+
+  function findDuplicateInLoadedList(): ClientProfile | null {
+    const key = getFormIdentityKey();
+    if (!key) return null;
+
+    return (
+      clients.find((c) => {
+        const idTypeCode =
+          c.idType === "Saudi ID" ? 1 :
+          c.idType === "Iqama" ? 2 :
+          c.idType === "Passport" ? 3 :
+          c.idType === "GCC ID" ? 4 : undefined;
+        if (idTypeCode !== key.identityType) return false;
+        return c.idNumber?.trim() === key.idNumber;
+      }) ?? null
+    );
+  }
+
+  function mapApiItemToClientProfile(item: any) {
+    const idTypeCode = item.identityType ?? item.idType;
+    const idType = idTypeCode === 1 ? "Saudi ID" : idTypeCode === 2 ? "Iqama" : idTypeCode === 3 ? "Passport" : idTypeCode === 4 ? "GCC ID" : "Unknown";
+    return {
+      id: String(item.id),
+      name: item.fullNameEn || item.name || "",
+      nameAr: item.fullNameAr || item.nameAr || "",
+      phone: item.phoneNumber || "",
+      email: item.email,
+      idType,
+      idNumber: item.beneficiaryIdNumber || item.passportNumber || item.visitor?.passportNumber || item.visitor?.idNumber || item.borderNumber || item.visitor?.borderNumber || item.identityCopyNumber || item.visitor?.identityCopyNumber || item.idCopyNumber || "",
+      idExpiryDate: item.idExpiryDate || item.identityExpiryDate || item.national?.identityExpiryDate || item.residence?.identityExpiryDate || item.visitor?.identityExpiryDate || item.gulf?.identityExpiryDate,
+      birthDate: item.birthDate || item.national?.birthDate || item.residence?.birthDate || item.visitor?.birthDate || item.gulf?.birthDate,
+      hijriBirthDate: item.national?.hijriBirthDate ?? item.residence?.hijriBirthDate,
+      nationality: item.nationality || item.national?.nationality || item.residence?.nationality || item.visitor?.nationality || item.gulf?.nationality,
+      personAddress: item.address,
+      idCopyNumber: item.idCopyNumber || item.identityCopyNumber || item.national?.idCopyNumber || item.residence?.idCopyNumber || item.visitor?.identityCopyNumber || item.gulf?.identityCopyNumber,
+      licenseIssuePlace: item.licenseIssuePlace || item.national?.licenseIssuePlace || item.residence?.licenseIssuePlace || item.visitor?.licenseIssuePlace || item.gulf?.licenseIssuePlace,
+      borderNumber: item.borderNumber || item.visitor?.borderNumber,
+      licenseNumber: item.licenseNumber || item.national?.licenseNumber || item.residence?.licenseNumber || item.visitor?.licenseNumber || item.gulf?.licenseNumber || "",
+      licenseExpiryDate: item.licenseExpiryDate || item.national?.licenseExpiryDate || item.residence?.licenseExpiryDate || item.visitor?.licenseExpiryDate || item.gulf?.licenseExpiryDate,
+      contracts: item.contracts || 0,
+      rating: item.rating || 0,
+      kycStatus: normalizeKycStatus(item.verificationStatus),
+      yakeenStatus: (item.yakeenStatus === 1 ? "verified" : item.yakeenStatus === 2 ? "pending" : "not_verified") as ClientProfile["yakeenStatus"],
+      blacklisted: item.isBlacklisted || false,
+      joinDate: (item.joinedAt || item.creationTime) ? new Date(item.joinedAt || item.creationTime).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      history: [],
+      debts: [],
+    };
+  }
+
   function customerFormErrors() {
     const errors: string[] = [];
     const email = newEmail.trim();
@@ -327,6 +396,13 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
     const validationErrors = customerFormErrors();
     if (validationErrors.length > 0) {
       showToast(validationErrors[0]);
+      return;
+    }
+
+    // Check for duplicates in the already-loaded customer list before submitting.
+    const localDuplicate = findDuplicateInLoadedList();
+    if (localDuplicate) {
+      setDuplicateCustomer(localDuplicate);
       return;
     }
 
@@ -420,6 +496,17 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
       console.error("Error creating customer:", err);
       setAdded(false);
       setUploadingDocuments(false);
+
+      if (err instanceof ApiError && err.status === 409) {
+        const existing = err.response?.existingCustomer;
+        if (existing) {
+          setDuplicateCustomer(mapApiItemToClientProfile(existing));
+        } else {
+          showToast(T("A customer with this identity already exists.", "يوجد عميل بنفس الهوية مسبقًا.", ar));
+        }
+        return;
+      }
+
       showToast(T("Failed to add customer", "فشل في إضافة العميل", ar));
     }
   }
@@ -921,6 +1008,55 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
           </div>
         </Modal>
       )}
+
+      {/* Duplicate customer found */}
+      <Modal
+        open={!!duplicateCustomer}
+        onClose={() => setDuplicateCustomer(null)}
+        variant="centered"
+        size="sm"
+        title={T("Customer already exists", "العميل موجود مسبقًا", ar)}
+      >
+        <div className="flex flex-col gap-5 p-2">
+          <p className="mk-body text-mk-ink-700">
+            {T(
+              "A customer with the same identity type and number already exists. You can view the existing customer instead of creating a duplicate.",
+              "يوجد عميل بنفس نوع الهوية ورقمها. يمكنك عرض العميل الموجود بدلاً من إنشاء نسخة مكررة.",
+              ar
+            )}
+          </p>
+          {duplicateCustomer && (
+            <div className="rounded-lg border border-mk-border bg-mk-ink-50 p-4 flex flex-col gap-1">
+              <div className="mk-body font-medium text-mk-ink-900">{ar ? duplicateCustomer.nameAr : duplicateCustomer.name}</div>
+              <div className="mk-caption text-mk-ink-600 flex items-center gap-2">
+                <Phone size={12} />
+                <span dir="ltr">{formatPhone(duplicateCustomer.phone)}</span>
+              </div>
+              <div className="mk-caption text-mk-ink-600 flex items-center gap-2">
+                <CreditCard size={12} />
+                {duplicateCustomer.idType} · {duplicateCustomer.idNumber}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDuplicateCustomer(null)}>
+              {T("Cancel", "إلغاء", ar)}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (duplicateCustomer) {
+                  router.push(customerDetailPath(duplicateCustomer.id));
+                }
+                setDuplicateCustomer(null);
+              }}
+            >
+              {T("View customer", "عرض العميل", ar)}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

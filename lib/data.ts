@@ -62,6 +62,14 @@ export interface Car {
 
   // Real attachment image URLs from the backend (optional, overrides mock CAR_IMAGES)
   imageUrls?: string[];
+
+  // Backend-specific fields used by the contract flow
+  fuelLevel?: number;
+  odometerReading?: number;
+  dailyKilometerLimit?: number;
+  isKilometerLimitEnabled?: boolean;
+  isListingActive?: boolean;
+  branchId?: number;
 }
 
 // ── Booking ─────────────────────────────────────────────────

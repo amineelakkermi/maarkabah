@@ -15,6 +15,7 @@ import {
   extractVehicleValidationErrors,
   mapStatusFromBackend,
 } from "@/lib/fleet";
+import { formatPlate } from "@/lib/formatting";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
 import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
 import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
@@ -234,7 +235,7 @@ export default function EmployeeCarsPage() {
       const transformedVehicles = detailedVehicles.map((item: any) => ({
         id: item.id,
         name: `${item.makeName || ""} ${item.modelName || ""} ${item.year || ""}`.trim(),
-        plate: item.plateNumber || "",
+        plate: formatPlate(item),
         make: item.makeName || "",
         model: item.modelName || "",
         type: item.bodyType || "",
@@ -251,9 +252,9 @@ export default function EmployeeCarsPage() {
         kmCap: item.kmCap,
         utilization: item.utilization || 0,
         plateNumber: item.plateNumber,
-        plateChar1: item.plateChar1,
-        plateChar2: item.plateChar2,
-        plateChar3: item.plateChar3,
+        plateChar1: item.plateFirstLetter ?? item.plateChar1,
+        plateChar2: item.plateSecondLetter ?? item.plateChar2,
+        plateChar3: item.plateThirdLetter ?? item.plateChar3,
         chassisNumber: item.chassisNumber,
         fuelTypeCode: item.fuelTypeCode,
         extraKmCost: item.extraKmCost,

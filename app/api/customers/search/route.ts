@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessTokenFromRequest } from '@/lib/auth-cookies';
+import { backendFetch, isBackendUnavailable } from '@/lib/backend-fetch';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232';
-
-    const response = await fetch(`${API_BASE_URL}/api/customers/search`, {
+    const response = await backendFetch('/api/customers/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getAccessTokenFromRequest(request) || ''}`,
       },
       body: JSON.stringify(body),
-    });
+    }, { retry: true });
 
     const text = await response.text();
     const data = text ? JSON.parse(text) : null;
@@ -30,8 +29,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Customer search error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { error: isBackendUnavailable(error) ? 'Backend service unavailable' : 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: isBackendUnavailable(error) ? 503 : 500 }
     );
   }
 }

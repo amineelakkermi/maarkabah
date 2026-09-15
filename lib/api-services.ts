@@ -1352,6 +1352,86 @@ export const cancellationPolicyService = {
   },
 };
 
+export const extendedCoverageService = {
+  async search(request: Types.ExtendedCoverageSearchRequest): Promise<any> {
+    return apiClient.request('/extended-coverages/search', { method: 'POST', body: request });
+  },
+
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/extended-coverages/${id}`, { method: 'GET' });
+  },
+
+  async picker(request: Types.ExtendedCoveragePickerRequest = {}): Promise<any> {
+    return apiClient.request('/extended-coverages/picker', { method: 'POST', body: request });
+  },
+
+  async sync(): Promise<any> {
+    return apiClient.request('/extended-coverages/sync', { method: 'POST' });
+  },
+
+  async update(id: number | string, request: Types.UpdateExtendedCoverageRequest): Promise<any> {
+    return apiClient.request(`/extended-coverages/${id}`, { method: 'PUT', body: request });
+  },
+};
+
+export const contractService = {
+  async search(request: Types.ContractSearchRequest): Promise<any> {
+    return apiClient.request('/contracts/search', { method: 'POST', body: request });
+  },
+
+  async getStatusCounts(request: Types.ContractStatusCountsRequest): Promise<any> {
+    return apiClient.request('/contracts/status-counts', { method: 'POST', body: request });
+  },
+
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}`, { method: 'GET' });
+  },
+
+  async create(request: Types.CreateContractRequest): Promise<any> {
+    return apiClient.request('/contracts', { method: 'POST', body: request });
+  },
+
+  async update(id: number | string, request: Types.UpdateContractRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}`, { method: 'PUT', body: request });
+  },
+
+  async activate(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/activate`, { method: 'POST' });
+  },
+
+  async submitToTajeer(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/submit-tajeer`, { method: 'POST' });
+  },
+
+  async refreshFromTajeer(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/refresh-tajeer`, { method: 'POST' });
+  },
+
+  async extend(id: number | string, request: Types.ExtendContractRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/extend`, { method: 'POST', body: request });
+  },
+
+  async cancel(id: number | string, request: Types.CancelContractRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/cancel`, { method: 'POST', body: request });
+  },
+
+  async markOverdue(): Promise<any> {
+    return apiClient.request('/contracts/mark-overdue', { method: 'POST' });
+  },
+
+  async searchActivities(id: number | string, request: Types.ContractActivitySearchRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/activities/search`, { method: 'POST', body: request });
+  },
+
+  async searchTajeerLogs(id: number | string, request: Types.ContractTajeerLogSearchRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer-logs/search`, { method: 'POST', body: request });
+  },
+
+  async delete(id: number | string): Promise<void> {
+    await apiClient.request(`/contracts/${id}`, { method: 'DELETE' });
+  },
+};
+
 // ─── Customer Warehouse Service ─────────────────────────────────
 
 export const customerWarehouseService = {

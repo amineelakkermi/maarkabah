@@ -11,7 +11,10 @@ import {
   MoreVertical, MapPin, Pencil, Lock, Tag,
 } from "lucide-react";
 import { Avatar, Badge, Modal, Button, Chip, IconButton } from "@/components/ui";
-import { BOOKINGS, CARS, CAR_IMAGES } from "@/lib/data";
+import type { Booking } from "@/lib/data";
+import { contractService, vehicleService } from "@/lib/api-services";
+import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
+import * as Types from "@/lib/api-types";
 import { useAdmin } from "@/contexts/AdminContext";
 import { VehicleMapPanel } from "@/components/employee/VehicleMapPanel";
 
@@ -22,26 +25,103 @@ const STATUS_CONFIG: Record<string, { variant: "success" | "warning" | "danger" 
   pending:   { variant: "warning", labelEn: "Pending",   labelAr: "معلق"   },
   late:      { variant: "danger",  labelEn: "Late",      labelAr: "متأخر"  },
   completed: { variant: "neutral", labelEn: "Completed", labelAr: "مكتمل"  },
+  cancelled: { variant: "danger",  labelEn: "Cancelled", labelAr: "ملغي"   },
 };
 
-const CONTRACT_EXT: Record<string, { days: number; dailyRate: number; deposit: number; addOns: string[]; payment: string; kmCap: string }> = {
-  "MK-2419": { days: 4, dailyRate: 360, deposit: 500, addOns: ["GPS tracker"], payment: "Mada", kmCap: "250 km/day" },
-  "MK-2420": { days: 3, dailyRate: 280, deposit: 500, addOns: [], payment: "Visa", kmCap: "250 km/day" },
-  "MK-2421": { days: 5, dailyRate: 420, deposit: 500, addOns: ["GPS tracker", "Personal accident cover"], payment: "Apple Pay", kmCap: "200 km/day" },
-  "MK-2422": { days: 4, dailyRate: 950, deposit: 1000, addOns: ["GPS tracker", "24/7 Roadside assist"], payment: "Mada", kmCap: "200 km/day" },
-  "MK-2423": { days: 2, dailyRate: 320, deposit: 500, addOns: [], payment: "Mada", kmCap: "250 km/day" },
-  "MK-2424": { days: 2, dailyRate: 210, deposit: 300, addOns: [], payment: "Cash", kmCap: "Unlimited" },
-  "MK-2425": { days: 3, dailyRate: 360, deposit: 500, addOns: ["Personal accident cover"], payment: "Mada", kmCap: "250 km/day" },
-  "MK-2418": { days: 4, dailyRate: 1180, deposit: 1500, addOns: ["GPS tracker", "24/7 Roadside assist", "Personal accident cover"], payment: "Visa", kmCap: "200 km/day" },
+// ContractStatus (verified via the live API): 1=Draft 2=PendingIssuance (→ "pending")
+// 3=Active 4=Cancelled 5=Overdue (→ "late") 6=Completed — 5/6 ordering provisional.
+function contractStatusKey(s: unknown): string {
+  switch (Number(s)) {
+    case 3: return "active";
+    case 4: return "cancelled";
+    case 5: return "late";
+    case 6: return "completed";
+    default: return "pending";
+  }
+}
+
+// ContractActivityAction (append-only timeline): Created=1 … MarkedOverdue=9
+const ACTION_LABELS: Record<number, { en: string; ar: string }> = {
+  1: { en: "Contract created",    ar: "تم إنشاء العقد"    },
+  2: { en: "Contract updated",    ar: "تم تحديث العقد"    },
+  3: { en: "Submitted to Tajeer", ar: "أُرسل إلى تاجير"  },
+  4: { en: "Contract activated",  ar: "تم تفعيل العقد"   },
+  5: { en: "Contract extended",   ar: "تم تمديد العقد"   },
+  6: { en: "Vehicle returned",    ar: "تم إرجاع المركبة" },
+  7: { en: "Contract cancelled",  ar: "تم إلغاء العقد"   },
+  8: { en: "Contract completed",  ar: "اكتمل العقد"      },
+  9: { en: "Marked overdue",      ar: "سُجّل متأخر"      },
 };
 
-const TIMELINE_STEPS = [
-  { labelEn: "Contract created",   labelAr: "تم إنشاء العقد",      done: true,  time: "Today, 09:00" },
-  { labelEn: "Payment authorised", labelAr: "تم تفويض الدفع",      done: true,  time: "Today, 09:01" },
-  { labelEn: "KYC verified",       labelAr: "تم التحقق من الهوية", done: true,  time: "Today, 09:04" },
-  { labelEn: "Keys handed over",   labelAr: "تم تسليم المفاتيح",   done: false, time: "Pending"      },
-  { labelEn: "Return scheduled",   labelAr: "الإرجاع المجدوَل",    done: false, time: "—"            },
-];
+interface TimelineStep { labelEn: string; labelAr: string; done: boolean; time: string }
+
+interface ContractExt {
+  days: number;
+  dailyRate: number;
+  deposit: number;
+  addOns: string[];
+  payment: string;
+  kmCap: string;
+}
+
+type ContractView = Booking & { navId: string };
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = { "1": "Cash", "2": "POS" };
+
+function fmtDate(iso: unknown): string {
+  const d = iso ? new Date(String(iso)) : null;
+  return d && !isNaN(d.getTime()) ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+}
+
+function fmtTime(iso: unknown): string {
+  const d = iso ? new Date(String(iso)) : null;
+  return d && !isNaN(d.getTime()) ? d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+}
+
+function fmtDateTime(iso: unknown): string {
+  const d = iso ? new Date(String(iso)) : null;
+  return d && !isNaN(d.getTime()) ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapContract(c: any): ContractView {
+  const status = contractStatusKey(c.status);
+  const customer = c.customerName ?? c.customer?.fullNameEn ?? c.customer?.name ?? "";
+  return {
+    id: String(c.contractNumber ?? c.tajeerContractNumber ?? c.id ?? ""),
+    navId: String(c.id),
+    customer,
+    customerInitials: customer.split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
+    phone: c.customerPhone ?? c.customerPhoneNumber ?? c.customer?.phoneNumber ?? "",
+    car: c.vehicleName ?? [c.vehicleMakeName ?? c.makeName, c.vehicleModelName ?? c.modelName, c.vehicleYear ?? c.year].filter(Boolean).join(" "),
+    plate: String(c.vehiclePlate ?? c.plateNumber ?? c.vehicle?.plateNumber ?? ""),
+    date: fmtDate(c.startAt),
+    time: fmtTime(c.startAt),
+    dropoff: fmtDate(c.endAt),
+    branch: c.workingBranchName ?? c.branchName ?? c.receiveBranchName ?? "",
+    type: "pickup",
+    status: status as ContractView["status"],
+    kyc: normalizeKycStatus(c.customerVerificationStatus ?? c.verificationStatus),
+    amount: Number(c.totalAmount ?? c.grandTotal ?? c.total ?? c.paidAmount ?? 0),
+    flagged: status === "late",
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapExt(c: any): ContractExt {
+  const days = Number(c.durationDays) || Math.max(1, Math.round((new Date(c.endAt).getTime() - new Date(c.startAt).getTime()) / 86400000)) || 1;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const addOns = Array.isArray(c.additionalServices) ? c.additionalServices.map((s: any) => s.nameEn ?? s.additionalServiceName ?? s.name ?? s.label ?? String(s.additionalServiceId ?? s.id ?? "")).filter(Boolean) : [];
+  const method = c.paymentMethodCode != null ? (PAYMENT_METHOD_LABELS[String(c.paymentMethodCode)] ?? c.otherPaymentMethodCode ?? String(c.paymentMethodCode)) : (c.otherPaymentMethodCode ?? "—");
+  return {
+    days,
+    dailyRate: Number(c.rentDayCost ?? c.dailyRate ?? 0),
+    deposit: Number(c.depositAmount ?? 0),
+    addOns,
+    payment: method,
+    kmCap: c.unlimitedKm ? "Unlimited" : c.allowedKmPerDay != null ? `${c.allowedKmPerDay} km/day` : "—",
+  };
+}
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -52,13 +132,11 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-type BookingType = (typeof BOOKINGS)[number];
-
 // ── Contract Preview Modal ─────────────────────────────────────────────────────
 function ContractPreviewModal({
   contract, ext, lateFeePerHour, onClose, ar,
 }: {
-  contract: BookingType;
+  contract: ContractView;
   ext: { days: number; dailyRate: number; deposit: number; addOns: string[]; payment: string; kmCap: string };
   lateFeePerHour: number;
   onClose: () => void;
@@ -301,8 +379,8 @@ function ExtendCardShell({ ar, children }: { ar: boolean; children: React.ReactN
 function ExtendCard({
   contract, ext, ar,
 }: {
-  contract: BookingType;
-  ext: { days: number; dailyRate: number; deposit: number; addOns: string[]; payment: string; kmCap: string };
+  contract: ContractView;
+  ext: ContractExt;
   ar: boolean;
 }) {
   const [extDays, setExtDays] = useState(1);
@@ -569,18 +647,84 @@ export default function ContractDetailPage({
   const [showMap, setShowMap] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
+  const [contract, setContract] = useState<ContractView | null>(null);
+  const [ext, setExt] = useState<ContractExt | null>(null);
+  const [timeline, setTimeline] = useState<TimelineStep[]>([]);
+  const [vehicleType, setVehicleType] = useState("");
+  const [carPhoto, setCarPhoto] = useState<string | null>(null);
+  const [lateFeePerHour, setLateFeePerHour] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
   useEffect(() => {
-    if (!showActions) return;
-    const handleClick = (e: MouseEvent) => {
-      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) setShowActions(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [showActions]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await contractService.getById(id);
+        const c = res?.data ?? res;
+        if (cancelled) return;
+        if (!c || c.id == null) { setNotFound(true); return; }
+        setContract(mapContract(c));
+        setExt(mapExt(c));
 
-  const contract = BOOKINGS.find((b) => b.id === id);
+        // Timeline from the real activity log (non-blocking)
+        contractService.searchActivities(id, { pageNumber: 1, pageSize: 50 })
+          .then((a) => {
+            if (cancelled) return;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const items: any[] = a?.items ?? a?.data?.items ?? a?.data ?? [];
+            const steps: TimelineStep[] = (Array.isArray(items) ? items : []).map((it) => {
+              const lbl = ACTION_LABELS[Number(it.action)] ?? { en: `Action ${it.action}`, ar: `إجراء ${it.action}` };
+              const when = fmtDateTime(it.createdAt ?? it.at ?? it.timestamp);
+              return { labelEn: lbl.en, labelAr: lbl.ar, done: true, time: when || "—" };
+            });
+            setTimeline(steps.length > 0 ? steps : [{ labelEn: "Contract created", labelAr: "تم إنشاء العقد", done: true, time: fmtDateTime(c.createdAt ?? c.creationTime) || "—" }]);
+          })
+          .catch(() => {
+            if (!cancelled) setTimeline([{ labelEn: "Contract created", labelAr: "تم إنشاء العقد", done: true, time: fmtDateTime(c.createdAt ?? c.creationTime) || "—" }]);
+          });
 
-  if (!contract) {
+        // Vehicle detail for photo / body type / late fee (non-blocking)
+        const vehicleId = Number(c.vehicleId ?? c.vehicle?.id);
+        if (vehicleId) {
+          vehicleService.getById(vehicleId)
+            .then((v) => {
+              if (cancelled) return;
+              const veh = v?.data ?? v;
+              const bodyLabel = Types.VehicleBodyType[veh?.bodyType as number] ?? "";
+              setVehicleType(bodyLabel);
+              setLateFeePerHour(Number(veh?.lateHourRate ?? 0));
+              // Contract detail only carries the plate number — the letters
+              // (plateFirstLetter…) live on the vehicle record.
+              const fullPlate = formatPlate(veh);
+              if (fullPlate) setContract((prev) => (prev ? { ...prev, plate: fullPlate } : prev));
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const imgs: any[] = Array.isArray(veh?.images) ? veh.images : [];
+              const primary = imgs.find((i) => i.isPrimary) ?? imgs.slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0];
+              const fileId = primary?.fileId ?? primary?.id ?? primary?.attachmentId;
+              if (fileId) setCarPhoto(`/api/attachments/${fileId}/download`);
+            })
+            .catch(() => {});
+        }
+      } catch (err) {
+        if (!cancelled) { console.error("Error loading contract:", err); setNotFound(true); }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="py-24 text-center">
+        <div className="mk-body mb-1 text-mk-ink-500">{T("Loading contract…", "جارٍ تحميل العقد…", ar)}</div>
+      </div>
+    );
+  }
+
+  if (notFound || !contract || !ext) {
     return (
       <div className="py-24 text-center">
         <div className="mk-display mb-3">📋</div>
@@ -592,13 +736,8 @@ export default function ContractDetailPage({
     );
   }
 
-  const ext = CONTRACT_EXT[id] ?? { days: 3, dailyRate: 300, deposit: 500, addOns: [], payment: "Mada", kmCap: "250 km/day" };
-  const car = CARS.find((c) => c.plate === contract.plate);
-  const carKey = ["Camry", "Sonata", "Elantra", "Civic", "Sportage", "Patrol", "CX-5", "Land Cruiser", "Tahoe", "ZS"].find((k) => contract.car.includes(k)) || "Sonata";
-  const carPhoto = (CAR_IMAGES[carKey] ?? CAR_IMAGES["Sonata"])[0];
   const sm = STATUS_CONFIG[contract.status] ?? { variant: "neutral" as const, labelEn: contract.status, labelAr: contract.status };
   const baseAmount = ext.dailyRate * ext.days;
-  const lateFeePerHour = car?.lateFeePerHour ?? 35;
 
   const canHandOver = contract.status === "pending";
   const canReturn   = contract.status === "active" || contract.status === "late";
@@ -684,7 +823,7 @@ export default function ContractDetailPage({
 
         {canReturn && (
           <Link
-            href={returnPath(contract.id)}
+            href={returnPath(contract.navId)}
             className={`inline-flex items-center justify-center gap-2 font-semibold rounded-pill border cursor-pointer transition-[background,color,border-color] duration-base ease-standard active:scale-[0.98] select-none px-5 py-3 mk-body-sm text-white no-underline shadow-[var(--shadow-glow-blue)] ${
               contract.status === "late"
                 ? "bg-mk-danger border-transparent hover:opacity-90"
@@ -698,7 +837,7 @@ export default function ContractDetailPage({
 
         {canHandOver && (
           <Link
-            href={pickupPath(contract.id)}
+            href={pickupPath(contract.navId)}
             className="inline-flex items-center justify-center gap-2 font-semibold rounded-pill border cursor-pointer transition-[background,color,border-color] duration-base ease-standard active:scale-[0.98] select-none px-5 py-3 mk-body-sm text-white bg-mk-blue-500 border-transparent hover:bg-mk-blue-600 no-underline shadow-[var(--shadow-glow-blue)]"
           >
             {T("Hand over vehicle", "تسليم المركبة", ar)}
@@ -769,14 +908,18 @@ export default function ContractDetailPage({
 
           {/* Vehicle — compact row */}
           <div className="flex items-center gap-3 mb-4">
-            <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-mk-ink-50">
-              <Image src={carPhoto} alt={contract.car} fill sizes="56px" style={{ objectFit: "cover", objectPosition: "center" }} />
+            <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-mk-ink-50 flex items-center justify-center">
+              {carPhoto ? (
+                <Image src={carPhoto} alt={contract.car} fill sizes="56px" style={{ objectFit: "cover", objectPosition: "center" }} />
+              ) : (
+                <span className="text-xl">🚗</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="mk-body-sm text-mk-ink-900 truncate">{contract.car}</div>
               <div className="flex items-center gap-2 mt-[2px] flex-wrap">
                 <span className="mk-caption text-mk-ink-500">{contract.plate}</span>
-                <span className="mk-caption text-mk-ink-500">{car?.type ?? "—"}</span>
+                <span className="mk-caption text-mk-ink-500">{vehicleType || "—"}</span>
                 <span className="mk-caption text-mk-ink-500">{ext.kmCap}</span>
               </div>
             </div>
@@ -822,7 +965,7 @@ export default function ContractDetailPage({
               {T("Timeline", "المسار الزمني", ar)}
             </div>
             <div className="flex flex-col">
-              {TIMELINE_STEPS.map((step, i) => (
+              {timeline.map((step, i) => (
                 <div key={i} className="flex gap-3">
                   <div className="flex flex-col items-center">
                     <div
@@ -834,11 +977,11 @@ export default function ContractDetailPage({
                     >
                       {step.done ? <Check size={11} strokeWidth={3} /> : <Clock size={10} />}
                     </div>
-                    {i < TIMELINE_STEPS.length - 1 && (
+                    {i < timeline.length - 1 && (
                       <div className="w-[2px] flex-1 my-1" style={{ background: step.done ? "#3EC8BE" : "#E8EAFB", minHeight: 24 }} />
                     )}
                   </div>
-                  <div className={i < TIMELINE_STEPS.length - 1 ? "pb-4" : ""}>
+                  <div className={i < timeline.length - 1 ? "pb-4" : ""}>
                     <div className="mk-caption leading-tight" style={{ color: step.done ? "var(--color-mk-ink-900)" : "var(--color-mk-ink-400)" }}>
                       {ar ? step.labelAr : step.labelEn}
                     </div>

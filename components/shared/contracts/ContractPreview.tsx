@@ -467,7 +467,7 @@ export default function ContractPreview({
             <Field label="Name (Model)" labelAr="الموديل" value={`${car.make} ${car.model}`} />
             <Field label="Manufacture Year" labelAr="سنة الصنع" value={String(car.year)} />
             <Field label="Color" labelAr="اللون" value={car.color || "—"} />
-            <Field label="Plate No. & Letters" labelAr="رقم اللوحة والأحرف" value={`${plateFull} (حرف 1 · حرف 2 · حرف 3)`} />
+            <Field label="Plate No. & Letters" labelAr="رقم اللوحة والأحرف" value={plateFull || "—"} />
             <Field label="Plate Type (Reg. Code)" labelAr="نوع اللوحة (رمز نوع التسجيل)"
               value={registrationTypeCode === 3 ? T("Private transport / نقل خاص", "نقل خاص", ar) : T("Private / خصوصي", "خصوصي", ar)} />
             <Field label="Car Type" labelAr="نوع السيارة" value={car.type || "—"} />

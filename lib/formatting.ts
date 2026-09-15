@@ -37,6 +37,37 @@ export function formatPhone(phone: string | undefined | null): string {
 }
 
 /**
+ * Format a Saudi plate for display — both parts of the registration:
+ * the number followed by the three letters, e.g. "1422 ج ب أ".
+ * Accepts the backend field names (plateNumber, plateFirstLetter…),
+ * the nested `plate` object (VehicleRequest.plate) and the legacy
+ * plateChar1–3 aliases. Returns just the number when no letters exist.
+ */
+export function formatPlate(item: {
+  plateNumber?: unknown;
+  plateFirstLetter?: unknown;
+  plateSecondLetter?: unknown;
+  plateThirdLetter?: unknown;
+  plateChar1?: unknown;
+  plateChar2?: unknown;
+  plateChar3?: unknown;
+  plate?: {
+    plateNumber?: unknown;
+    plateFirstLetter?: unknown;
+    plateSecondLetter?: unknown;
+    plateThirdLetter?: unknown;
+  } | null;
+} | null | undefined): string {
+  if (!item) return "";
+  const num = item.plateNumber ?? item.plate?.plateNumber ?? "";
+  const l1 = item.plateFirstLetter ?? item.plateChar1 ?? item.plate?.plateFirstLetter ?? "";
+  const l2 = item.plateSecondLetter ?? item.plateChar2 ?? item.plate?.plateSecondLetter ?? "";
+  const l3 = item.plateThirdLetter ?? item.plateChar3 ?? item.plate?.plateThirdLetter ?? "";
+  const letters = [l3, l2, l1].filter(Boolean).join(" ");
+  return [String(num || ""), letters].filter(Boolean).join(" ");
+}
+
+/**
  * Normalize backend verification status values to the frontend status shape.
  * Backend may return numeric enum values (1 = pending, 2 = verified, 3 = rejected)
  * or string variants like "Verified", "Pending", "Rejected".

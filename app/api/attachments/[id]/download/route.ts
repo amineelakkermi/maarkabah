@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessTokenFromRequest } from '@/lib/auth-cookies';
+import { backendFetch, isBackendUnavailable } from '@/lib/backend-fetch';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232';
+    const backendPath = `/api/attachments/${id}/download${request.nextUrl.search}`;
 
-    const backendUrl = new URL(`${API_BASE_URL}/api/attachments/${id}/download`);
-    backendUrl.search = request.nextUrl.search;
-
-    const response = await fetch(backendUrl.toString(), {
+    const response = await backendFetch(backendPath, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${getAccessTokenFromRequest(request) || ''}`,
       },
-    });
+    }, { retry: true });
 
     if (!response.ok) {
       const text = await response.text();
       console.error('Attachment download failed:', {
-        url: backendUrl.toString(),
+        path: backendPath,
         status: response.status,
         body: text,
       });
@@ -41,8 +39,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error) {
     console.error('Attachment download error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { error: isBackendUnavailable(error) ? 'Backend service unavailable' : 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: isBackendUnavailable(error) ? 503 : 500 }
     );
   }
 }

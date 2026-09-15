@@ -8,7 +8,9 @@ import { Avatar, Badge, Button, Tabs, Input, Table, Th, Td, IconButton } from "@
 import { useDropdownPlacement } from "@/components/ui/useDropdownPlacement";
 import { DropdownPortal } from "@/components/ui/DropdownPortal";
 import { MONTHS_EN, MONTHS_AR, WEEKDAYS_EN, WEEKDAYS_AR, WEEKEND_INDEXES, pad, buildMonthCells, goMonth } from "@/components/ui/dateGridUtils";
-import { BOOKINGS } from "@/lib/data";
+import { contractService, vehicleService } from "@/lib/api-services";
+import type { ContractStatus } from "@/lib/api-types";
+import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import { useAdmin } from "@/contexts/AdminContext";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -23,9 +25,10 @@ const STATUS_MAP: Record<string, { variant: "success" | "warning" | "danger" | "
   cancelled: { variant: "danger",  labelEn: "Cancelled", labelAr: "ملغي"   },
 };
 
-const KYC_MAP: Record<string, { variant: "success" | "warning"; labelEn: string; labelAr: string }> = {
+const KYC_MAP: Record<string, { variant: "success" | "warning" | "danger"; labelEn: string; labelAr: string }> = {
   verified: { variant: "success", labelEn: "Verified", labelAr: "موثّق" },
   pending:  { variant: "warning", labelEn: "Pending",  labelAr: "معلق"  },
+  rejected: { variant: "danger",  labelEn: "Rejected", labelAr: "مرفوض" },
 };
 
 const TABS: { key: FilterKey; en: string; ar: string }[] = [
@@ -215,6 +218,94 @@ function DateRangeButton({ ar, from, to, onChange }: { ar: boolean; from: string
   );
 }
 
+/* ── Backend ContractStatus → UI tab key ────────────────────────────── */
+// Verified against the live API: 1=Draft 2=PendingIssuance 3=Active 4=Cancelled
+// (a cancelled contract returns status:4 while status-counts reports cancelled).
+// 5/6 = Overdue/Completed — provisional ordering, verify with a real contract.
+const FILTER_STATUSES: Record<FilterKey, ContractStatus[] | null> = {
+  all: null,
+  pending: [1, 2],
+  active: [3],
+  late: [5],
+  completed: [6],
+  cancelled: [4],
+};
+
+function statusKey(s: number | string | undefined): string {
+  switch (Number(s)) {
+    case 3: return "active";
+    case 4: return "cancelled";
+    case 5: return "late";
+    case 6: return "completed";
+    default: return "pending";
+  }
+}
+
+interface ContractRow {
+  id: number | string;
+  ref: string;
+  customer: string;
+  phone: string;
+  car: string;
+  plate: string;
+  vehicleId: number | null;
+  startAt: string;
+  endAt: string;
+  branch: string;
+  kyc: string;
+  status: string;
+  amount: number;
+  flagged: boolean;
+}
+
+const PAGE_SIZE = 20;
+
+const WD_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WD_AR = ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"];
+
+function hhmm(d: Date): string {
+  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+/** "Today 14:00" style label matching the designer prototype — falls back
+ * to weekday + short date for other days. */
+function dayTimeLabel(d: Date, ar: boolean): string {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const diff = Math.round((day.getTime() - today.getTime()) / 86400000);
+  if (diff === 0) return `${ar ? "اليوم" : "Today"} ${hhmm(d)}`;
+  if (diff === 1) return `${ar ? "غداً" : "Tomorrow"} ${hhmm(d)}`;
+  if (diff === -1) return `${ar ? "أمس" : "Yesterday"} ${hhmm(d)}`;
+  const wd = (ar ? WD_AR : WD_EN)[d.getDay()];
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${wd}, ${date} ${hhmm(d)}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapContractRow(item: any, ar: boolean): ContractRow {
+  const key = statusKey(item.status);
+  const make = (ar ? item.vehicleMakeNameAr : item.vehicleMakeNameEn) ?? item.vehicleMakeName ?? item.vehicleMakeNameEn ?? item.vehicleMakeNameAr;
+  const model = (ar ? item.vehicleModelNameAr : item.vehicleModelNameEn) ?? item.vehicleModelName ?? item.vehicleModelNameEn ?? item.vehicleModelNameAr;
+  const year = item.vehicleYear ?? item.year;
+  const carLine = [[make, model].filter(Boolean).join(" "), year].filter(Boolean).join(" · ");
+  return {
+    id: item.id,
+    ref: String(item.contractNumber ?? item.tajeerContractNumber ?? item.id ?? ""),
+    customer: (ar ? item.customerNameAr : item.customerNameEn) ?? item.customerName ?? item.customerNameEn ?? item.customerNameAr ?? item.customer?.fullNameEn ?? item.customer?.name ?? "",
+    phone: item.customerPhone ?? item.customerPhoneNumber ?? item.customer?.phoneNumber ?? "",
+    car: item.vehicleName ?? carLine,
+    plate: formatPlate(item.vehicle ?? item) || String(item.vehiclePlateNumber ?? ""),
+    vehicleId: item.vehicleId != null ? Number(item.vehicleId) : null,
+    startAt: item.startAt ?? "",
+    endAt: item.endAt ?? "",
+    branch: (ar ? item.workingBranchNameAr : item.workingBranchNameEn) ?? item.workingBranchName ?? item.workingBranchNameEn ?? item.workingBranchNameAr ?? item.branchName ?? "",
+    kyc: normalizeKycStatus(item.customerVerificationStatus ?? item.verificationStatus ?? (item.customerIsVerified ? 2 : undefined)),
+    status: key,
+    amount: Number(item.totalAmount ?? item.grandTotal ?? item.total ?? item.paidAmount ?? 0),
+    flagged: key === "late",
+  };
+}
+
 export default function ContractsListPage({ newContractPath, contractDetailPath }: ContractsListPageProps) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
@@ -222,26 +313,107 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [dateFrom, setDateFrom] = useState("2026-05-01");
-  const [dateTo, setDateTo] = useState("2026-05-07");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  const rows = BOOKINGS.filter((b) => {
-    const matchFilter = filter === "all" || b.status === filter;
-    const matchQuery  = !query ||
-      b.id.toLowerCase().includes(query.toLowerCase()) ||
-      b.customer.toLowerCase().includes(query.toLowerCase()) ||
-      b.plate.toLowerCase().includes(query.toLowerCase());
-    return matchFilter && matchQuery;
+  const [rows, setRows] = useState<ContractRow[]>([]);
+  const plateLettersCache = useRef(new Map<number, string>());
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [counts, setCounts] = useState<Record<FilterKey, number>>({
+    all: 0, pending: 0, active: 0, late: 0, completed: 0, cancelled: 0,
   });
 
-  const counts: Record<FilterKey, number> = {
-    all:       BOOKINGS.length,
-    pending:   BOOKINGS.filter((b) => b.status === "pending").length,
-    active:    BOOKINGS.filter((b) => b.status === "active").length,
-    late:      BOOKINGS.filter((b) => b.status === "late").length,
-    completed: BOOKINGS.filter((b) => b.status === "completed").length,
-    cancelled: BOOKINGS.filter((b) => b.status === "cancelled").length,
-  };
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 400);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Reset to first page whenever filters change
+  useEffect(() => { setPage(1); }, [filter, debouncedQuery, dateFrom, dateTo]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await contractService.search({
+          search: debouncedQuery || undefined,
+          statuses: FILTER_STATUSES[filter],
+          from: dateFrom || null,
+          to: dateTo || null,
+          pageNumber: page,
+          pageSize: PAGE_SIZE,
+        });
+        if (cancelled) return;
+        const items = res?.items ?? res?.data?.items ?? res?.data ?? [];
+        const mapped = Array.isArray(items) ? items.map((it) => mapContractRow(it, ar)) : [];
+        setRows(mapped);
+        setTotal(Number(res?.totalCount ?? res?.total ?? res?.totalItems ?? (Array.isArray(items) ? items.length : 0)));
+
+        // Contract rows only carry the plate number — fetch the letters
+        // (plateFirstLetter…) from each referenced vehicle, cached per id.
+        const missingIds = [...new Set(mapped.map((r) => r.vehicleId).filter((v): v is number => v != null))]
+          .filter((vid) => !plateLettersCache.current.has(vid));
+        if (missingIds.length) {
+          Promise.all(missingIds.map((vid) =>
+            vehicleService.getById(vid)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .then((v: any) => { const d = v?.data ?? v; const p = formatPlate(d); if (p) plateLettersCache.current.set(vid, p); })
+              .catch(() => {})
+          )).then(() => {
+            if (cancelled) return;
+            setRows((prev) => prev.map((r) =>
+              r.vehicleId != null && plateLettersCache.current.has(r.vehicleId)
+                ? { ...r, plate: plateLettersCache.current.get(r.vehicleId)! }
+                : r
+            ));
+          });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Error loading contracts:", err);
+        setRows([]);
+        setTotal(0);
+        setError(T("Failed to load contracts", "فشل تحميل العقود", ar));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [filter, debouncedQuery, dateFrom, dateTo, page, ar]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await contractService.getStatusCounts({
+          search: debouncedQuery || undefined,
+          from: dateFrom || null,
+          to: dateTo || null,
+        });
+        if (cancelled) return;
+        const c = res?.data ?? res ?? {};
+        setCounts({
+          all:       Number(c.all ?? 0),
+          pending:   Number(c.pending ?? ((c.draft ?? 0) + (c.pendingIssuance ?? 0))),
+          active:    Number(c.active ?? 0),
+          late:      Number(c.late ?? c.overdue ?? 0),
+          completed: Number(c.completed ?? 0),
+          cancelled: Number(c.cancelled ?? 0),
+        });
+      } catch {
+        /* counts are non-blocking */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [debouncedQuery, dateFrom, dateTo]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div>
@@ -310,13 +482,14 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
         />
       </div>
 
-      {/* Table */}
+      {/* Table — horizontally scrollable on narrow viewports */}
       <div className="rounded-xl overflow-hidden mk-surface">
-        <Table className="min-w-[820px]">
+        <div className="overflow-x-auto mk-scrollbar-none">
+        <Table className="min-w-[960px]">
           <thead>
             <tr>
               {[
-                T("Contract Ref", "رقم العقد",       ar),
+                T("Contract No.", "رقم العقد",       ar),
                 T("Customer",     "العميل",           ar),
                 T("Car · Plate",  "المركبة · اللوحة", ar),
                 T("Pickup",       "الاستلام",          ar),
@@ -335,13 +508,13 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
               return (
                 <tr
                   key={b.id}
-                  onClick={() => router.push(contractDetailPath(b.id))}
+                  onClick={() => router.push(contractDetailPath(String(b.id)))}
                   className={`cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 ${b.flagged ? "bg-mk-danger/[0.025]" : ""}`}
                 >
                   <Td>
                     <div className="flex items-center gap-2">
                       {b.flagged && <span className="text-mk-danger mk-label">⚑</span>}
-                      <span className="font-mono mk-label text-mk-blue-600">{b.id}</span>
+                      <span className="font-mono mk-label text-mk-blue-600">{b.ref}</span>
                     </div>
                   </Td>
                   <Td>
@@ -349,7 +522,7 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
                       <Avatar name={b.customer} size="sm" />
                       <div>
                         <div className="mk-label text-mk-ink-900">{b.customer}</div>
-                        <div className="mk-caption text-mk-ink-500">{b.phone}</div>
+                        <div className="mk-caption text-mk-ink-500" dir="ltr" style={{ textAlign: "start" }}>{b.phone}</div>
                       </div>
                     </div>
                   </Td>
@@ -358,8 +531,10 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
                     <div className="mk-caption font-mono text-mk-ink-500">{b.plate}</div>
                   </Td>
                   <Td>
-                    <div className="mk-label text-mk-ink-900">{b.date} {b.time}</div>
-                    <div className="mk-caption text-mk-ink-500">→ {b.dropoff}</div>
+                    <div className="mk-label text-mk-ink-900">{b.startAt ? dayTimeLabel(new Date(b.startAt), ar) : "—"}</div>
+                    <div className="mk-caption text-mk-ink-500" dir={ar ? "rtl" : "ltr"}>
+                      {ar ? "←" : "→"} {b.endAt ? dayTimeLabel(new Date(b.endAt), ar) : "—"}
+                    </div>
                   </Td>
                   <Td className="mk-caption text-mk-ink-500">{b.branch}</Td>
                   <Td><Badge variant={km.variant} dot>{ar ? km.labelAr : km.labelEn}</Badge></Td>
@@ -369,15 +544,28 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
                     <span className="mk-overline ms-1 text-mk-ink-400">{T("SAR", "ريال", ar)}</span>
                   </Td>
                   <Td>
-                    <Button variant="ghost" size="sm" className="bg-mk-blue-50 rounded-full">
-                      {T("Open", "فتح", ar)}
-                      {ar ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
-                    </Button>
+                    <span className="inline-flex items-center justify-center text-mk-ink-400">
+                      {ar ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                    </span>
                   </Td>
                 </tr>
               );
             })}
-            {rows.length === 0 && (
+            {loading && (
+              <tr>
+                <td colSpan={9} className="py-16 text-center">
+                  <div className="mk-body-sm text-mk-ink-600">{T("Loading contracts…", "جارٍ تحميل العقود…", ar)}</div>
+                </td>
+              </tr>
+            )}
+            {!loading && error && (
+              <tr>
+                <td colSpan={9} className="py-16 text-center">
+                  <div className="mk-body-sm text-mk-danger">{error}</div>
+                </td>
+              </tr>
+            )}
+            {!loading && !error && rows.length === 0 && (
               <tr>
                 <td colSpan={9} className="py-16 text-center">
                   <div className="mk-h1 mb-2">📋</div>
@@ -388,17 +576,22 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
             )}
           </tbody>
         </Table>
+        </div>
 
         {/* Pagination footer */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-mk-ink-100">
           <span className="mk-caption text-mk-ink-400">
-            {T(`Showing ${rows.length} of ${BOOKINGS.length} contracts`, `عرض ${rows.length} من ${BOOKINGS.length} عقد`, ar)}
+            {T(`Showing ${rows.length} of ${total} contracts`, `عرض ${rows.length} من ${total} عقد`, ar)}
           </span>
           <div className="flex gap-1">
-            {[1, 2, 3].map((p) => (
-              <button key={p} className={`w-7 h-7 rounded-sm mk-caption border-0 cursor-pointer ${
-                p === 1 ? "bg-mk-blue-500 text-white" : "bg-mk-ink-50 text-mk-ink-600"
-              }`}>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-7 h-7 rounded-sm mk-caption border-0 cursor-pointer ${
+                  p === page ? "bg-mk-blue-500 text-white" : "bg-mk-ink-50 text-mk-ink-600"
+                }`}
+              >
                 {p}
               </button>
             ))}
