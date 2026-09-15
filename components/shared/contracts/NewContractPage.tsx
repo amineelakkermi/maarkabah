@@ -15,6 +15,8 @@ import {
 import { computeRental, computePricing } from "./new-contract/pricing";
 import { buildCreateContractRequest } from "./new-contract/mappers";
 import { contractService } from "@/lib/api-services";
+import { ApiError } from "@/lib/api-client";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { useContractLookups } from "./new-contract/useContractLookups";
 import { useCustomersPicker } from "./new-contract/useCustomersPicker";
 import { useVehiclesPicker } from "./new-contract/useVehiclesPicker";
@@ -46,6 +48,7 @@ export interface NewContractPageProps {
 export default function NewContractPage({ contractsListPath = "/employee/contracts" }: NewContractPageProps) {
   const { dir, isDark, currentUser } = useAdmin();
   const ar = dir === "rtl";
+  const { tenantContext } = usePermissions();
   const searchParams = useSearchParams();
   const clientId = searchParams.get("clientId");
 
@@ -317,18 +320,41 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
     }
   }, [contractStep, otpDigits]);
 
-  // ── Backend contract creation + Tajeer submission ─────────────
+  // ── Backend contract creation + issuance ──────────────────────
+  // Elm Tajeer enabled → submit-tajeer; disabled → local /activate.
+  // The tenant context may not be loaded yet, so we also fall back to
+  // /activate when submit-tajeer answers Contract.TajeerNotConfigured.
+  const tajeerDisabled = tenantContext?.features?.some(
+    (f) => f.featureCode === "ElmTajeer" && !f.isEnabled
+  ) ?? false;
+
+  const issueContract = async (contractId: number) => {
+    if (tajeerDisabled) {
+      await contractService.activate(contractId);
+      return;
+    }
+    try {
+      await contractService.submitToTajeer(contractId);
+    } catch (err) {
+      const code = err instanceof ApiError
+        ? (err.response?.code ?? err.response?.details?.code)
+        : undefined;
+      if (code === "Contract.TajeerNotConfigured" ||
+          (err instanceof Error && /tajeer.*(not configured|inactive)/i.test(err.message))) {
+        await contractService.activate(contractId);
+        return;
+      }
+      throw err;
+    }
+  };
+
   const handleSubmitToTajeer = async () => {
     setContractStep("saving");
     setTajeerError("");
+    // The contract is created once; retries only re-run the issuance step.
+    let contractId = createdContractId;
     try {
-      if (createdContractId) {
-        await contractService.submitToTajeer(createdContractId);
-        setTajeerResponse({ contractNumber: String(createdContractId) } as unknown as TajeerSaveContractResponse);
-        setContractStep("issued");
-        return;
-      }
-
+      if (!contractId) {
       const selectedCar = backendCars.find((c) => c.plate === pickedPlate) ?? backendCars[0];
       if (!selectedCustomer) throw new Error(ar ? "لم يتم اختيار عميل" : "No customer selected");
       if (!selectedCar) throw new Error(ar ? "لم يتم اختيار مركبة" : "No vehicle selected");
@@ -376,15 +402,30 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
       console.log("[DEBUG] Selected vehicle:", selectedCar);
       console.log("[DEBUG] Create contract request:", request);
       const created = await contractService.create(request);
-      const contractId = typeof created === "number" ? created : (created?.id ?? 0);
+      contractId = typeof created === "number" ? created : (created?.id ?? 0);
       if (!contractId) throw new Error(ar ? "لم يتم إنشاء العقد" : "Contract creation returned no id");
-
       setCreatedContractId(contractId);
-      await contractService.submitToTajeer(contractId);
-      setTajeerResponse({ contractNumber: String(contractId) } as unknown as TajeerSaveContractResponse);
+      }
+
+      await issueContract(contractId);
+
+      // Show the real contract number (CT…), not the numeric id.
+      let contractNumber = String(contractId);
+      try {
+        const c = await contractService.getById(contractId);
+        if (c?.contractNumber) contractNumber = String(c.contractNumber);
+      } catch { /* display falls back to the numeric id */ }
+      setTajeerResponse({ contractNumber } as unknown as TajeerSaveContractResponse);
       setContractStep("issued");
     } catch (err) {
-      setTajeerError(err instanceof Error ? err.message : "خطأ غير متوقع");
+      const msg = err instanceof Error ? err.message : "خطأ غير متوقع";
+      setTajeerError(contractId
+        ? T(
+            `The contract was created as a draft but issuance failed: ${msg}`,
+            `تم إنشاء العقد كمسودة لكن تعذّر إصداره: ${msg}`,
+            ar
+          )
+        : msg);
       setContractStep("error");
     }
   };
@@ -400,7 +441,8 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
     if (!createdContractId) return;
     try {
       const contract = await contractService.getById(createdContractId);
-      if (contract?.status === 4) {
+      // ContractStatus verified live: 3=Active (issued), 4=Cancelled
+      if (contract?.status === 3) {
         setContractStep("issued");
       }
     } catch {

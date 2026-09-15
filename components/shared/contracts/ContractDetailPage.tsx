@@ -29,7 +29,7 @@ const STATUS_CONFIG: Record<string, { variant: "success" | "warning" | "danger" 
 };
 
 // ContractStatus (verified via the live API): 1=Draft 2=PendingIssuance (→ "pending")
-// 3=Active 4=Cancelled 5=Overdue (→ "late") 6=Completed — 5/6 ordering provisional.
+// 3=Active 4=Cancelled 5=Overdue (→ "late") 6=Completed
 function contractStatusKey(s: unknown): string {
   switch (Number(s)) {
     case 3: return "active";
@@ -84,21 +84,25 @@ function fmtDateTime(iso: unknown): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapContract(c: any): ContractView {
+function mapContract(c: any, ar: boolean): ContractView {
   const status = contractStatusKey(c.status);
-  const customer = c.customerName ?? c.customer?.fullNameEn ?? c.customer?.name ?? "";
+  const customer = (ar ? c.customerNameAr : c.customerNameEn) ?? c.customerName ?? c.customerNameEn ?? c.customerNameAr ?? c.customer?.fullNameEn ?? c.customer?.name ?? "";
   return {
     id: String(c.contractNumber ?? c.tajeerContractNumber ?? c.id ?? ""),
     navId: String(c.id),
     customer,
     customerInitials: customer.split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
     phone: c.customerPhone ?? c.customerPhoneNumber ?? c.customer?.phoneNumber ?? "",
-    car: c.vehicleName ?? [c.vehicleMakeName ?? c.makeName, c.vehicleModelName ?? c.modelName, c.vehicleYear ?? c.year].filter(Boolean).join(" "),
-    plate: String(c.vehiclePlate ?? c.plateNumber ?? c.vehicle?.plateNumber ?? ""),
+    car: c.vehicleName ?? [
+      (ar ? c.vehicleMakeNameAr : c.vehicleMakeNameEn) ?? c.vehicleMakeNameEn ?? c.vehicleMakeNameAr ?? c.makeName,
+      (ar ? c.vehicleModelNameAr : c.vehicleModelNameEn) ?? c.vehicleModelNameEn ?? c.vehicleModelNameAr ?? c.modelName,
+      c.vehicleYear ?? c.year,
+    ].filter(Boolean).join(" "),
+    plate: formatPlate(c.vehicle ?? c) || String(c.vehiclePlateNumber ?? ""),
     date: fmtDate(c.startAt),
     time: fmtTime(c.startAt),
     dropoff: fmtDate(c.endAt),
-    branch: c.workingBranchName ?? c.branchName ?? c.receiveBranchName ?? "",
+    branch: (ar ? c.workingBranchNameAr : c.workingBranchNameEn) ?? c.workingBranchName ?? c.workingBranchNameEn ?? c.workingBranchNameAr ?? c.branchName ?? (ar ? c.receiveBranchNameAr : c.receiveBranchNameEn) ?? c.receiveBranchName ?? "",
     type: "pickup",
     status: status as ContractView["status"],
     kyc: normalizeKycStatus(c.customerVerificationStatus ?? c.verificationStatus),
@@ -645,6 +649,10 @@ export default function ContractDetailPage({
   const [showPreview, setShowPreview] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
   const actionsRef = useRef<HTMLDivElement>(null);
 
   const [contract, setContract] = useState<ContractView | null>(null);
@@ -665,7 +673,7 @@ export default function ContractDetailPage({
         const c = res?.data ?? res;
         if (cancelled) return;
         if (!c || c.id == null) { setNotFound(true); return; }
-        setContract(mapContract(c));
+        setContract(mapContract(c, ar));
         setExt(mapExt(c));
 
         // Timeline from the real activity log (non-blocking)
@@ -714,7 +722,7 @@ export default function ContractDetailPage({
       }
     })();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, ar]);
 
   if (loading) {
     return (
@@ -741,7 +749,30 @@ export default function ContractDetailPage({
 
   const canHandOver = contract.status === "pending";
   const canReturn   = contract.status === "active" || contract.status === "late";
-  const canCancel = false;
+  // Cancellation is manager-only by design, and only meaningful before the
+  // contract reaches a terminal state (cancelled / completed).
+  const canCancel = role === "owner" && (contract.status === "pending" || contract.status === "active" || contract.status === "late");
+
+  const handleCancelContract = async () => {
+    if (!cancelReason) return;
+    setCancelling(true);
+    setCancelError("");
+    try {
+      await contractService.cancel(id, { reason: cancelReason });
+      const res = await contractService.getById(id);
+      const c = res?.data ?? res;
+      if (c?.id != null) {
+        setContract(mapContract(c, ar));
+        setExt(mapExt(c));
+      }
+      setShowCancel(false);
+      setCancelReason("");
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div dir={ar ? "rtl" : "ltr"}>
@@ -803,13 +834,13 @@ export default function ContractDetailPage({
                 <>
                   <div className="my-1 border-t border-mk-ink-100" />
                   <button
-                    onClick={() => setShowActions(false)}
+                    onClick={() => { setShowCancel(true); setShowActions(false); }}
                     className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-danger hover:bg-mk-danger/6"
                   >
                     <XCircle size={14} />{T("Cancel contract", "إلغاء العقد", ar)}
                   </button>
                 </>
-              ) : contract.status !== "completed" && (
+              ) : contract.status !== "completed" && contract.status !== "cancelled" && (
                 <>
                   <div className="my-1 border-t border-mk-ink-100" />
                   <div className="flex items-center gap-2.5 px-4 py-[9px] mk-caption text-mk-ink-400">
@@ -910,7 +941,9 @@ export default function ContractDetailPage({
           <div className="flex items-center gap-3 mb-4">
             <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-mk-ink-50 flex items-center justify-center">
               {carPhoto ? (
-                <Image src={carPhoto} alt={contract.car} fill sizes="56px" style={{ objectFit: "cover", objectPosition: "center" }} />
+                // unoptimized: next/image would fetch the attachment server-side
+                // without the session cookie, which the backend rejects (401).
+                <Image src={carPhoto} alt={contract.car} fill sizes="56px" unoptimized style={{ objectFit: "cover", objectPosition: "center" }} />
               ) : (
                 <span className="text-xl">🚗</span>
               )}
@@ -1024,6 +1057,64 @@ export default function ContractDetailPage({
           ar={ar}
           onClose={() => setShowMap(false)}
         />
+      )}
+      {showCancel && (
+        <Modal
+          open={true}
+          onClose={() => { if (!cancelling) { setShowCancel(false); setCancelReason(""); setCancelError(""); } }}
+          variant="centered"
+          size="md"
+          title={T("Cancel contract", "إلغاء العقد", ar)}
+        >
+          <div className="p-6 flex flex-col gap-4">
+            <p className="mk-body-sm text-mk-ink-600">
+              {T(
+                `Contract ${contract.id} will be cancelled. This action cannot be undone.`,
+                `سيتم إلغاء العقد ${contract.id}. لا يمكن التراجع عن هذا الإجراء.`,
+                ar
+              )}
+            </p>
+            <div>
+              <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">
+                {T("Cancellation reason", "سبب الإلغاء", ar)}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { en: "Customer request", ar: "طلب العميل" },
+                  { en: "Vehicle unavailable", ar: "المركبة غير متوفرة" },
+                  { en: "Duplicate booking", ar: "حجز مكرر" },
+                  { en: "Other", ar: "سبب آخر" },
+                ].map((r) => (
+                  <Chip key={r.en} size="sm" active={cancelReason === r.en} onClick={() => setCancelReason(r.en)}>
+                    {ar ? r.ar : r.en}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            {cancelError && (
+              <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100">{cancelError}</p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={cancelling}
+                onClick={() => { setShowCancel(false); setCancelReason(""); setCancelError(""); }}
+              >
+                {T("Back", "رجوع", ar)}
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                disabled={!cancelReason || cancelling}
+                onClick={handleCancelContract}
+              >
+                <XCircle size={14} />
+                {cancelling ? T("Cancelling…", "جارٍ الإلغاء…", ar) : T("Confirm cancellation", "تأكيد الإلغاء", ar)}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -219,9 +219,8 @@ function DateRangeButton({ ar, from, to, onChange }: { ar: boolean; from: string
 }
 
 /* ── Backend ContractStatus → UI tab key ────────────────────────────── */
-// Verified against the live API: 1=Draft 2=PendingIssuance 3=Active 4=Cancelled
-// (a cancelled contract returns status:4 while status-counts reports cancelled).
-// 5/6 = Overdue/Completed — provisional ordering, verify with a real contract.
+// Verified against the live API:
+// 1=Draft 2=PendingIssuance 3=Active 4=Cancelled 5=Overdue 6=Completed
 const FILTER_STATUSES: Record<FilterKey, ContractStatus[] | null> = {
   all: null,
   pending: [1, 2],

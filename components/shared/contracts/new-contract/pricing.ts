@@ -74,9 +74,12 @@ export function computePricing(p: PricingInput) {
     ? Math.round(grossSubtotal * (p.discountPercent / 100))
     : Math.min(p.discountFlatAmount, grossSubtotal);
   const subtotal = grossSubtotal - discountAmount;
-  const vat = Math.round(subtotal * 0.15);
+  // Round VAT to 2 decimals, not to the integer — the backend keeps the exact
+  // decimal amount (e.g. 2750 × 15% = 412.5 → total 3162.5), and rejecting any
+  // paidAmount above it means rounding up here would exceed the backend total.
+  const vat = Math.round(subtotal * 0.15 * 100) / 100;
   const total = subtotal + vat;
-  const advanceAmount = Math.round(total * 0.5);
+  const advanceAmount = Math.round(total * 0.5 * 100) / 100;
   const remaining = total - advanceAmount;
 
   return {
