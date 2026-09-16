@@ -16,6 +16,8 @@ import { contractService, vehicleService } from "@/lib/api-services";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import * as Types from "@/lib/api-types";
 import { useAdmin } from "@/contexts/AdminContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import { Permission } from "@/lib/permissions";
 import { VehicleMapPanel } from "@/components/employee/VehicleMapPanel";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -645,6 +647,7 @@ export default function ContractDetailPage({
   const id = params.id as string;
   const { dir } = useAdmin();
   const ar = dir === "rtl";
+  const { hasPermission } = usePermissions();
 
   const [showPreview, setShowPreview] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -749,9 +752,9 @@ export default function ContractDetailPage({
 
   const canHandOver = contract.status === "pending";
   const canReturn   = contract.status === "active" || contract.status === "late";
-  // Cancellation is manager-only by design, and only meaningful before the
-  // contract reaches a terminal state (cancelled / completed).
-  const canCancel = role === "owner" && (contract.status === "pending" || contract.status === "active" || contract.status === "late");
+  // Cancellation requires Permissions.Contracts.Cancel (manager role) and is
+  // only meaningful before the contract reaches a terminal state.
+  const canCancel = hasPermission(Permission.Contracts.Cancel) && (contract.status === "pending" || contract.status === "active" || contract.status === "late");
 
   const handleCancelContract = async () => {
     if (!cancelReason) return;

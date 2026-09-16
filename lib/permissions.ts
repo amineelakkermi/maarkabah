@@ -35,8 +35,17 @@ export const Permission = {
     Edit: "Permissions.Branches.Edit",
     Delete: "Permissions.Branches.Delete",
   },
+  Contracts: {
+    View: "Permissions.Contracts.View",
+    Create: "Permissions.Contracts.Create",
+    Edit: "Permissions.Contracts.Edit",
+    Cancel: "Permissions.Contracts.Cancel",
+    Extend: "Permissions.Contracts.Extend",
+  },
   Vehicles: {
     View: "Permissions.Vehicles.View",
+    Create: "Permissions.Vehicles.Create",
+    Edit: "Permissions.Vehicles.Edit",
     Save: "Permissions.Vehicles.Save",
     Delete: "Permissions.Vehicles.Delete",
   },
@@ -83,6 +92,10 @@ export const Permission = {
     Create: "Permissions.CancellationPolicies.Create",
     Edit: "Permissions.CancellationPolicies.Edit",
     Delete: "Permissions.CancellationPolicies.Delete",
+  },
+  ExtendedCoverages: {
+    View: "Permissions.ExtendedCoverages.View",
+    Edit: "Permissions.ExtendedCoverages.Edit",
   },
 } as const;
 
