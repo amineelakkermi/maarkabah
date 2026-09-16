@@ -37,7 +37,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     title: "Operations",
     titleAr: "العمليات",
     items: [
-      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية", requiredPermission: null },
+      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية (غير مكتمل)", requiredPermission: null },
       // fleet-map, bookings, late-returns have no matching backend permission at this time.
       { href: "/fleet", icon: Car, label: "Fleet", labelAr: "الأسطول", requiredPermission: Permission.Vehicles.View },
       // TODO: switch requiredPermission to Permission.Contracts.* once the
