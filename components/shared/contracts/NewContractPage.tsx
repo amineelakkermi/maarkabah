@@ -13,8 +13,8 @@ import {
   RENTAL_POLICY_OPTIONS,
 } from "./new-contract/constants";
 import { computeRental, computePricing } from "./new-contract/pricing";
-import { buildCreateContractRequest } from "./new-contract/mappers";
-import { contractService } from "@/lib/api-services";
+import { buildCreateContractRequest, mapBackendCustomerToDriver } from "./new-contract/mappers";
+import { contractService, customerService } from "@/lib/api-services";
 import { ApiError } from "@/lib/api-client";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useContractLookups } from "./new-contract/useContractLookups";
@@ -235,6 +235,23 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [driverFarePerHour, setDriverFarePerHour] = useState<number>(0);
   const [vehicleTransferCost, setVehicleTransferCost] = useState<number>(0);
 
+  // Customer search rows only carry display fields (name, phone, id type…).
+  // Fetch the full profile on selection so identity details (passport, border
+  // number, expiry dates, country, address…) are available at verification.
+  const selectedCustomerId = selectedCustomer?.id;
+  useEffect(() => {
+    if (!selectedCustomerId) return;
+    let cancelled = false;
+    customerService.getById(Number(selectedCustomerId))
+      .then((detail) => {
+        if (cancelled || !detail) return;
+        const full = mapBackendCustomerToDriver(detail?.data ?? detail);
+        setSelectedCustomer((prev) => (prev?.id === selectedCustomerId ? full : prev));
+      })
+      .catch(() => { /* keep the search-row data as fallback */ });
+    return () => { cancelled = true; };
+  }, [selectedCustomerId]);
+
   // Auto-fill renter's fields when selectedCustomer changes — uses selected backend DriverProfile directly
   useEffect(() => {
     if (selectedCustomer) {
@@ -244,11 +261,12 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
       setRenterHijriBirth(selectedCustomer.hijriBirthDate ? String(selectedCustomer.hijriBirthDate) : "");
       setRenterEmail(selectedCustomer.email || "");
       setRenterPassport(selectedCustomer.passportNumber || "");
-      setRenterNationalityCode(selectedCustomer.nationalityCode ? String(selectedCustomer.nationalityCode) : "");
+      // Display the country name (e.g. "قطر"), not the numeric countryId.
+      setRenterNationalityCode(selectedCustomer.nationality || (selectedCustomer.nationalityCode ? String(selectedCustomer.nationalityCode) : ""));
       setRenterLicenseNumber(selectedCustomer.licenseNumber || "");
       setRenterLicenseExpiry(selectedCustomer.licenseExpiryDate || "");
       setRenterIdExpiry(selectedCustomer.idExpiryDate || "");
-      setRenterAddress(selectedCustomer.personAddress || "Riyadh");
+      setRenterAddress(selectedCustomer.personAddress || "");
       setRenterIdCopyNumber(selectedCustomer.idCopyNumber || "");
       setRenterLicenseIssuePlace(selectedCustomer.licenseIssuePlace || "");
       setRenterBorderNumber(selectedCustomer.borderNumber || "");
