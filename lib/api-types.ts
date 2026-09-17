@@ -677,8 +677,8 @@ export interface ContractRequest {
   extraDriverCost: number;
   discountPercent: number;
   paidAmount: number;
-  paymentMethodCode?: string | null;
-  paymentType: ContractPaymentType;
+  paymentTypeId: ContractPaymentType;
+  paymentMethodId?: number | null;
   otherPaymentMethodCode?: string | null;
   internationalAuthorizationCost: number;
   extendedCoverageId?: number | null;

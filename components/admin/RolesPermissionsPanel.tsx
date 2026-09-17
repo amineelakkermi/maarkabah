@@ -1,78 +1,51 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Shield, Edit, Trash2 } from "lucide-react";
-import { Button, Table, Th, Td, Drawer, DrawerHeader, DrawerFooter, useToast, Input } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Plus, ChevronRight, Loader2, Trash2 } from "lucide-react";
+import { Badge, Button, Table, Tr, Th, Td, Toggle, IconButton, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { tenantRoleService } from "@/lib/api-services";
+import { builtinRoleStyle, CUSTOM_ROLE_STYLE } from "./roleStyles";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
+
+// Static reference of the platform's built-in roles — shown in the "Role
+// details" cards so staff can see what each fixed role grants without
+// opening it. Custom (API) roles are listed after them.
+const BUILTIN_ROLES_REF = [
+  {
+    slug: "owner", name: "Owner", nameAr: "المالك",
+    permsEn: ["Full platform access", "All branches", "Billing & settings", "Add/remove staff"],
+    permsAr: ["صلاحية كاملة للمنصة", "جميع الفروع", "الفواتير والإعدادات", "إضافة/حذف الموظفين"],
+  },
+  {
+    slug: "manager", name: "Manager", nameAr: "مدير",
+    permsEn: ["Branch operations", "Contracts & returns", "KYC review", "Reports (branch)"],
+    permsAr: ["عمليات الفرع", "العقود والإرجاعات", "مراجعة الهوية", "التقارير (الفرع)"],
+  },
+  {
+    slug: "front-desk", name: "Front Desk", nameAr: "موظف استقبال",
+    permsEn: ["Create contracts", "KYC verification", "Pickup / return", "Customer search"],
+    permsAr: ["إنشاء العقود", "التحقق من الهوية", "التسليم / الإرجاع", "بحث العملاء"],
+  },
+  {
+    slug: "accountant", name: "Accountant", nameAr: "محاسب",
+    permsEn: ["Finance · read-only", "Revenue reports", "Refund review", "No contract access"],
+    permsAr: ["مالية · قراءة فقط", "تقارير الإيرادات", "مراجعة الاسترداد", "لا صلاحية للعقود"],
+  },
+];
 
 export function RolesPermissionsPanel() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
+  const router = useRouter();
 
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const [isEditDrawerOpen, setEditDrawerOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<any>(null);
   const [permissions, setPermissions] = useState<any[]>([]);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [deleteRoleTarget, setDeleteRoleTarget] = useState<any>(null);
   const { showToast } = useToast();
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-
-  // Mock data - TODO: Replace with API when backend is ready
-  const MOCK_ROLES = [
-    {
-      id: 1,
-      name: "Owner",
-      nameAr: "المالك",
-      description: "Full platform access",
-      descriptionAr: "صلاحية كاملة للمنصة",
-      status: "Active",
-      permissionsCount: 35,
-    },
-    {
-      id: 2,
-      name: "Manager",
-      nameAr: "مدير",
-      description: "Branch operations and reports",
-      descriptionAr: "عمليات الفرع والتقارير",
-      status: "Active",
-      permissionsCount: 20,
-    },
-    {
-      id: 3,
-      name: "Front Desk",
-      nameAr: "موظف استقبال",
-      description: "Contract creation and customer management",
-      descriptionAr: "إنشاء العقود وإدارة العملاء",
-      status: "Active",
-      permissionsCount: 12,
-    },
-    {
-      id: 4,
-      name: "Accountant",
-      nameAr: "محاسب",
-      description: "Financial reports and refunds",
-      descriptionAr: "التقارير المالية والمستردات",
-      status: "Active",
-      permissionsCount: 8,
-    },
-  ];
-
-  // Load roles from API
-  useEffect(() => {
-    loadRoles();
-  }, []);
-
-  // Load permissions from API
-  useEffect(() => {
-    loadPermissions();
-  }, []);
 
   const loadRoles = async () => {
     try {
@@ -82,7 +55,8 @@ export function RolesPermissionsPanel() {
         id: item.id,
         name: item.name || '',
         description: item.description || '',
-        status: item.isActive !== false ? 'Active' : 'Inactive',
+        active: item.isActive !== false,
+        permissions: item.permissions || [],
         permissionsCount: item.permissions?.length || 0,
       }));
       setRoles(transformedRoles);
@@ -104,11 +78,17 @@ export function RolesPermissionsPanel() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(ar ? 'هل أنت متأكد من حذف هذا الدور؟' : 'Are you sure you want to delete this role?')) {
-      return;
-    }
+  // Load roles and the permissions catalog from the API. Deferred to a
+  // microtask so the synchronous `setLoading` inside the loaders doesn't
+  // run inside the effect body.
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      loadRoles();
+      loadPermissions();
+    });
+  }, []);
 
+  const handleDelete = async (id: number) => {
     try {
       await tenantRoleService.delete(id);
       loadRoles();
@@ -128,371 +108,174 @@ export function RolesPermissionsPanel() {
     }
   };
 
-  const handleEditRole = async (role: any) => {
-    setEditingRole(role);
-    setName(role.name || "");
-    setDescription(role.description || "");
-    setSelectedPermissions([]);
-    setEditDrawerOpen(true);
-
-    try {
-      const details = await tenantRoleService.getById(role.id);
-      const perms = details.permissions || details.data?.permissions || [];
-      setName(details.name || details.data?.name || role.name || "");
-      setDescription(details.description || details.data?.description || role.description || "");
-      setSelectedPermissions(perms);
-    } catch (error) {
-      console.error('Error loading role details:', error);
-      showToast(T('Failed to load role permissions', 'فشل تحميل صلاحيات الدور', ar));
+  // Resolve a stored permission value ("Contracts.View", …) to its display
+  // label using the permissions catalog loaded from the API.
+  const permissionLabel = (value: string) => {
+    for (const page of permissions) {
+      const hit = page.permissionItems?.find((p: any) => p.value === value);
+      if (hit) return hit.label;
     }
+    return value;
   };
 
-  const handleUpdateRole = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || selectedPermissions.length === 0) {
-      showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar));
-      return;
-    }
-
-    try {
-      await tenantRoleService.update(editingRole.id, {
-        name,
-        description,
-        permissions: selectedPermissions,
-      });
-
-      // Reload roles list
-      await loadRoles();
-      setEditDrawerOpen(false);
-      setEditingRole(null);
-      setName("");
-      setDescription("");
-      setSelectedPermissions([]);
-      showToast(T("🟢 Role updated successfully!", "🟢 تم تحديث الدور بنجاح!", ar));
-    } catch (error) {
-      console.error('Error updating role:', error);
-      showToast(T('Failed to update role', 'فشل تحديث الدور', ar));
-    }
-  };
-
-  const handleCreateRole = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name) {
-      showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar));
-      return;
-    }
-  
-    const normalizedName = name.trim().toLocaleLowerCase();
-    const roleExists = roles.some(
-      (role) => role.name?.trim().toLocaleLowerCase() === normalizedName
-    );
-
-    if (roleExists) {
-      showToast(T("Role already exists", "الدور موجود بالفعل", ar));
-      return;
-    }
-
-    try {
-      await tenantRoleService.create({
-        name: name.trim(),
-        description: description.trim(),
-        permissions: selectedPermissions,
-      });
-
-      // Reload roles list
-      await loadRoles();
-      setDrawerOpen(false);
-      setName("");
-      setDescription("");
-      setSelectedPermissions([]);
-      showToast(T("🟢 Role created successfully!", "🟢 تم إضافة الدور الجديد بنجاح!", ar));
-    } catch (error: any) {
-      console.error("Error creating role:", error);
-
-      const response = error?.response;
-      const errorText = [
-        response?.code,
-        response?.message,
-        response?.title,
-        response?.error,
-        ...(response?.errors ? Object.values(response.errors).flat() : []),
-        error?.message,
-      ].filter(Boolean).join(" ");
-
-      const isDuplicate =
-        error?.status === 409 ||
-        /already exists|duplicate|name exists|role.*exists|موجود بالفعل|مكرر/i.test(errorText);
-
-      showToast(
-        isDuplicate
-          ? T("Role already exists", "الدور موجود بالفعل", ar)
-          : errorText || T("Failed to create role", "فشل إنشاء الدور", ar)
-      );
-    }
-  };
-
-  const togglePermission = (permissionValue: string) => {
-    setSelectedPermissions(prev =>
-      prev.includes(permissionValue)
-        ? prev.filter(p => p !== permissionValue)
-        : [...prev, permissionValue]
-    );
-  };
-
-  const togglePagePermissions = (pagePermissions: any[]) => {
-    const allValues = pagePermissions.map(p => p.value);
-    const allSelected = allValues.every(v => selectedPermissions.includes(v));
-    
-    setSelectedPermissions(prev =>
-      allSelected
-        ? prev.filter(p => !allValues.includes(p))
-        : [...new Set([...prev, ...allValues])]
-    );
-  };
-
-  const isPageFullySelected = (pagePermissions: any[]) => {
-    const allValues = pagePermissions.map(p => p.value);
-    return allValues.every(v => selectedPermissions.includes(v));
-  };
-
-  const isPagePartiallySelected = (pagePermissions: any[]) => {
-    const allValues = pagePermissions.map(p => p.value);
-    const selectedCount = allValues.filter(v => selectedPermissions.includes(v)).length;
-    return selectedCount > 0 && selectedCount < allValues.length;
-  };
+  const rolePermissionValues = (role: any): string[] =>
+    (role.permissions || [])
+      .map((p: any) => (typeof p === "string" ? p : p?.value))
+      .filter(Boolean);
 
   return (
     <div>
-      {/* Header row */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="mk-h4 flex-1 text-mk-ink-900">
-          {T("Roles", "الأدوار", ar)}
-        </div>
-        <Button
-          variant="primary"
-          className="shadow-[var(--shadow-glow-blue)]"
-          onClick={() => setDrawerOpen(true)}
-        >
-          <Plus size={14} />
-          {T("Add role", "إضافة دور", ar)}
+      <div className="flex items-center justify-between mb-5">
+        <div className="mk-h4 text-mk-ink-900">{T("Role permissions", "صلاحيات الأدوار", ar)}</div>
+        <Button variant="primary" size="sm" onClick={() => router.push("/roles/new")}>
+          <Plus size={13} /> {T("Add role", "إضافة دور", ar)}
         </Button>
       </div>
 
-      {/* Roles table */}
-      <div className="rounded-xl overflow-hidden mk-surface">
+      <div className="rounded-card overflow-hidden mk-surface">
         <Table>
           <thead>
-            <tr>
-              {[
-                T("Role", "الدور", ar),
-                T("Description", "الوصف", ar),
-                "",
-              ].map((h, i) => <Th key={i}>{h}</Th>)}
-            </tr>
+            <Tr>
+              <Th>{T("Role", "الدور", ar)}</Th>
+              <Th>{T("Description", "الوصف", ar)}</Th>
+              <Th>{T("Type", "النوع", ar)}</Th>
+              <Th>{T("Status", "الحالة", ar)}</Th>
+              <Th>{T("Active", "التفعيل", ar)}</Th>
+              <Th />
+            </Tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={3} className="text-center py-12">
+              <Tr>
+                <Td colSpan={6} className="text-center py-12">
                   <Loader2 className="animate-spin text-mk-blue-500 mx-auto" size={32} />
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             ) : roles.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="text-center py-12 mk-label text-mk-ink-400">
+              <Tr>
+                <Td colSpan={6} className="text-center py-12 mk-label text-mk-ink-400">
                   {T("No roles found", "لم يتم العثور على أدوار", ar)}
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             ) : (
               roles.map((role) => (
-                <tr key={role.id} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50" onClick={() => handleEditRole(role)}>
+                <Tr
+                  key={role.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/roles/${role.id}`)}
+                  onKeyDown={(e) => { if (e.key === "Enter") router.push(`/roles/${role.id}`); }}
+                  className="cursor-pointer transition-colors duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50"
+                >
                   <Td>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-mk-blue-100 flex items-center justify-center">
-                        <Shield size={20} className="text-mk-blue-600" />
-                      </div>
-                      <div>
-                        <div className="mk-body text-mk-ink-900">
-                          {role.name}
-                        </div>
-                      </div>
-                    </div>
+                    <Badge variant={CUSTOM_ROLE_STYLE.variant}>
+                      <CUSTOM_ROLE_STYLE.Icon size={12} /> {role.name}
+                    </Badge>
                   </Td>
-                  <Td className="mk-label text-mk-ink-700">
-                    {role.description}
+                  <Td className="mk-caption text-mk-ink-500 truncate max-w-[320px]">{role.description}</Td>
+                  <Td>
+                    <Badge variant="info">
+                      {T("Custom", "مخصص", ar)}
+                    </Badge>
                   </Td>
                   <Td>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="outline"
+                    <Badge variant={role.active ? "success" : "neutral"} dot>
+                      {role.active ? T("Active", "مفعّل", ar) : T("Inactive", "غير مفعّل", ar)}
+                    </Badge>
+                  </Td>
+                  <Td onClick={(e) => e.stopPropagation()}>
+                    {/* Display-only: the roles API (CreateOrUpdateRoleDto)
+                        has no isActive field, so activation can't be toggled
+                        from here — the switch just mirrors the Status badge. */}
+                    <Toggle size="sm" checked={role.active} disabled />
+                  </Td>
+                  <Td className="text-end" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 justify-end">
+                      <IconButton
                         size="sm"
-                        onClick={() => handleEditRole(role)}
-                      >
-                        <Edit size={14} />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(role.id)}
+                        variant="ghost"
+                        className="text-mk-danger hover:text-mk-danger hover:bg-mk-danger-100"
+                        aria-label={T("Delete role", "حذف الدور", ar)}
+                        onClick={() => setDeleteRoleTarget(role)}
                       >
                         <Trash2 size={14} />
-                      </Button>
+                      </IconButton>
+                      <ChevronRight size={16} className="text-mk-ink-300 inline-block" />
                     </div>
                   </Td>
-                </tr>
+                </Tr>
               ))
             )}
           </tbody>
         </Table>
       </div>
 
-      {/* Create Drawer */}
-      <Drawer open={isDrawerOpen} onClose={() => setDrawerOpen(false)}>
-        <div className="flex flex-col gap-5 justify-between h-full max-w-[600px]">
-          <div>
-            <DrawerHeader title={T("Add New Role", "إضافة دور جديد", ar)} onClose={() => setDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-ink-100" />
-
-            <form onSubmit={handleCreateRole} className="flex flex-col gap-4 mt-5">
-              <Input
-                label={T("Role Name *", "اسم الدور *", ar)}
-                placeholder={T("e.g. Sales Manager", "مثال: مدير مبيعات", ar)}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <Input
-                label={T("Description", "الوصف", ar)}
-                placeholder={T("e.g. Sales team lead", "مثال: قائد فريق المبيعات", ar)}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-
-              {/* Permissions Section */}
-              <div className="mt-6">
-                <div className="mk-body font-semibold text-mk-ink-900 mb-4">
-                  {T("Permissions", "الصلاحيات", ar)}
+      {/* Role details — a quick-reference breakdown of what each role
+          currently grants, separate from the table above (which is for
+          finding and opening a role) so scanning "what can a Manager do"
+          doesn't require opening every row. */}
+      <div className="mt-6">
+        <div className="mk-label-muted mk-field-label mb-3">{T("Role details", "تفاصيل الأدوار", ar)}</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {BUILTIN_ROLES_REF.map((ref) => {
+            const style = builtinRoleStyle(ref.slug);
+            return (
+              <div key={ref.slug} className="p-4 rounded-md mk-surface">
+                <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                  <Badge variant={style.variant}>
+                    <style.Icon size={12} /> {ar ? ref.nameAr : ref.name}
+                  </Badge>
                 </div>
-                <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto">
-                  {permissions.map((page) => (
-                    <div key={page.page} className="border border-mk-ink-100 rounded-lg p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <input
-                          type="checkbox"
-                          id={`page-${page.page}`}
-                          checked={isPageFullySelected(page.permissionItems)}
-                          onChange={() => togglePagePermissions(page.permissionItems)}
-                          className="w-4 h-4"
-                        />
-                        <label htmlFor={`page-${page.page}`} className="mk-body font-semibold text-mk-ink-900">
-                          {page.page}
-                        </label>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 ml-7">
-                        {page.permissionItems.map((perm: any) => (
-                          <div key={perm.value} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={perm.value}
-                              checked={selectedPermissions.includes(perm.value)}
-                              onChange={() => togglePermission(perm.value)}
-                              className="w-4 h-4"
-                            />
-                            <label htmlFor={perm.value} className="mk-caption text-mk-ink-700">
-                              {perm.label}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                <ul className="flex flex-col gap-1">
+                  {(ar ? ref.permsAr : ref.permsEn).map((perm) => (
+                    <li key={perm} className="flex items-center gap-2 mk-caption text-mk-ink-700">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-mk-ink-400" />
+                      {perm}
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
-            </form>
-          </div>
+            );
+          })}
+        
+        </div>
+      </div>
 
-          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch">
-            <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+      {/* ── Confirm delete role modal ── */}
+      <Modal
+        open={deleteRoleTarget !== null}
+        onClose={() => setDeleteRoleTarget(null)}
+        title={T("Delete this role?", "حذف هذا الدور؟", ar)}
+        variant="centered"
+        size="sm"
+      >
+        <div className="p-5">
+          <p className="mk-body-sm text-mk-ink-600 mb-5">
+            {T(
+              "This can't be undone. Staff currently assigned this role will keep it until reassigned.",
+              "لا يمكن التراجع عن هذا الإجراء. الموظفون المُسند إليهم هذا الدور سيحتفظون به حتى إعادة تعيينهم.",
+              ar
+            )}
+          </p>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setDeleteRoleTarget(null)} className="flex-1 justify-center">
               {T("Cancel", "إلغاء", ar)}
             </Button>
-            <Button variant="primary" onClick={handleCreateRole} className="flex-1 shadow-[var(--shadow-glow-blue)]">
-              {T("✓ Create Role", "✓ حفظ الدور", ar)}
+            <Button
+              variant="danger"
+              className="flex-1 justify-center"
+              onClick={async () => {
+                if (deleteRoleTarget) {
+                  await handleDelete(deleteRoleTarget.id);
+                }
+                setDeleteRoleTarget(null);
+              }}
+            >
+              {T("Delete role", "حذف الدور", ar)}
             </Button>
-          </DrawerFooter>
-        </div>
-      </Drawer>
-
-      {/* Edit Drawer */}
-      <Drawer open={isEditDrawerOpen} onClose={() => setEditDrawerOpen(false)}>
-        <div className="flex flex-col gap-5 justify-between h-full max-w-[600px]">
-          <div>
-            <DrawerHeader title={T("Edit Role", "تعديل الدور", ar)} onClose={() => setEditDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-ink-100" />
-
-            <form onSubmit={handleUpdateRole} className="flex flex-col gap-4 mt-5">
-              <Input
-                label={T("Role Name *", "اسم الدور *", ar)}
-                placeholder={T("e.g. Sales Manager", "مثال: مدير مبيعات", ar)}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <Input
-                label={T("Description", "الوصف", ar)}
-                placeholder={T("e.g. Sales team lead", "مثال: قائد فريق المبيعات", ar)}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-
-              {/* Permissions Section */}
-              <div className="mt-6">
-                <div className="mk-body font-semibold text-mk-ink-900 mb-4">
-                  {T("Permissions", "الصلاحيات", ar)}
-                </div>
-                <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto">
-                  {permissions.map((page) => (
-                    <div key={page.page} className="border border-mk-ink-100 rounded-lg p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <input
-                          type="checkbox"
-                          id={`page-edit-${page.page}`}
-                          checked={isPageFullySelected(page.permissionItems)}
-                          onChange={() => togglePagePermissions(page.permissionItems)}
-                          className="w-4 h-4"
-                        />
-                        <label htmlFor={`page-edit-${page.page}`} className="mk-body font-semibold text-mk-ink-900">
-                          {page.page}
-                        </label>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 ml-7">
-                        {page.permissionItems.map((perm: any) => (
-                          <div key={perm.value} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={`edit-${perm.value}`}
-                              checked={selectedPermissions.includes(perm.value)}
-                              onChange={() => togglePermission(perm.value)}
-                              className="w-4 h-4"
-                            />
-                            <label htmlFor={`edit-${perm.value}`} className="mk-caption text-mk-ink-700">
-                              {perm.label}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </form>
           </div>
-
-          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch">
-            <Button variant="outline" onClick={() => setEditDrawerOpen(false)}>
-              {T("Cancel", "إلغاء", ar)}
-            </Button>
-            <Button variant="primary" onClick={handleUpdateRole} className="flex-1 shadow-[var(--shadow-glow-blue)]">
-              {T("✓ Update Role", "✓ تحديث الدور", ar)}
-            </Button>
-          </DrawerFooter>
         </div>
-      </Drawer>
+      </Modal>
     </div>
   );
 }

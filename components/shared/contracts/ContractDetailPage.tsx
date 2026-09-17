@@ -118,7 +118,8 @@ function mapExt(c: any): ContractExt {
   const days = Number(c.durationDays) || Math.max(1, Math.round((new Date(c.endAt).getTime() - new Date(c.startAt).getTime()) / 86400000)) || 1;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const addOns = Array.isArray(c.additionalServices) ? c.additionalServices.map((s: any) => s.nameEn ?? s.additionalServiceName ?? s.name ?? s.label ?? String(s.additionalServiceId ?? s.id ?? "")).filter(Boolean) : [];
-  const method = c.paymentMethodCode != null ? (PAYMENT_METHOD_LABELS[String(c.paymentMethodCode)] ?? c.otherPaymentMethodCode ?? String(c.paymentMethodCode)) : (c.otherPaymentMethodCode ?? "—");
+  const methodId = c.paymentMethodId ?? c.paymentMethodCode;
+  const method = methodId != null ? (PAYMENT_METHOD_LABELS[String(methodId)] ?? c.otherPaymentMethodCode ?? String(methodId)) : (c.paymentMethodName ?? c.otherPaymentMethodCode ?? "—");
   return {
     days,
     dailyRate: Number(c.rentDayCost ?? c.dailyRate ?? 0),

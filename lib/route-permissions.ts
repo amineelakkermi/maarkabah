@@ -46,6 +46,8 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { pattern: "/settings", permission: null },
   { pattern: "/branches", permission: Permission.Branches.View },
   { pattern: "/roles", permission: Permission.Roles.View },
+  { pattern: "/roles/new", permission: Permission.Roles.View },
+  { pattern: "/roles/:id", permission: Permission.Roles.View },
   { pattern: "/staff", permission: Permission.Users.View },
   // TODO: replace `null` with Permission.Notifications.* once the backend
   // ships the notifications permission.

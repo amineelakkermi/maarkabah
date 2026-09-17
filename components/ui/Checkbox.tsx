@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, InputHTMLAttributes, ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 
 interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "size" | "onChange"> {
   label?: ReactNode;
@@ -10,10 +10,13 @@ interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "typ
   description?: ReactNode;
   checked?: boolean;
   defaultChecked?: boolean;
+  /** "Some but not all" state — renders a filled box with a dash, used on
+   * parent rows that group child checkboxes (e.g. a permission module). */
+  indeterminate?: boolean;
   onChange?: (checked: boolean) => void;
 }
 
-function Checkbox({ label, description, checked, defaultChecked = false, onChange, disabled, className = "", id, ...props }: CheckboxProps) {
+function Checkbox({ label, description, checked, defaultChecked = false, indeterminate = false, onChange, disabled, className = "", id, ...props }: CheckboxProps) {
   const [internalChecked, setInternalChecked] = useState(defaultChecked);
   const isChecked = checked !== undefined ? checked : internalChecked;
   const checkboxId = id ?? (typeof label === "string" ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
@@ -33,6 +36,7 @@ function Checkbox({ label, description, checked, defaultChecked = false, onChang
           type="checkbox"
           id={checkboxId}
           checked={isChecked}
+          ref={(el) => { if (el) el.indeterminate = indeterminate && !isChecked; }}
           onChange={handleChange}
           disabled={disabled}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed peer"
@@ -41,9 +45,10 @@ function Checkbox({ label, description, checked, defaultChecked = false, onChang
         <span
           className={`w-full h-full rounded-xs border flex items-center justify-center shrink-0 transition-colors duration-base ease-standard
             peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-mk-blue-500/50
-            ${isChecked ? "bg-mk-blue-500 border-mk-blue-500" : "bg-white border-mk-ink-300"}`}
+            ${isChecked || (indeterminate && !isChecked) ? "bg-mk-blue-500 border-mk-blue-500" : "bg-white border-mk-ink-300"}`}
         >
           {isChecked && <Check size={13} className="text-white" strokeWidth={3} />}
+          {!isChecked && indeterminate && <Minus size={13} className="text-white" strokeWidth={3} />}
         </span>
       </span>
       {(label || description) && (

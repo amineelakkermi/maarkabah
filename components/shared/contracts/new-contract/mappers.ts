@@ -203,9 +203,9 @@ export function buildCreateContractRequest(
 ): CreateContractRequest {
   const paidAmount =
     input.payType === "full" ? input.pricing.total : input.pricing.advanceAmount;
-  const paymentType: ContractPaymentType = input.payType === "full" ? 1 : 2;
-  const paymentMethodCode =
-    paidAmount > 0 ? (input.payMethod === "cash" ? "1" : "2") : null;
+  const paymentTypeId: ContractPaymentType = input.payType === "full" ? 1 : 2;
+  const paymentMethodId =
+    paidAmount > 0 ? (input.payMethod === "cash" ? 1 : 2) : null;
 
   const discountPercent =
     input.pricing.grossSubtotal > 0
@@ -259,8 +259,8 @@ export function buildCreateContractRequest(
     extraDriverCost: input.pricing.extraDriverFare,
     discountPercent,
     paidAmount,
-    paymentType,
-    paymentMethodCode,
+    paymentTypeId,
+    paymentMethodId,
     otherPaymentMethodCode: null,
     internationalAuthorizationCost: input.internationalAuthorizationCost,
     extendedCoverageId: input.extendedCoverageId ?? null,
