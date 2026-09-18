@@ -1,6 +1,6 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useRef, useEffect, type RefObject } from "react";
 import { Search, Check, UserPlus, UserCheck, Shield, Gauge, X, LayoutGrid, List, Map as MapIcon, Loader2 } from "lucide-react";
 import { Avatar, Badge, RiyalSymbol, Input, Select, Button, Chip, IconButton, Tabs, DatePicker, DateTimePicker } from "@/components/ui";
 import type { Car, CarStatus, DriverProfile } from "@/lib/data";
@@ -85,6 +85,33 @@ export function StepCustomerVehicle({
   carStatusCounts, viewMode, setViewMode, carFilter, setCarFilter, pickedPlate, setPickedPlate, carMapRef, carMapsLoaded,
   showConditionModal, setShowConditionModal, conditionView, setConditionView, sketchItems, setSketchItems, rentStatus,
 }: StepCustomerVehicleProps) {
+  // Close the floating search panels on outside click — same behavior as the
+  // designer's page (outside click cancels back to the default answer).
+  const authDriverPanelRef = useRef<HTMLDivElement>(null);
+  const extraDriverPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (
+        !isRenterDriver && !selectedAuthDriver &&
+        authDriverPanelRef.current && !authDriverPanelRef.current.contains(e.target as Node)
+      ) {
+        clearAuthDriver();
+        setIsRenterDriver(true);
+      }
+      if (
+        extraDriverEnabled && !selectedExtraDriver &&
+        extraDriverPanelRef.current && !extraDriverPanelRef.current.contains(e.target as Node)
+      ) {
+        clearExtraDriver();
+        setExtraDriverEnabled(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [isRenterDriver, selectedAuthDriver, extraDriverEnabled, selectedExtraDriver,
+      clearAuthDriver, clearExtraDriver, setIsRenterDriver, setExtraDriverEnabled]);
+
   return (
     <div className="flex flex-col gap-4">
       {/* Contract info + Drivers — side by side */}
@@ -317,35 +344,108 @@ export function StepCustomerVehicle({
               </div>
             </div>
 
-            {/* Authorized driver + Extra driver — side by side */}
-            <div className="pt-6 mt-6 border-t border-mk-ink-100 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-mk-blue-500/10 flex items-center justify-center shrink-0">
-                  <UserCheck size={14} className="text-mk-blue-500" />
+            {/* Authorized driver + Extra driver — questions side by side; the
+                search panel overlays the whole card at 100% width (designer). */}
+            <div className="pt-6 mt-6 border-t border-mk-ink-100 relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-mk-blue-500/10 flex items-center justify-center shrink-0">
+                    <UserCheck size={14} className="text-mk-blue-500" />
+                  </div>
+                  <span className="mk-label text-mk-ink-900">{T("Authorized driver", "المفوض بالقيادة", ar)}</span>
                 </div>
-                <span className="mk-label text-mk-ink-900">{T("Authorized driver", "المفوض بالقيادة", ar)}</span>
-              </div>
-              <p className="mk-caption text-mk-ink-500 mb-4 mt-2">
-                {T("Authorized drivers must hold a valid Saudi National ID or Iqama (residence permit) only.", "المفوضين هوية وطنية أو إقامة سارية فقط.", ar)}
-              </p>
-              <label className="mk-overline mb-2 block text-mk-ink-600">
-                {T("Is the beneficiary the authorized driver?", "هل المستفيد هو نفسه المفوض؟", ar)}
-              </label>
-              <div className="flex gap-2 mb-3 mt-2">
-                <Chip active={isRenterDriver} onClick={() => { setIsRenterDriver(true); clearAuthDriver(); }}>
-                  {T("Yes", "نعم", ar)}
-                </Chip>
-                <Chip active={!isRenterDriver} onClick={() => setIsRenterDriver(false)}>
-                  {T("No", "لا", ar)}
-                </Chip>
+                <p className="mk-caption text-mk-ink-500 mb-4 mt-2">
+                  {T("Authorized drivers must hold a valid Saudi National ID or Iqama (residence permit) only.", "المفوضين هوية وطنية أو إقامة سارية فقط.", ar)}
+                </p>
+                {selectedAuthDriver ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg mk-row-bg border border-mk-blue-500/30">
+                    <Avatar name={selectedAuthDriver.name} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="mk-caption text-mk-ink-900">{ar ? selectedAuthDriver.nameAr : selectedAuthDriver.name}</div>
+                      <div className="mk-overline text-mk-ink-500">
+                        {selectedAuthDriver.idType} · {selectedAuthDriver.nationalId} · {selectedAuthDriver.phone}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearAuthDriver}
+                      className="mk-overline text-mk-ink-500 bg-mk-ink-50 px-2 py-1 rounded-full border-0 cursor-pointer"
+                    >
+                      {T("Change", "تغيير", ar)}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <label className="mk-overline mb-2 block text-mk-ink-600">
+                      {T("Is the beneficiary the authorized driver?", "هل المستفيد هو نفسه المفوض؟", ar)}
+                    </label>
+                    <div className="flex gap-2 mb-3 mt-2">
+                      <Chip active={isRenterDriver} onClick={() => { setIsRenterDriver(true); clearAuthDriver(); }}>
+                        {T("Yes", "نعم", ar)}
+                      </Chip>
+                      <Chip active={!isRenterDriver} onClick={() => setIsRenterDriver(false)}>
+                        {T("No", "لا", ar)}
+                      </Chip>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {!isRenterDriver && (
+              {/* Extra driver */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-mk-blue-500/10 flex items-center justify-center shrink-0">
+                    <UserPlus size={14} className="text-mk-blue-500" />
+                  </div>
+                  <span className="mk-label text-mk-ink-900">{T("Extra driver", "السائق الإضافي", ar)}</span>
+                </div>
+                <p className="mk-caption text-mk-ink-500 mb-4 mt-2">
+                  {T("A second driver authorized on the contract.", "سائق ثانٍ مفوّض على العقد.", ar)}
+                </p>
+                {selectedExtraDriver ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg mk-row-bg border border-mk-blue-500/30">
+                    <Avatar name={selectedExtraDriver.name} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="mk-caption text-mk-ink-900">{ar ? selectedExtraDriver.nameAr : selectedExtraDriver.name}</div>
+                      <div className="mk-overline text-mk-ink-500">
+                        {selectedExtraDriver.idType} · {selectedExtraDriver.nationalId} · {selectedExtraDriver.phone}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearExtraDriver}
+                      className="mk-overline text-mk-ink-500 bg-mk-ink-50 px-2 py-1 rounded-full border-0 cursor-pointer"
+                    >
+                      {T("Change", "تغيير", ar)}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <label className="mk-overline mb-2 block text-mk-ink-600">
+                      {T("Is there an extra driver on this contract?", "هل يوجد سائق إضافي على هذا العقد؟", ar)}
+                    </label>
+                    <div className="flex gap-2 mb-3 mt-2">
+                      <Chip active={extraDriverEnabled} onClick={() => setExtraDriverEnabled(true)}>
+                        {T("Yes", "نعم", ar)}
+                      </Chip>
+                      <Chip active={!extraDriverEnabled} onClick={() => setExtraDriverEnabled(false)}>
+                        {T("No", "لا", ar)}
+                      </Chip>
+                    </div>
+                  </>
+                )}
+              </div>
+              </div>
+
+              {/* Search Panel for Authorized Driver — 100% width of the card */}
+              {!isRenterDriver && !selectedAuthDriver && (
+                <div ref={authDriverPanelRef}>
                 <PersonPicker
+                  overlay
                   ar={ar}
-                  label={T("Search drivers for the authorized driver:", "ابحث عن السائقين لاختيار المفوض:", ar)}
-                  placeholder={T("Search driver by phone, ID, or name…", "ابحث عن السائق بالهاتف أو الهوية أو الاسم…", ar)}
+                  label={T("Search customers for the authorized driver:", "ابحث عن العملاء لاختيار المفوض:", ar)}
+                  placeholder={T("Search customer by phone, ID, or name…", "ابحث عن العميل بالهاتف أو الهوية أو الاسم…", ar)}
                   items={filteredAuthDrivers}
                   query={authDriverQuery}
                   onQuery={setAuthDriverQuery}
@@ -354,44 +454,27 @@ export function StepCustomerVehicle({
                   onClear={clearAuthDriver}
                   loading={driversLoading}
                   error={driversError}
-                  action={!selectedAuthDriver && (
-                    <button
+                  action={
+                    <Button
                       type="button"
+                      variant="tonal"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap !rounded-md"
                       onClick={() => setShowAuthDriverAddNew(true)}
-                      className="mk-overline text-mk-blue-600 bg-transparent border-0 cursor-pointer shrink-0"
                     >
-                      + {T("Add new authorized driver", "إضافة مفوض جديد", ar)}
-                    </button>
-                  )}
+                      <UserPlus size={14} />
+                      {T("Add new authorized driver", "إضافة مفوض جديد", ar)}
+                    </Button>
+                  }
                 />
-              )}
-            </div>
-
-            {/* Extra driver */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-mk-blue-500/10 flex items-center justify-center shrink-0">
-                  <UserPlus size={14} className="text-mk-blue-500" />
                 </div>
-                <span className="mk-label text-mk-ink-900">{T("Extra driver", "السائق الإضافي", ar)}</span>
-              </div>
-              <p className="mk-caption text-mk-ink-500 mb-4 mt-2">
-                {T("A second driver authorized on the contract.", "سائق ثانٍ مفوّض على العقد.", ar)}
-              </p>
-              <label className="mk-overline mb-2 block text-mk-ink-600">
-                {T("Is there an extra driver on this contract?", "هل يوجد سائق إضافي على هذا العقد؟", ar)}
-              </label>
-              <div className="flex gap-2 mb-3 mt-2">
-                <Chip active={extraDriverEnabled} onClick={() => setExtraDriverEnabled(true)}>
-                  {T("Yes", "نعم", ar)}
-                </Chip>
-                <Chip active={!extraDriverEnabled} onClick={() => setExtraDriverEnabled(false)}>
-                  {T("No", "لا", ar)}
-                </Chip>
-              </div>
+              )}
 
-              {extraDriverEnabled && (
+              {/* Search Panel for Extra Driver — 100% width of the card */}
+              {extraDriverEnabled && !selectedExtraDriver && (
+                <div ref={extraDriverPanelRef}>
                 <PersonPicker
+                  overlay
                   ar={ar}
                   label={T("Search drivers for the extra driver:", "ابحث عن السائق الإضافي:", ar)}
                   placeholder={T("Search driver by phone, ID, or name…", "ابحث عن السائق بالهاتف أو الهوية أو الاسم…", ar)}
@@ -403,18 +486,21 @@ export function StepCustomerVehicle({
                   onClear={clearExtraDriver}
                   loading={driversLoading}
                   error={driversError}
-                  action={!selectedExtraDriver && (
-                    <button
+                  action={
+                    <Button
                       type="button"
+                      variant="tonal"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap !rounded-md"
                       onClick={() => setShowExtraDriverAddNew(true)}
-                      className="mk-overline text-mk-blue-600 bg-transparent border-0 cursor-pointer shrink-0"
                     >
-                      + {T("Add new driver", "إضافة سائق جديد", ar)}
-                    </button>
-                  )}
+                      <UserPlus size={14} />
+                      {T("Add new driver", "إضافة سائق جديد", ar)}
+                    </Button>
+                  }
                 />
+                </div>
               )}
-            </div>
             </div>
 
           </div>

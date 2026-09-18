@@ -11,7 +11,7 @@ import { T } from "./constants";
 // `action` is the header-right slot (e.g. "+ Add new driver" link / button).
 export function PersonPicker({
   ar, label, placeholder, items, query, onQuery, selected, onSelect, onClear,
-  action, loading, error, showRating,
+  action, loading, error, showRating, overlay,
 }: {
   ar: boolean;
   label: string;
@@ -26,9 +26,14 @@ export function PersonPicker({
   loading?: boolean;
   error?: string;
   showRating?: boolean;
+  /** Floats the panel over its positioned parent at 100% width (matches the
+   *  designer's search panel, which spans the whole drivers card). */
+  overlay?: boolean;
 }) {
   return (
-    <div className="p-4 rounded-lg bg-mk-ink-50 border border-mk-ink-200 flex flex-col gap-3">
+    <div className={overlay
+      ? "absolute top-2 inset-x-0 z-30 p-3.5 rounded-lg bg-mk-bg-elevated border border-mk-ink-200 shadow-xl flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150"
+      : "p-4 rounded-lg bg-mk-ink-50 border border-mk-ink-200 flex flex-col gap-3"}>
       <div className="flex items-center justify-between gap-2">
         <label className="mk-overline text-mk-ink-600">{label}</label>
         {action}

@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Search, UserPlus, ChevronRight, CheckCircle, Phone, CreditCard,
+  Search, UserPlus, ChevronRight, Phone, CreditCard,
   X, User, Loader2, FileWarning,
 } from "lucide-react";
-import { Avatar, Badge, HijriDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton } from "@/components/ui";
+import { Avatar, Badge, Button, Input, IconButton } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { type DriverProfile } from "@/lib/data";
-import { driverService, driverEvents, countryService } from "@/lib/api-services";
-import { transliterateArabicName } from "@/lib/transliterate";
+import { driverService, driverEvents } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
+import { AddDriverDrawer } from "./AddDriverDrawer";
 
 const T = (en: string, ar: string, isAr: boolean) => isAr ? ar : en;
 
@@ -87,47 +87,6 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
 
-  // Add driver form state
-  const [newName, setNewName] = useState("");
-  const [newNameAr, setNewNameAr] = useState("");
-  // Tracks whether the employee typed the English name by hand — once they
-  // do, auto-transliteration from Arabic stops overwriting their edit.
-  const [englishNameEdited, setEnglishNameEdited] = useState(false);
-  const [newPhone, setNewPhone] = useState("");
-  const [newId, setNewId] = useState("");
-  const [newIdType, setNewIdType] = useState<"Saudi ID" | "Iqama" | "Passport" | "GCC ID">("Saudi ID");
-  const [newLicense, setNewLicense] = useState("");
-  const [newAddress, setNewAddress] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newBirthDate, setNewBirthDate] = useState("");
-  const [newHijriBirthDate, setNewHijriBirthDate] = useState("");
-  const [newIdExpiry, setNewIdExpiry] = useState("");
-  const [newLicenseExpiry, setNewLicenseExpiry] = useState("");
-  const [newIdCopyNumber, setNewIdCopyNumber] = useState("");
-  const [newLicenseIssuePlace, setNewLicenseIssuePlace] = useState("");
-  const [newBorderNumber, setNewBorderNumber] = useState("");
-  const [added, setAdded] = useState(false);
-
-  // Countries selection (for Visitor / GCC ID types)
-  const [countries, setCountries] = useState<{ id: number; name: string; nameAr?: string; nameEn?: string }[]>([]);
-  const [newCountryId, setNewCountryId] = useState<string>("");
-
-  useEffect(() => {
-    countryService
-      .search({ pageNumber: 1, pageSize: 200 })
-      .then((res: any) => {
-        const list = res?.data?.items ?? res?.items ?? res?.data ?? res ?? [];
-        const normalized = Array.isArray(list) ? list.map((c: any) => ({
-          id: c.id,
-          name: c.nameAr || c.nameEn || c.name || "",
-          nameAr: c.nameAr,
-          nameEn: c.nameEn,
-        })) : [];
-        setCountries(normalized);
-      })
-      .catch(() => setCountries([]));
-  }, []);
-
   const loadDrivers = async () => {
     try {
       setIsLoading(true);
@@ -154,61 +113,6 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
     return () => unsubscribe();
   }, [ar]);
 
-  // Required field set per identity type — mirrors the new-contract flow's
-  // per-type identity form so registering a driver uses the exact same fields.
-  type IdentityFieldDef = {
-    key: string; labelEn: string; labelAr: string; required: boolean;
-    type: "text" | "date" | "email" | "hijri"; value: string; onChange: (v: string) => void;
-  };
-  function newDriverIdentityFields(): IdentityFieldDef[] {
-    const addressField: IdentityFieldDef = { key: "address", labelEn: "Address", labelAr: "العنوان", required: true, type: "text", value: newAddress, onChange: setNewAddress };
-    const idCopyNumberField: IdentityFieldDef = { key: "idCopyNumber", labelEn: "ID Copy No.", labelAr: "رقم نسخة الهوية", required: true, type: "text", value: newIdCopyNumber, onChange: setNewIdCopyNumber };
-
-    if (newIdType === "Saudi ID" || newIdType === "Iqama") {
-      const fields: IdentityFieldDef[] = [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: newId, onChange: setNewId },
-        addressField,
-        { key: "birthDate", labelEn: newIdType === "Saudi ID" ? "Date of Birth (Hijri)" : "Date of Birth", labelAr: newIdType === "Saudi ID" ? "تاريخ الميلاد (هجري)" : "تاريخ الميلاد", required: true, type: newIdType === "Saudi ID" ? "hijri" : "date", value: newIdType === "Saudi ID" ? newHijriBirthDate : newBirthDate, onChange: newIdType === "Saudi ID" ? setNewHijriBirthDate : setNewBirthDate },
-      ];
-      if (newIdType === "Saudi ID") {
-        fields.push({ key: "birthDateGregorian", labelEn: "Date of Birth (Gregorian, optional)", labelAr: "تاريخ الميلاد (ميلادي، اختياري)", required: false, type: "date", value: newBirthDate, onChange: setNewBirthDate });
-      }
-      fields.push(
-        { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: newLicense, onChange: setNewLicense },
-        { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: newLicenseExpiry, onChange: setNewLicenseExpiry },
-        { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: newLicenseIssuePlace, onChange: setNewLicenseIssuePlace },
-        { key: "email", labelEn: "Email (optional)", labelAr: "البريد الإلكتروني (غير إلزامي)", required: false, type: "email", value: newEmail, onChange: setNewEmail },
-      );
-      return fields;
-    }
-    if (newIdType === "GCC ID") {
-      return [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: newId, onChange: setNewId },
-        addressField,
-        { key: "birthDate", labelEn: "Date of Birth", labelAr: "تاريخ الميلاد", required: true, type: "date", value: newBirthDate, onChange: setNewBirthDate },
-        { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: newLicense, onChange: setNewLicense },
-        { key: "idExpiry", labelEn: "ID Expiry Date", labelAr: "تاريخ انتهاء الهوية", required: true, type: "date", value: newIdExpiry, onChange: setNewIdExpiry },
-        { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: newLicenseIssuePlace, onChange: setNewLicenseIssuePlace },
-        { key: "email", labelEn: "Email", labelAr: "البريد الإلكتروني", required: true, type: "email", value: newEmail, onChange: setNewEmail },
-        idCopyNumberField,
-        { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: newLicenseExpiry, onChange: setNewLicenseExpiry },
-      ];
-    }
-    // Passport / Visitor — no "Beneficiary ID No." field; identity is border/passport number instead
-    return [
-      addressField,
-      { key: "borderNumber", labelEn: "Border No.", labelAr: "رقم الحدود", required: true, type: "text", value: newBorderNumber, onChange: setNewBorderNumber },
-      { key: "passportNumber", labelEn: "Passport No.", labelAr: "رقم الجواز", required: true, type: "text", value: newId, onChange: setNewId },
-      { key: "birthDate", labelEn: "Date of Birth", labelAr: "تاريخ الميلاد", required: true, type: "date", value: newBirthDate, onChange: setNewBirthDate },
-      { key: "licenseNumber", labelEn: "License No.", labelAr: "رقم الرخصة", required: true, type: "text", value: newLicense, onChange: setNewLicense },
-      { key: "licenseExpiry", labelEn: "License Expiry Date", labelAr: "تاريخ انتهاء الرخصة", required: true, type: "date", value: newLicenseExpiry, onChange: setNewLicenseExpiry },
-      { key: "licenseIssuePlace", labelEn: "License Issue Place", labelAr: "مكان إصدار الرخصة", required: true, type: "text", value: newLicenseIssuePlace, onChange: setNewLicenseIssuePlace },
-      { key: "email", labelEn: "Email", labelAr: "البريد الإلكتروني", required: true, type: "email", value: newEmail, onChange: setNewEmail },
-      idCopyNumberField,
-      { key: "idExpiry", labelEn: "ID Expiry Date", labelAr: "تاريخ انتهاء الهوية", required: true, type: "date", value: newIdExpiry, onChange: setNewIdExpiry },
-    ];
-  }
-
   const filtered = drivers.filter((d) => {
     const q = search.toLowerCase();
     return (
@@ -219,119 +123,6 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
       (d.lastBooking ?? "").toLowerCase().includes(q)
     );
   });
-
-  function isDriverFormInvalid() {
-    if (!newNameAr || !newPhone) return true;
-    if ((newIdType === "Passport" || newIdType === "GCC ID") && !newCountryId) return true;
-    return newDriverIdentityFields().some((f) => f.required && !f.value);
-  }
-
-  async function handleAdd() {
-    if (isDriverFormInvalid()) return;
-
-    const idTypeCodes: Record<string, 1 | 2 | 3 | 4> = {
-      "Saudi ID": 1,
-      "Iqama": 2,
-      "Passport": 3,
-      "GCC ID": 4
-    };
-    const identityType = idTypeCodes[newIdType] ?? 1;
-    const phone = newPhone.startsWith("+966") || newPhone.startsWith("+") ? newPhone : `+966 ${newPhone}`;
-
-    const payload: any = {
-      fullNameEn: newName || transliterateArabicName(newNameAr),
-      fullNameAr: newNameAr,
-      phoneNumber: phone,
-      identityType,
-      address: newAddress || undefined,
-      customerId: null,
-      isActive: true,
-    };
-
-    if (newIdType === "Saudi ID") {
-      payload.national = {
-        beneficiaryIdNumber: newId,
-        birthDate: newBirthDate || undefined,
-        hijriBirthDate: newHijriBirthDate ? parseInt(newHijriBirthDate, 10) : undefined,
-        isHijriBirthDate: !newBirthDate,
-        email: newEmail || undefined,
-        licenseNumber: newLicense || undefined,
-        licenseExpiryDate: newLicenseExpiry || undefined,
-        licenseIssuePlace: newLicenseIssuePlace || undefined,
-      };
-    } else if (newIdType === "Iqama") {
-      payload.residence = {
-        beneficiaryIdNumber: newId,
-        birthDate: newBirthDate || undefined,
-        isHijriBirthDate: false,
-        email: newEmail || undefined,
-        licenseNumber: newLicense || undefined,
-        licenseExpiryDate: newLicenseExpiry || undefined,
-        licenseIssuePlace: newLicenseIssuePlace || undefined,
-      };
-    } else if (newIdType === "Passport") {
-      payload.visitor = {
-        passportNumber: newId,
-        borderNumber: newBorderNumber || undefined,
-        birthDate: newBirthDate || undefined,
-        email: newEmail || undefined,
-        licenseNumber: newLicense || undefined,
-        licenseExpiryDate: newLicenseExpiry || undefined,
-        licenseIssuePlace: newLicenseIssuePlace || undefined,
-        countryId: newCountryId ? Number(newCountryId) : undefined,
-        identityCopyNumber: newIdCopyNumber || undefined,
-        identityExpiryDate: newIdExpiry || undefined,
-      };
-    } else if (newIdType === "GCC ID") {
-      payload.gulf = {
-        beneficiaryIdNumber: newId,
-        email: newEmail || undefined,
-        birthDate: newBirthDate || undefined,
-        licenseNumber: newLicense || undefined,
-        licenseExpiryDate: newLicenseExpiry || undefined,
-        licenseIssuePlace: newLicenseIssuePlace || undefined,
-        countryId: newCountryId ? Number(newCountryId) : undefined,
-        identityCopyNumber: newIdCopyNumber || undefined,
-        identityExpiryDate: newIdExpiry || undefined,
-      };
-    }
-
-    Object.keys(payload).forEach((key) => {
-      if (payload[key] === undefined || payload[key] === null) {
-        delete payload[key];
-      }
-    });
-
-    setAdded(true);
-    try {
-      await driverService.create(payload);
-      await loadDrivers();
-      driverEvents.reload();
-      setShowAdd(false);
-      setAdded(false);
-      setNewName("");
-      setNewNameAr("");
-      setEnglishNameEdited(false);
-      setNewPhone("");
-      setNewId("");
-      setNewIdType("Saudi ID");
-      setNewLicense("");
-      setNewAddress("");
-      setNewEmail("");
-      setNewBirthDate("");
-      setNewHijriBirthDate("");
-      setNewIdExpiry("");
-      setNewLicenseExpiry("");
-      setNewCountryId("");
-      setNewIdCopyNumber("");
-      setNewLicenseIssuePlace("");
-      setNewBorderNumber("");
-    } catch (err) {
-      console.error("Error creating driver:", err);
-      setAdded(false);
-      alert(T("Failed to add driver. Please check the fields.", "فشل إضافة السائق. يرجى التحقق من الحقول.", ar));
-    }
-  }
 
   return (
     <div>
@@ -478,123 +269,12 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
         )}
       </div>
 
-      {/* ── DRAWER: Add new driver ───────────────────────────────── */}
-      <Drawer open={showAdd} onClose={() => setShowAdd(false)}>
-        <div className="flex flex-col justify-between h-full max-w-[480px] overflow-y-auto">
-          <div>
-            <DrawerHeader title={T("Add new driver", "إضافة سائق جديد", ar)} onClose={() => setShowAdd(false)} className="mb-0 pb-4 border-b border-mk-border" />
-
-            <div className="flex flex-col gap-4 mt-5">
-              <Input
-                variant="muted"
-                dir="rtl"
-                label={<>{T("Full name (Arabic)", "الاسم الكامل (عربي)", ar)} <span className="text-mk-danger">*</span></>}
-                placeholder="مثال: خالد المطيري"
-                value={newNameAr}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setNewNameAr(v);
-                  if (!englishNameEdited) setNewName(transliterateArabicName(v));
-                }}
-              />
-              <Input
-                variant="muted"
-                label={T("Full name (English, optional)", "الاسم الكامل (إنجليزي، اختياري)", ar)}
-                placeholder="e.g. Khaled Al-Mutairi"
-                value={newName}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setNewName(v);
-                  setEnglishNameEdited(v !== "");
-                }}
-              />
-              <Input
-                variant="muted"
-                type="tel"
-                className="font-mono"
-                label={<>{T("Phone number", "رقم الهاتف", ar)} <span className="text-mk-danger">*</span></>}
-                placeholder="e.g. +966 50 123 4567"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-              />
-              <div className="flex flex-col gap-2">
-                <label className="mk-caption text-mk-ink-700">
-                  {T("ID Type", "نوع الهوية", ar)}
-                </label>
-                <Select
-                  value={newIdType}
-                  onChange={(e) => {
-                    const selectedType = e.target.value as any;
-                    setNewIdType(selectedType);
-                  }}
-                >
-                  <option value="Saudi ID">{T("National ID", "هوية وطنية", ar)}</option>
-                  <option value="Iqama">{T("Iqama", "إقامة", ar)}</option>
-                  <option value="Passport">{T("Visitor", "زائر", ar)}</option>
-                  <option value="GCC ID">{T("GCC ID", "هوية خليجية", ar)}</option>
-                </Select>
-              </div>
-
-              {/* Dynamic identity fields — depends on ID Type, matches the new-contract flow exactly */}
-              {newDriverIdentityFields().map((f) => (
-                f.type === "hijri" ? (
-                  <div key={f.key} className="flex flex-col gap-2">
-                    <label className="mk-caption text-mk-ink-700">
-                      {T(f.labelEn, f.labelAr, ar)} {f.required && <span className="text-mk-danger">*</span>}
-                    </label>
-                    <HijriDatePicker value={f.value} onChange={f.onChange} ar={ar} />
-                  </div>
-                ) : (
-                  <Input
-                    key={f.key}
-                    variant="muted"
-                    className="font-mono"
-                    type={f.type}
-                    label={<>{T(f.labelEn, f.labelAr, ar)} {f.required && <span className="text-mk-danger">*</span>}</>}
-                    value={f.value}
-                    onChange={(e) => f.onChange(e.target.value)}
-                  />
-                )
-              ))}
-
-              {/* Country selection — required for Visitor / GCC ID types */}
-              {(newIdType === "Passport" || newIdType === "GCC ID") && (
-                <div className="flex flex-col gap-2">
-                  <label className="mk-caption text-mk-ink-700">
-                    {T("Country", "الدولة", ar)} <span className="text-mk-danger">*</span>
-                  </label>
-                  <Select value={newCountryId} onChange={(e) => setNewCountryId(e.target.value)}>
-                    <option value="">{T("Select country...", "اختر الدولة...", ar)}</option>
-                    {countries.map((country) => (
-                      <option key={country.id} value={String(country.id)}>
-                        {ar ? country.nameAr || country.name : country.nameEn || country.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DrawerFooter className="mt-4 pt-4 border-t border-mk-border justify-stretch">
-            <Button variant="outline" onClick={() => setShowAdd(false)}>
-              {T("Cancel", "إلغاء", ar)}
-            </Button>
-            <Button
-              variant="primary"
-              disabled={isDriverFormInvalid()}
-              onClick={handleAdd}
-              className={`flex-1 ${added ? "bg-mk-mint-500 hover:bg-mk-mint-500" : ""}`}
-            >
-              {added ? (
-                <><CheckCircle size={16} /> {T("Added!", "تمت الإضافة!", ar)}</>
-              ) : (
-                <><UserPlus size={16} /> {T("Add Driver", "إضافة سائق", ar)}</>
-              )}
-            </Button>
-          </DrawerFooter>
-        </div>
-      </Drawer>
+      {/* ── DRAWER: Add new driver — shared form ── */}
+      <AddDriverDrawer
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onCreated={() => loadDrivers()}
+      />
     </div>
   );
 }

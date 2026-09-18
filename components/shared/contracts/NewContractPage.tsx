@@ -14,7 +14,7 @@ import {
 } from "./new-contract/constants";
 import { computeRental, computePricing } from "./new-contract/pricing";
 import { buildCreateContractRequest, mapBackendCustomerToDriver } from "./new-contract/mappers";
-import { contractService, customerService } from "@/lib/api-services";
+import { contractService, customerService, driverService } from "@/lib/api-services";
 import { ApiError } from "@/lib/api-client";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useContractLookups } from "./new-contract/useContractLookups";
@@ -32,7 +32,8 @@ import {
   type TajeerSaveContractResponse,
   type TajeerRentStatus, type SketchItem, type TajeerIdType, type TajeerContractType,
 } from "@/lib/tajeer";
-import { PersonRegistrationDrawer, type NewPersonProfile } from "@/components/employee/PersonRegistrationDrawer";
+import { AddCustomerDrawer } from "@/components/shared/customers/AddCustomerDrawer";
+import { AddDriverDrawer } from "@/components/shared/drivers/AddDriverDrawer";
 import { loadGoogleMapsScript, getGoogleMapsStyle, getCarLatLng, createCustomMarker } from "@/lib/maps";
 
 const toLocalDateTimeValue = (date: Date) => {
@@ -669,108 +670,37 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   };
 
 
-  const ID_TYPE_CODE_MAP: Record<NewPersonProfile["idType"], 1 | 2 | 3 | 4> = {
-    "Saudi ID": 1, "Iqama": 2, "Passport": 3, "GCC ID": 4,
+  // The shared drawers create real records via the API; on success we fetch
+  // the created entity, prepend it to the picker list, and select it.
+  const handleCustomerCreated = async (createdId: number) => {
+    try {
+      const detail = await customerService.getById(createdId);
+      const mapped = mapBackendCustomerToDriver(detail?.data ?? detail);
+      setCustomersList((prev) => [mapped, ...prev.filter((c) => c.id !== mapped.id)]);
+      setSelectedCustomer(mapped);
+      setShowCustomerSearch(false);
+    } catch { /* record was created; it will appear on next reload */ }
   };
 
-  const handleCreateCustomerFromDrawer = (p: NewPersonProfile) => {
-    const newCust: DriverProfile = {
-      id: `D-${1000 + customersList.length + 1}`,
-      name: p.name,
-      nameAr: p.nameAr,
-      phone: p.phone,
-      idType: p.idType,
-      idTypeCode: ID_TYPE_CODE_MAP[p.idType],
-      nationalId: p.idNumber,
-      idExpiryDate: p.idExpiryDate,
-      birthDate: p.birthDate,
-      hijriBirthDate: p.hijriBirthDate,
-      email: p.email,
-      nationality: p.nationality,
-      personAddress: p.personAddress ?? "Riyadh",
-      idCopyNumber: p.idCopyNumber,
-      licenseIssuePlace: p.licenseIssuePlace,
-      borderNumber: p.borderNumber,
-      licenseNumber: p.licenseNumber || `LIC-${Math.floor(10000 + Math.random() * 90000)}`,
-      licenseExpiryDate: p.licenseExpiryDate,
-      bookings: 0,
-      status: "verified",
-      lastBooking: null,
-      rating: 5.0,
-      blacklisted: false,
-      joinDate: new Date().toISOString().split("T")[0],
-    };
-
-    setCustomersList((prev) => [newCust, ...prev]);
-    setSelectedCustomer(newCust);
-    setShowCustomerSearch(false);
-    setIsNewCustomerOpen(false);
+  const handleDriverCreated = (select: (d: DriverProfile) => void) => async (createdId: number) => {
+    try {
+      const detail = await driverService.getById(createdId);
+      const mapped = mapBackendCustomerToDriver(detail?.data ?? detail);
+      setDriversList((prev) => [mapped, ...prev.filter((d) => d.id !== mapped.id)]);
+      select(mapped);
+    } catch { /* record was created; it will appear on next reload */ }
   };
 
-  const handleCreateAuthDriverFromDrawer = (p: NewPersonProfile) => {
-    const newDriver: DriverProfile = {
-      id: `D-${1000 + customersList.length + 1}`,
-      name: p.name,
-      nameAr: p.nameAr,
-      phone: p.phone,
-      idType: p.idType,
-      idTypeCode: ID_TYPE_CODE_MAP[p.idType],
-      nationalId: p.idNumber,
-      idExpiryDate: p.idExpiryDate,
-      birthDate: p.birthDate,
-      hijriBirthDate: p.hijriBirthDate,
-      email: p.email,
-      nationality: p.nationality,
-      personAddress: p.personAddress ?? "Riyadh",
-      idCopyNumber: p.idCopyNumber,
-      licenseIssuePlace: p.licenseIssuePlace,
-      borderNumber: p.borderNumber,
-      licenseNumber: p.licenseNumber || `LIC-${Math.floor(10000 + Math.random() * 90000)}`,
-      licenseExpiryDate: p.licenseExpiryDate,
-      bookings: 0,
-      status: "verified",
-      lastBooking: null,
-      rating: 5.0,
-      blacklisted: false,
-      joinDate: new Date().toISOString().split("T")[0],
-    };
-
-    setDriversList((prev) => [newDriver, ...prev]);
-    handleSelectAuthDriver(newDriver);
-    setShowAuthDriverAddNew(false);
-  };
-
-  const handleCreateExtraDriverFromDrawer = (p: NewPersonProfile) => {
-    const newDriver: DriverProfile = {
-      id: `D-${1000 + customersList.length + 1}`,
-      name: p.name,
-      nameAr: p.nameAr,
-      phone: p.phone,
-      idType: p.idType,
-      idTypeCode: ID_TYPE_CODE_MAP[p.idType],
-      nationalId: p.idNumber,
-      idExpiryDate: p.idExpiryDate,
-      birthDate: p.birthDate,
-      hijriBirthDate: p.hijriBirthDate,
-      email: p.email,
-      nationality: p.nationality,
-      personAddress: p.personAddress ?? "Riyadh",
-      idCopyNumber: p.idCopyNumber,
-      licenseIssuePlace: p.licenseIssuePlace,
-      borderNumber: p.borderNumber,
-      licenseNumber: p.licenseNumber || `LIC-${Math.floor(10000 + Math.random() * 90000)}`,
-      licenseExpiryDate: p.licenseExpiryDate,
-      bookings: 0,
-      status: "verified",
-      lastBooking: null,
-      rating: 5.0,
-      blacklisted: false,
-      joinDate: new Date().toISOString().split("T")[0],
-    };
-
-    setDriversList((prev) => [newDriver, ...prev]);
-    handleSelectExtraDriver(newDriver);
-    setShowExtraDriverAddNew(false);
+  // Duplicate-modal "View customer" → select the existing customer instead.
+  const handleSelectExistingCustomer = async (id: string) => {
+    try {
+      const detail = await customerService.getById(Number(id));
+      const mapped = mapBackendCustomerToDriver(detail?.data ?? detail);
+      setCustomersList((prev) => [mapped, ...prev.filter((c) => c.id !== mapped.id)]);
+      setSelectedCustomer(mapped);
+      setShowCustomerSearch(false);
+      setIsNewCustomerOpen(false);
+    } catch { /* leave the picker unchanged */ }
   };
 
   // ── Renter identity fields — the required field set depends on idTypeCode ──
@@ -1146,38 +1076,31 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         onRetry={handleSubmitToTajeer}
       />
 
-      {/* ── Registration drawers — match the "Register new customer" modal in the customer page ── */}
-      <PersonRegistrationDrawer
+      {/* ── Registration drawers — same forms as the customers / drivers pages ── */}
+      <AddCustomerDrawer
         open={isNewCustomerOpen}
         onClose={() => setIsNewCustomerOpen(false)}
-        onCreate={handleCreateCustomerFromDrawer}
-        ar={ar}
-        titleEn="Add new customer"
-        titleAr="إضافة عميل جديد"
-        submitLabelEn="Add Customer"
-        submitLabelAr="إضافة عميل"
+        onCreated={handleCustomerCreated}
+        existingCustomers={customersList.map((c) => ({
+          id: c.id, name: c.name, nameAr: c.nameAr, phone: c.phone,
+          idType: c.idType, idNumber: c.nationalId,
+        }))}
+        onViewDuplicate={(c) => handleSelectExistingCustomer(c.id)}
       />
-      <PersonRegistrationDrawer
+      <AddDriverDrawer
         open={showAuthDriverAddNew}
         onClose={() => setShowAuthDriverAddNew(false)}
-        onCreate={handleCreateAuthDriverFromDrawer}
-        ar={ar}
+        onCreated={handleDriverCreated(handleSelectAuthDriver)}
         titleEn="Add new authorized driver"
         titleAr="إضافة مفوض جديد"
         submitLabelEn="Add Authorized Driver"
         submitLabelAr="إضافة مفوض"
         allowedIdTypes={["Saudi ID", "Iqama"]}
       />
-      <PersonRegistrationDrawer
+      <AddDriverDrawer
         open={showExtraDriverAddNew}
         onClose={() => setShowExtraDriverAddNew(false)}
-        onCreate={handleCreateExtraDriverFromDrawer}
-        ar={ar}
-        titleEn="Add new driver"
-        titleAr="إضافة سائق جديد"
-        submitLabelEn="Add Driver"
-        submitLabelAr="إضافة سائق"
-        allowedIdTypes={["Saudi ID", "Iqama", "GCC ID", "Passport"]}
+        onCreated={handleDriverCreated(handleSelectExtraDriver)}
       />
     </div>
   );
