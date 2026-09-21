@@ -11,6 +11,7 @@ import {
 } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { tenantUserService, tenantRoleService, branchService } from "@/lib/api-services";
+import { SaudiPhoneInput, saudiLocalDigits, isSaudiMobileLocal } from "@/components/shared/SaudiPhoneInput";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -28,8 +29,6 @@ const normalizeSaudiPhone = (raw: string): string => {
   else if (digits.startsWith("5")) digits = `966${digits}`;
   return digits;
 };
-
-const isValidSaudiPhone = (phone: string): boolean => /^9665\d{8}$/.test(phone);
 
 const isProtectedUser = (user: any): boolean =>
   user?.roleName?.startsWith('TenantAdmin') || user?.isEditable === false;
@@ -245,7 +244,7 @@ export function StaffRolesPanel() {
     setUserName(user.userName || "");
     setFullName(user.name || "");
     setEmail(user.email || "");
-    setPhoneNumber(user.phoneNumber || "");
+    setPhoneNumber(saudiLocalDigits(user.phoneNumber));
     setPassword("");
     setRoleName(user.roleName || "");
     setBranchIds(user.branchIds || []);
@@ -260,7 +259,7 @@ export function StaffRolesPanel() {
       setFullName(details.fullName || user.name || "");
       setRoleName(details.roleName || user.roleName || "");
       setEmail(details.email || user.email || "");
-      setPhoneNumber(details.phoneNumber || user.phoneNumber || "");
+      setPhoneNumber(saudiLocalDigits(details.phoneNumber || user.phoneNumber));
       setBranchIds(extractBranchIds(details));
       setIsActive(details.isActive !== false);
       setIdentityType(details.identityType != null ? String(details.identityType) : "");
@@ -288,9 +287,8 @@ export function StaffRolesPanel() {
   };
 
   const validatePhone = (): boolean => {
-    const normalizedPhone = phoneNumber ? normalizeSaudiPhone(phoneNumber) : "";
-    if (normalizedPhone && !isValidSaudiPhone(normalizedPhone)) {
-      showToast(T("Phone number must be a Saudi mobile number in the form 9665XXXXXXXX", "يجب أن يكون رقم الهاتف رقم جوال سعودي بصيغة 9665XXXXXXXX", ar), "error");
+    if (phoneNumber && !isSaudiMobileLocal(phoneNumber)) {
+      showToast(T("Enter the 9 digits of a Saudi mobile number starting with 5", "أدخل 9 أرقام لرقم جوال سعودي يبدأ بـ 5", ar), "error");
       return false;
     }
     return true;
@@ -737,14 +735,10 @@ export function StaffRolesPanel() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <Input
-                variant="muted"
-                type="tel"
-                className="font-mono"
+              <SaudiPhoneInput
                 label={T("Phone number", "رقم الجوال", ar)}
-                placeholder="e.g. +966 50 123 4567"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={setPhoneNumber}
               />
 
               {/* Identity — required by Tajeer for contract-issuing operators */}
@@ -847,14 +841,10 @@ export function StaffRolesPanel() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <Input
-                variant="muted"
-                type="tel"
-                className="font-mono"
+              <SaudiPhoneInput
                 label={T("Phone number", "رقم الجوال", ar)}
-                placeholder="e.g. +966 50 123 4567"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={setPhoneNumber}
               />
 
               {/* Identity — required by Tajeer for contract-issuing operators */}

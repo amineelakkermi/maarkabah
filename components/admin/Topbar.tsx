@@ -15,7 +15,7 @@ const PAGE_META: Record<string, { en: string; ar: string; crumbEn?: string; crum
   "/kyc-queue":    { en: "KYC Queue",           ar: "مراجعة الهوية",     crumbEn: "Customer", crumbAr: "العملاء"  },
   "/drivers-kyc-queue": { en: "Driver KYC Queue", ar: "مراجعة هوية السائقين", crumbEn: "Customer", crumbAr: "العملاء" },
   "/late-returns": { en: "Late Returns",        ar: "الإرجاع المتأخر",   crumbEn: "Customer", crumbAr: "العملاء"  },
-  "/blacklist":    { en: "Blacklist",           ar: "القائمة السوداء",   crumbEn: "Customer", crumbAr: "العملاء"  },
+  "/blacklist":    { en: "Customer Inquiry",    ar: "الإستعلام عن العملاء", crumbEn: "Customer", crumbAr: "العملاء"  },
   "/revenue":      { en: "Revenue",             ar: "الإيرادات",          crumbEn: "Finance",  crumbAr: "المالية"  },
   "/refunds":      { en: "Refunds",             ar: "المستردات",          crumbEn: "Finance",  crumbAr: "المالية"  },
   "/pricing":      { en: "Pricing & Policies",  ar: "الأسعار والسياسات", crumbEn: "Finance",  crumbAr: "المالية"  },

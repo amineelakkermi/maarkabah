@@ -9,6 +9,7 @@ import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
 import { hijriToGregorianStr, gregorianToHijriStr } from "@/lib/hijri-utils";
 import { ApiError } from "@/lib/api-client";
 import { describeApiError } from "@/lib/api-error-messages";
+import { SaudiPhoneInput, isSaudiMobileLocal } from "@/components/shared/SaudiPhoneInput";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -270,9 +271,8 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
   function customerFormErrors() {
     const errors: string[] = [];
     const email = newEmail.trim();
-    const phone = newPhone.replace(/[\s()+-]/g, "");
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-    const isValidSaudiPhone = /^(?:9665|05|5)\d{8}$/.test(phone);
+    const isValidSaudiPhone = isSaudiMobileLocal(newPhone);
     const requiresEmailAndCountry = newIdType === "Passport" || newIdType === "GCC ID";
 
     if (!newNameAr.trim()) errors.push(T("Arabic full name is required", "الاسم الكامل بالعربية مطلوب", ar));
@@ -344,7 +344,7 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
       const createRequest = {
         fullNameEn: newName,
         fullNameAr: newNameAr,
-        phoneNumber: newPhone.startsWith("+966") || newPhone.startsWith("+") ? newPhone : `+966 ${newPhone}`,
+        phoneNumber: `+966 ${newPhone}`,
         email: newEmail || undefined,
         identityType: identityTypeMap[newIdType],
         address: newAddress || undefined,
@@ -447,14 +447,10 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
               />
-              <Input
-                variant="muted"
-                type="tel"
-                className="font-mono"
+              <SaudiPhoneInput
                 label={<>{T("Phone number", "رقم الهاتف", ar)} <span className="text-mk-danger">*</span></>}
-                placeholder="e.g. +966 50 123 4567"
                 value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
+                onChange={setNewPhone}
               />
 
               <Input

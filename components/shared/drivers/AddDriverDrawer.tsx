@@ -7,6 +7,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { driverService, driverEvents, countryService } from "@/lib/api-services";
 import { transliterateArabicName } from "@/lib/transliterate";
 import { describeApiError } from "@/lib/api-error-messages";
+import { SaudiPhoneInput, isSaudiMobileLocal } from "@/components/shared/SaudiPhoneInput";
 
 const T = (en: string, ar: string, isAr: boolean) => isAr ? ar : en;
 
@@ -141,8 +142,7 @@ export function AddDriverDrawer({
 
   function driverFormErrors() {
     const errors: string[] = [];
-    const phone = newPhone.replace(/[\s()+-]/g, "");
-    const isValidSaudiPhone = /^(?:9665|05|5)\d{8}$/.test(phone);
+    const isValidSaudiPhone = isSaudiMobileLocal(newPhone);
 
     if (!newNameAr.trim()) errors.push(T("Arabic full name is required", "الاسم الكامل بالعربية مطلوب", ar));
     if (!isValidSaudiPhone) errors.push(T("Enter a valid Saudi phone number", "أدخل رقم هاتف سعودي صحيح", ar));
@@ -195,7 +195,7 @@ export function AddDriverDrawer({
       "GCC ID": 4
     };
     const identityType = idTypeCodes[effectiveIdType] ?? 1;
-    const phone = newPhone.startsWith("+966") || newPhone.startsWith("+") ? newPhone : `+966 ${newPhone}`;
+    const phone = `+966 ${newPhone}`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: any = {
@@ -317,14 +317,10 @@ export function AddDriverDrawer({
                 setEnglishNameEdited(v !== "");
               }}
             />
-            <Input
-              variant="muted"
-              type="tel"
-              className="font-mono"
+            <SaudiPhoneInput
               label={<>{T("Phone number", "رقم الهاتف", ar)} <span className="text-mk-danger">*</span></>}
-              placeholder="e.g. +966 50 123 4567"
               value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
+              onChange={setNewPhone}
             />
             <div className="flex flex-col gap-2">
               <label className="mk-caption text-mk-ink-700">
