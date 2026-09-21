@@ -8,6 +8,7 @@ import { customerService, attachmentService, countryService, customerEvents } fr
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
 import { hijriToGregorianStr, gregorianToHijriStr } from "@/lib/hijri-utils";
 import { ApiError } from "@/lib/api-client";
+import { describeApiError } from "@/lib/api-error-messages";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -407,12 +408,18 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
         if (existing) {
           setDuplicateCustomer(mapApiItemToClientProfile(existing));
         } else {
-          showToast(T("A customer with this identity already exists.", "يوجد عميل بنفس الهوية مسبقًا.", ar));
+          showToast(
+            describeApiError(err, ar, T("A customer with this identity already exists.", "يوجد عميل بنفس الهوية مسبقًا.", ar)),
+            "error",
+          );
         }
         return;
       }
 
-      showToast(T("Failed to add customer", "فشل في إضافة العميل", ar));
+      showToast(
+        describeApiError(err, ar, T("Failed to add customer", "فشل في إضافة العميل", ar)),
+        "error",
+      );
     }
   }
 

@@ -6,6 +6,7 @@ import { HijriDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFoo
 import { useAdmin } from "@/contexts/AdminContext";
 import { driverService, driverEvents, countryService } from "@/lib/api-services";
 import { transliterateArabicName } from "@/lib/transliterate";
+import { describeApiError } from "@/lib/api-error-messages";
 
 const T = (en: string, ar: string, isAr: boolean) => isAr ? ar : en;
 
@@ -273,7 +274,10 @@ export function AddDriverDrawer({
     } catch (err) {
       console.error("Error creating driver:", err);
       setAdded(false);
-      alert(T("Failed to add driver. Please check the fields.", "فشل إضافة السائق. يرجى التحقق من الحقول.", ar));
+      showToast(
+        describeApiError(err, ar, T("Failed to add driver. Please check the fields.", "فشل إضافة السائق. يرجى التحقق من الحقول.", ar)),
+        "error",
+      );
     }
   }
 
