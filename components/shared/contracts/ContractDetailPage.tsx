@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -9,6 +9,7 @@ import {
   FileText, Printer, XCircle, ArrowLeft, ArrowRight,
   AlertTriangle, Eye, CalendarPlus, Check, Clock, X,
   MoreVertical, MapPin, Pencil, Lock, Tag,
+  ShieldCheck, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { Avatar, Badge, Modal, Button, Chip, IconButton } from "@/components/ui";
 import type { Booking } from "@/lib/data";
@@ -140,6 +141,33 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 // ── Contract Preview Modal ─────────────────────────────────────────────────────
+const PreviewSectionHeader = ({ en, arLabel }: { en: string; arLabel: string }) => (
+  <div style={{
+    background: "#1a2233", color: "white", padding: "6px 12px",
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    marginTop: 16, marginBottom: 0, borderRadius: 4,
+  }}>
+    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{en}</span>
+    <span style={{ fontSize: 11, fontWeight: 700 }}>{arLabel}</span>
+  </div>
+);
+
+const PreviewField = ({ en, arLabel, value, span = 1 }: { en: string; arLabel: string; value: string; span?: number }) => (
+  <div style={{ padding: "6px 10px", borderBottom: "1px solid #f0f0f0", borderRight: "1px solid #f0f0f0", gridColumn: `span ${span}` }}>
+    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+      <span style={{ fontSize: 9, color: "#999", fontWeight: 600, textTransform: "uppercase" }}>{en}</span>
+      <span style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{arLabel}</span>
+    </div>
+    <div style={{ fontSize: 12, fontWeight: 600, color: "#1a2233" }}>{value || "—"}</div>
+  </div>
+);
+
+const PreviewFieldGrid = ({ children, cols = 4 }: { children: React.ReactNode; cols?: number }) => (
+  <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, border: "1px solid #f0f0f0", borderRight: "none", borderBottom: "none", marginBottom: 0 }}>
+    {children}
+  </div>
+);
+
 function ContractPreviewModal({
   contract, ext, lateFeePerHour, onClose, ar,
 }: {
@@ -151,33 +179,6 @@ function ContractPreviewModal({
 }) {
   const subtotal = Math.round(contract.amount / 1.15);
   const vat = contract.amount - subtotal;
-
-  const SectionHeader = ({ en, arLabel }: { en: string; arLabel: string }) => (
-    <div style={{
-      background: "#1a2233", color: "white", padding: "6px 12px",
-      display: "flex", justifyContent: "space-between", alignItems: "center",
-      marginTop: 16, marginBottom: 0, borderRadius: 4,
-    }}>
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{en}</span>
-      <span style={{ fontSize: 11, fontWeight: 700 }}>{arLabel}</span>
-    </div>
-  );
-
-  const Field = ({ en, arLabel, value, span = 1 }: { en: string; arLabel: string; value: string; span?: number }) => (
-    <div style={{ padding: "6px 10px", borderBottom: "1px solid #f0f0f0", borderRight: "1px solid #f0f0f0", gridColumn: `span ${span}` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-        <span style={{ fontSize: 9, color: "#999", fontWeight: 600, textTransform: "uppercase" }}>{en}</span>
-        <span style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{arLabel}</span>
-      </div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#1a2233" }}>{value || "—"}</div>
-    </div>
-  );
-
-  const FieldGrid = ({ children, cols = 4 }: { children: React.ReactNode; cols?: number }) => (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, border: "1px solid #f0f0f0", borderRight: "none", borderBottom: "none", marginBottom: 0 }}>
-      {children}
-    </div>
-  );
 
   return (
     <Modal
@@ -234,47 +235,47 @@ function ContractPreviewModal({
           </div>
 
           {/* Section 1 — Lessor */}
-          <SectionHeader en="1. LESSOR INFORMATION" arLabel="بيانات المؤجر" />
-          <FieldGrid>
-            <Field en="Company Name" arLabel="اسم الشركة" value="Maarkbh مركبة" />
-            <Field en="Branch" arLabel="الفرع" value={contract.branch} />
-            <Field en="CR / License No." arLabel="السجل / رقم الترخيص" value="14/00001234" />
-            <Field en="City" arLabel="المدينة" value="Riyadh / الرياض" />
-          </FieldGrid>
+          <PreviewSectionHeader en="1. LESSOR INFORMATION" arLabel="بيانات المؤجر" />
+          <PreviewFieldGrid>
+            <PreviewField en="Company Name" arLabel="اسم الشركة" value="Maarkbh مركبة" />
+            <PreviewField en="Branch" arLabel="الفرع" value={contract.branch} />
+            <PreviewField en="CR / License No." arLabel="السجل / رقم الترخيص" value="14/00001234" />
+            <PreviewField en="City" arLabel="المدينة" value="Riyadh / الرياض" />
+          </PreviewFieldGrid>
 
           {/* Section 2 — Lessee */}
-          <SectionHeader en="2. LESSEE INFORMATION" arLabel="بيانات المستأجر" />
-          <FieldGrid>
-            <Field en="Full Name" arLabel="الاسم الكامل" value={contract.customer} />
-            <Field en="Mobile" arLabel="الجوال" value={contract.phone} />
-            <Field en="ID / Iqama No." arLabel="رقم الهوية / الإقامة" value="—" />
-            <Field en="ID Expiry" arLabel="تاريخ انتهاء الهوية" value="—" />
-            <Field en="License No." arLabel="رقم الرخصة" value="—" />
-            <Field en="License Expiry" arLabel="انتهاء الرخصة" value="—" />
-            <Field en="Nationality" arLabel="الجنسية" value="Saudi / سعودي" />
-            <Field en="Address" arLabel="العنوان" value="Riyadh / الرياض" />
-          </FieldGrid>
+          <PreviewSectionHeader en="2. LESSEE INFORMATION" arLabel="بيانات المستأجر" />
+          <PreviewFieldGrid>
+            <PreviewField en="Full Name" arLabel="الاسم الكامل" value={contract.customer} />
+            <PreviewField en="Mobile" arLabel="الجوال" value={contract.phone} />
+            <PreviewField en="ID / Iqama No." arLabel="رقم الهوية / الإقامة" value="—" />
+            <PreviewField en="ID Expiry" arLabel="تاريخ انتهاء الهوية" value="—" />
+            <PreviewField en="License No." arLabel="رقم الرخصة" value="—" />
+            <PreviewField en="License Expiry" arLabel="انتهاء الرخصة" value="—" />
+            <PreviewField en="Nationality" arLabel="الجنسية" value="Saudi / سعودي" />
+            <PreviewField en="Address" arLabel="العنوان" value="Riyadh / الرياض" />
+          </PreviewFieldGrid>
 
           {/* Section 3 — Vehicle */}
-          <SectionHeader en="3. VEHICLE INFORMATION" arLabel="بيانات المركبة" />
-          <FieldGrid>
-            <Field en="Make / Model" arLabel="الماركة / الموديل" value={contract.car} />
-            <Field en="Plate No." arLabel="رقم اللوحة" value={contract.plate} />
-            <Field en="KM Limit / Day" arLabel="حد الكيلومترات" value={ext.kmCap} />
-            <Field en="Extra KM Cost" arLabel="تكلفة الكيلومتر الزائد" value="2 SAR / ر.س" />
-          </FieldGrid>
+          <PreviewSectionHeader en="3. VEHICLE INFORMATION" arLabel="بيانات المركبة" />
+          <PreviewFieldGrid>
+            <PreviewField en="Make / Model" arLabel="الماركة / الموديل" value={contract.car} />
+            <PreviewField en="Plate No." arLabel="رقم اللوحة" value={contract.plate} />
+            <PreviewField en="KM Limit / Day" arLabel="حد الكيلومترات" value={ext.kmCap} />
+            <PreviewField en="Extra KM Cost" arLabel="تكلفة الكيلومتر الزائد" value="2 SAR / ر.س" />
+          </PreviewFieldGrid>
 
           {/* Section 4 — Rental Period */}
-          <SectionHeader en="4. RENTAL PERIOD" arLabel="فترة الإيجار" />
-          <FieldGrid>
-            <Field en="Pickup Date & Time" arLabel="تاريخ / وقت الاستلام" value={`${contract.date} ${contract.time}`} />
-            <Field en="Return Date & Time" arLabel="تاريخ / وقت الإرجاع" value={contract.dropoff} />
-            <Field en="Duration" arLabel="مدة الإيجار" value={`${ext.days} ${ar ? "أيام" : "day(s)"}`} />
-            <Field en="Pickup Branch" arLabel="فرع الاستلام" value={contract.branch} />
-          </FieldGrid>
+          <PreviewSectionHeader en="4. RENTAL PERIOD" arLabel="فترة الإيجار" />
+          <PreviewFieldGrid>
+            <PreviewField en="Pickup Date & Time" arLabel="تاريخ / وقت الاستلام" value={`${contract.date} ${contract.time}`} />
+            <PreviewField en="Return Date & Time" arLabel="تاريخ / وقت الإرجاع" value={contract.dropoff} />
+            <PreviewField en="Duration" arLabel="مدة الإيجار" value={`${ext.days} ${ar ? "أيام" : "day(s)"}`} />
+            <PreviewField en="Pickup Branch" arLabel="فرع الاستلام" value={contract.branch} />
+          </PreviewFieldGrid>
 
           {/* Section 5 — Financial Summary */}
-          <SectionHeader en="5. FINANCIAL SUMMARY" arLabel="الملخص المالي" />
+          <PreviewSectionHeader en="5. FINANCIAL SUMMARY" arLabel="الملخص المالي" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1px solid #f0f0f0", borderRight: "none", borderBottom: "none" }}>
             {/* Left */}
             <div>
@@ -657,6 +658,14 @@ export default function ContractDetailPage({
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [activating, setActivating] = useState(false);
+  const [activateError, setActivateError] = useState("");
+  // Backend capability flags (canActivate / canDeliver / canReturn)
+  const [caps, setCaps] = useState<{ canActivate?: boolean; canDeliver?: boolean; canReturn?: boolean }>({});
+  // Tajeer link state + action feedback
+  const [tajeerInfo, setTajeerInfo] = useState<{ linked: boolean; issuanceUrl: string | null; number: string | null }>({ linked: false, issuanceUrl: null, number: null });
+  const [tajeerBusy, setTajeerBusy] = useState(false);
+  const [tajeerMsg, setTajeerMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
   const [contract, setContract] = useState<ContractView | null>(null);
@@ -679,6 +688,12 @@ export default function ContractDetailPage({
         if (!c || c.id == null) { setNotFound(true); return; }
         setContract(mapContract(c, ar));
         setExt(mapExt(c));
+        setCaps({ canActivate: c.canActivate, canDeliver: c.canDeliver, canReturn: c.canReturn });
+        setTajeerInfo({
+          linked: c.tajeerContractNumber != null || c.issuanceUrl != null,
+          issuanceUrl: c.issuanceUrl ?? null,
+          number: c.tajeerContractNumber ?? null,
+        });
 
         // Timeline from the real activity log (non-blocking)
         contractService.searchActivities(id, { pageNumber: 1, pageSize: 50 })
@@ -751,11 +766,91 @@ export default function ContractDetailPage({
   const sm = STATUS_CONFIG[contract.status] ?? { variant: "neutral" as const, labelEn: contract.status, labelAr: contract.status };
   const baseAmount = ext.dailyRate * ext.days;
 
-  const canHandOver = contract.status === "pending";
-  const canReturn   = contract.status === "active" || contract.status === "late";
+  // Backend capability flags take precedence; status fallback covers payloads
+  // that don't send them.
+  const canActivate = caps.canActivate ?? contract.status === "pending";
+  const canHandOver = caps.canDeliver ?? (contract.status === "pending" || contract.status === "active");
+  const canReturn   = caps.canReturn ?? (contract.status === "active" || contract.status === "late");
   // Cancellation requires Permissions.Contracts.Cancel (manager role) and is
   // only meaningful before the contract reaches a terminal state.
   const canCancel = hasPermission(Permission.Contracts.Cancel) && (contract.status === "pending" || contract.status === "active" || contract.status === "late");
+
+  const refetchContract = async () => {
+    const res = await contractService.getById(id);
+    const c = res?.data ?? res;
+    if (c?.id != null) {
+      setContract(mapContract(c, ar));
+      setExt(mapExt(c));
+      setCaps({ canActivate: c.canActivate, canDeliver: c.canDeliver, canReturn: c.canReturn });
+      setTajeerInfo({
+        linked: c.tajeerContractNumber != null || c.issuanceUrl != null,
+        issuanceUrl: c.issuanceUrl ?? null,
+        number: c.tajeerContractNumber ?? null,
+      });
+    }
+  };
+
+  const handleActivate = async () => {
+    setActivating(true);
+    setActivateError("");
+    try {
+      await contractService.activate(id);
+      await refetchContract();
+    } catch (err) {
+      setActivateError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const handleValidateTajeer = async () => {
+    setShowActions(false);
+    setTajeerBusy(true);
+    setTajeerMsg(null);
+    try {
+      const res = await contractService.validateWithTajeer(id);
+      const d = res?.data ?? res;
+      const ok = Boolean(d?.isValid ?? d?.valid ?? d?.success ?? true);
+      setTajeerMsg({ ok, text: d?.message ?? d?.error ?? (ok ? T("Contract is valid for Tajeer", "العقد صالح لدى تاجير", ar) : T("Validation failed", "فشل التحقق", ar)) });
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+    } finally {
+      setTajeerBusy(false);
+    }
+  };
+
+  const handleTajeerStatus = async () => {
+    setShowActions(false);
+    setTajeerBusy(true);
+    setTajeerMsg(null);
+    try {
+      const res = await contractService.getTajeerExecutionStatus(id);
+      const d = res?.data ?? res;
+      const label = d?.statusText ?? d?.status ?? d?.executionStatus ?? d?.state ?? null;
+      setTajeerMsg({ ok: true, text: label != null ? `${T("Tajeer status", "حالة تاجير", ar)}: ${label}` : JSON.stringify(d) });
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+    } finally {
+      setTajeerBusy(false);
+    }
+  };
+
+  const handleTajeerPortal = async () => {
+    setShowActions(false);
+    if (tajeerInfo.issuanceUrl) {
+      window.open(tajeerInfo.issuanceUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const res = await contractService.getTajeerLinks(id);
+      const d = res?.data ?? res;
+      const link = d?.issuanceUrl ?? d?.portalUrl ?? d?.contractUrl ?? (Array.isArray(d?.links) ? d.links[0]?.url : null);
+      if (link) window.open(link, "_blank", "noopener,noreferrer");
+      else setTajeerMsg({ ok: false, text: T("No Tajeer portal link available", "لا يوجد رابط لبوابة تاجير", ar) });
+    } catch {
+      setTajeerMsg({ ok: false, text: T("Failed to fetch Tajeer links", "تعذر جلب روابط تاجير", ar) });
+    }
+  };
 
   const handleCancelContract = async () => {
     if (!cancelReason) return;
@@ -763,12 +858,7 @@ export default function ContractDetailPage({
     setCancelError("");
     try {
       await contractService.cancel(id, { reason: cancelReason });
-      const res = await contractService.getById(id);
-      const c = res?.data ?? res;
-      if (c?.id != null) {
-        setContract(mapContract(c, ar));
-        setExt(mapExt(c));
-      }
+      await refetchContract();
       setShowCancel(false);
       setCancelReason("");
     } catch (err) {
@@ -792,6 +882,11 @@ export default function ContractDetailPage({
 
         <span className="font-mono mk-h3 leading-none text-mk-ink-900">{contract.id}</span>
         <Badge variant={sm.variant} dot>{ar ? sm.labelAr : sm.labelEn}</Badge>
+        {tajeerInfo.number && (
+          <span className="mk-caption px-2 py-[3px] rounded-full font-mono text-mk-mint-700" style={{ background: "rgba(27,156,144,0.10)" }} dir="ltr">
+            Tajeer · {tajeerInfo.number}
+          </span>
+        )}
 
         {contract.flagged && (
           <span className="flex items-center gap-1 mk-caption px-2 py-[3px] rounded-full text-mk-danger" style={{ background: "rgba(226,65,113,0.10)" }}>
@@ -823,17 +918,52 @@ export default function ContractDetailPage({
                 <Eye size={14} />{T("Contract Preview", "معاينة العقد", ar)}
               </button>
               <button
-                onClick={() => setShowActions(false)}
-                className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
+                onClick={() => {
+                  setShowActions(false);
+                  if (tajeerInfo.linked) {
+                    window.open(`/api/contracts/${id}/tajeer/pdf?summarized=false`, "_blank", "noopener,noreferrer");
+                  } else {
+                    setTajeerMsg({ ok: false, text: T("No Tajeer PDF — contract isn't issued on Tajeer", "لا يوجد PDF — العقد غير صادر عبر تاجير", ar) });
+                  }
+                }}
+                className={`w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors hover:bg-mk-ink-50 ${tajeerInfo.linked ? "text-mk-ink-800" : "text-mk-ink-400"}`}
               >
                 <FileText size={14} />{T("Contract PDF", "تحميل PDF", ar)}
+                {tajeerInfo.linked && <span className="ms-auto mk-caption text-mk-mint-600">Tajeer</span>}
               </button>
               <button
-                onClick={() => setShowActions(false)}
+                onClick={() => { setShowActions(false); window.print(); }}
                 className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
               >
                 <Printer size={14} />{T("Print", "طباعة", ar)}
               </button>
+
+              {/* Tajeer actions */}
+              <div className="my-1 border-t border-mk-ink-100" />
+              <button
+                onClick={handleValidateTajeer}
+                disabled={tajeerBusy}
+                className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
+              >
+                <ShieldCheck size={14} />{T("Validate with Tajeer", "التحقق عبر تاجير", ar)}
+              </button>
+              {tajeerInfo.linked && (
+                <>
+                  <button
+                    onClick={handleTajeerStatus}
+                    disabled={tajeerBusy}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
+                  >
+                    <RefreshCw size={14} className={tajeerBusy ? "animate-spin" : ""} />{T("Tajeer execution status", "حالة التنفيذ في تاجير", ar)}
+                  </button>
+                  <button
+                    onClick={handleTajeerPortal}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
+                  >
+                    <ExternalLink size={14} />{T("Open in Tajeer portal", "فتح في بوابة تاجير", ar)}
+                  </button>
+                </>
+              )}
               {canCancel ? (
                 <>
                   <div className="my-1 border-t border-mk-ink-100" />
@@ -855,6 +985,16 @@ export default function ContractDetailPage({
             </div>
           )}
         </div>
+
+        {canActivate && (
+          <button
+            onClick={handleActivate}
+            disabled={activating}
+            className="inline-flex items-center justify-center gap-2 font-semibold rounded-pill border cursor-pointer transition-[background,color,border-color] duration-base ease-standard active:scale-[0.98] select-none px-5 py-3 mk-body-sm text-white bg-mk-mint-500 border-transparent hover:opacity-90 disabled:opacity-60 shadow-[var(--shadow-glow-blue)]"
+          >
+            {activating ? T("Activating…", "جارٍ التفعيل…", ar) : T("Activate contract", "تفعيل العقد", ar)}
+          </button>
+        )}
 
         {canReturn && (
           <Link
@@ -880,6 +1020,26 @@ export default function ContractDetailPage({
           </Link>
         )}
       </div>
+
+      {activateError && (
+        <div className="rounded-lg px-5 py-3 mb-4 mk-body-sm" style={{ background: "rgba(226,65,113,0.08)", border: "1px solid rgba(226,65,113,0.25)", color: "#C01A52" }}>
+          {T("Activation failed", "فشل التفعيل", ar)} — {activateError}
+        </div>
+      )}
+
+      {tajeerMsg && (
+        <div
+          className="flex items-start justify-between gap-3 rounded-lg px-5 py-3 mb-4 mk-body-sm"
+          style={tajeerMsg.ok
+            ? { background: "rgba(27,156,144,0.08)", border: "1px solid rgba(27,156,144,0.25)", color: "#0F7B72" }
+            : { background: "rgba(226,65,113,0.08)", border: "1px solid rgba(226,65,113,0.25)", color: "#C01A52" }}
+        >
+          <span>{tajeerMsg.text}</span>
+          <button onClick={() => setTajeerMsg(null)} className="border-0 bg-transparent cursor-pointer opacity-60 hover:opacity-100 shrink-0">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Late warning */}
       {contract.status === "late" && (

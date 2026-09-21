@@ -1,22 +1,26 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   Check, AlertTriangle, Tablet,
-  Camera, Image as ImageIcon, MapPin, X, Search,
+  Camera, MapPin, X, Search,
   ChevronRight, ChevronLeft, Phone,
   UserCheck, Gauge, Fuel, Smartphone,
   Monitor, Music, Wind, CircleDot, Armchair, KeyRound, TriangleAlert,
   FireExtinguisher, HeartPulse, Wrench, ShieldCheck, Droplet,
 } from "lucide-react";
-import { Avatar, Badge, Button, Tabs, Input, IconButton, Table, Th, Td } from "@/components/ui";
+import { Avatar, Badge, Button, Tabs, Input, IconButton, Table, Th, Td, Select, Modal } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
-import { CAR_IMAGES, BOOKINGS, CARS } from "@/lib/data";
+import { CAR_IMAGES } from "@/lib/data";
 import { SketchComponent } from "@/components/employee/SketchComponent";
 import { VehicleMapPanel } from "@/components/employee/VehicleMapPanel";
 import type { SketchItem } from "@/lib/tajeer";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { contractService, attachmentService } from "@/lib/api-services";
+import * as Types from "@/lib/api-types";
+import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
+import type { Booking } from "@/lib/data";
 
 const T = (en: string, ar: string, isAr: boolean) => isAr ? ar : en;
 
@@ -25,6 +29,106 @@ const STATUS_MAP: Record<string, { variant: "success" | "warning" | "danger" | "
   pending: { variant: "warning", labelEn: "Pending", labelAr: "معلق" },
   late: { variant: "danger", labelEn: "Late", labelAr: "متأخر" },
   completed: { variant: "neutral", labelEn: "Completed", labelAr: "مكتمل" },
+};
+
+// ContractStatus: 1=Draft 2=PendingIssuance 3=Active 4=Cancelled 5=Overdue 6=Completed
+function statusKey(s: unknown): string {
+  switch (Number(s)) {
+    case 3: return "active";
+    case 4: return "cancelled";
+    case 5: return "late";
+    case 6: return "completed";
+    default: return "pending";
+  }
+}
+
+interface ReturnRow {
+  navId: string;
+  ref: string;
+  customer: string;
+  phone: string;
+  car: string;
+  plate: string;
+  due: string;
+  amount: number;
+  kyc: string;
+  status: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapReturnRow(item: any, ar: boolean): ReturnRow {
+  const customer = (ar ? item.customerNameAr : item.customerNameEn) ?? item.customerName ?? item.customerNameEn ?? item.customerNameAr ?? item.customer?.fullNameEn ?? "";
+  const due = item.endAt ? new Date(item.endAt) : null;
+  return {
+    navId: String(item.id),
+    ref: String(item.contractNumber ?? item.tajeerContractNumber ?? item.id ?? ""),
+    customer,
+    phone: item.customerPhone ?? item.customerPhoneNumber ?? item.customer?.phoneNumber ?? "",
+    car: item.vehicleName ?? [
+      (ar ? item.vehicleMakeNameAr : item.vehicleMakeNameEn) ?? item.vehicleMakeNameEn ?? item.vehicleMakeNameAr,
+      (ar ? item.vehicleModelNameAr : item.vehicleModelNameEn) ?? item.vehicleModelNameEn ?? item.vehicleModelNameAr,
+      item.vehicleYear ?? item.year,
+    ].filter(Boolean).join(" "),
+    plate: formatPlate(item.vehicle ?? item) || String(item.vehiclePlateNumber ?? ""),
+    due: due && !isNaN(due.getTime())
+      ? due.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " " + due.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+      : "",
+    amount: Number(item.totalAmount ?? item.grandTotal ?? item.total ?? item.paidAmount ?? 0),
+    kyc: normalizeKycStatus(item.customerVerificationStatus ?? item.verificationStatus),
+    status: statusKey(item.status),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toBooking(item: any, ar: boolean, row: ReturnRow): Booking {
+  const start = item.startAt ? new Date(item.startAt) : null;
+  const end = item.endAt ? new Date(item.endAt) : null;
+  return {
+    id: row.ref,
+    customer: row.customer,
+    customerInitials: row.customer.split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
+    phone: row.phone,
+    car: row.car,
+    plate: row.plate,
+    date: start && !isNaN(start.getTime()) ? start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
+    time: start && !isNaN(start.getTime()) ? start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "",
+    dropoff: end && !isNaN(end.getTime()) ? end.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
+    branch: (ar ? item.workingBranchNameAr : item.workingBranchNameEn) ?? item.workingBranchName ?? item.workingBranchNameEn ?? item.workingBranchNameAr ?? item.branchName ?? "",
+    type: "return",
+    status: row.status as Booking["status"],
+    kyc: row.kyc as Booking["kyc"],
+    amount: row.amount,
+    flagged: row.status === "late",
+  };
+}
+
+const FUEL_OPTIONS: { value: Types.FuelLevel; en: string; ar: string }[] = [
+  { value: Types.FuelLevel.Full, en: "Full", ar: "ممتلئ" },
+  { value: Types.FuelLevel.ThreeQuarters, en: "3/4", ar: "٣/٤" },
+  { value: Types.FuelLevel.Half, en: "1/2", ar: "١/٢" },
+  { value: Types.FuelLevel.Quarter, en: "1/4", ar: "١/٤" },
+  { value: Types.FuelLevel.Empty, en: "Empty", ar: "فارغ" },
+];
+
+function fuelLabel(level: Types.FuelLevel | "", ar: boolean): string {
+  const opt = FUEL_OPTIONS.find((o) => o.value === level);
+  return opt ? (ar ? opt.ar : opt.en) : "—";
+}
+
+// Inspection grid key → HandoverCondition field
+const CONDITION_KEY_MAP: Record<string, keyof Types.HandoverCondition> = {
+  odometer: "speedometer",
+  screen: "screen",
+  radio: "radioStereo",
+  ac: "ac",
+  spareTire: "spareTire",
+  tires: "tires",
+  seats: "carSeats",
+  keys: "keys",
+  triangle: "safetyTriangle",
+  extinguisher: "fireExtinguisher",
+  firstAid: "firstAidKit",
+  tireKit: "spareTireTools",
 };
 
 type TabKey = "all" | "active" | "late";
@@ -77,11 +181,11 @@ function ReadonlyCarCarousel({ images, ar }: { images: string[]; ar: boolean }) 
 }
 
 // ── Vehicle Condition Panel ────────────────────────────────────────
-function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange }: {
+function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, damageNotes, onDamageNotesChange }: {
   ar: boolean; carImages: string[]; sketchItems: SketchItem[]; onSketchChange: (items: SketchItem[]) => void;
+  damageNotes: string; onDamageNotesChange: (v: string) => void;
 }) {
   const [view, setView] = useState<"diagram" | "photos">("diagram");
-  const [damageNotes, setDamageNotes] = useState("");
   const hasDamage = sketchItems.length > 0;
   return (
     <div className="rounded-xl p-6 mk-surface">
@@ -110,7 +214,7 @@ function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange }: {
           </div>
           <textarea
             value={damageNotes}
-            onChange={e => setDamageNotes(e.target.value)}
+            onChange={e => onDamageNotesChange(e.target.value)}
             placeholder={T("Describe the damage and how it differs from the pickup report…", "صف التلفيات والنقاط الغير مطابقة لمحضر التسليم…", ar)}
             rows={3}
             className="w-full px-3 py-2 rounded-md mk-body-sm text-mk-ink-900 border border-mk-danger/30 bg-white outline-none focus:border-mk-danger resize-none"
@@ -137,11 +241,17 @@ const INSPECTION_ITEMS = [
   { key: "tireKit", icon: Wrench, label: ["Tire kit", "معدات الكفر الاحتياطية"], value: ["Present", "موجود"] },
 ] as const;
 
-function VehicleSummaryPanel({ ar, odometer }: { ar: boolean; odometer: number }) {
-  const fuelPct = Math.round((7 / 8) * 100);
+function VehicleSummaryPanel({ ar, odometer, fuel, endurance, reasons, onReasonsChange, photos, onPhotosChange }: {
+  ar: boolean;
+  odometer: number;
+  fuel: string;
+  endurance: number | null;
+  reasons: Record<string, string>;
+  onReasonsChange: (r: Record<string, string>) => void;
+  photos: Record<string, { file: File; preview: string }>;
+  onPhotosChange: (p: Record<string, { file: File; preview: string }>) => void;
+}) {
   const [noteOpen, setNoteOpen] = useState<Record<string, boolean>>({});
-  const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [photos, setPhotos] = useState<Record<string, string>>({});
   const damageCount = new Set([
     ...Object.keys(reasons).filter(k => reasons[k]),
     ...Object.keys(photos),
@@ -158,14 +268,14 @@ function VehicleSummaryPanel({ ar, odometer }: { ar: boolean; odometer: number }
   function handleItemPhoto(key: string, file?: File) {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setPhotos(p => ({ ...p, [key]: reader.result as string }));
+    reader.onload = () => onPhotosChange({ ...photos, [key]: { file, preview: reader.result as string } });
     reader.readAsDataURL(file);
   }
 
   const INDICATORS = [
     { icon: Gauge, label: T("Current odometer", "عداد الكيلومتر الحالي", ar), value: `${odometer.toLocaleString()} ${T("km", "كم", ar)}` },
-    { icon: Droplet, label: T("Current fuel", "الوقود الحالي", ar), value: `${fuelPct}% ${T("Gasoline", "بنزين", ar)}` },
-    { icon: ShieldCheck, label: T("Accident deductible", "مبلغ التحمل للحوادث", ar), value: T("0 SAR", "٠ ريال", ar) },
+    { icon: Droplet, label: T("Current fuel", "الوقود الحالي", ar), value: fuel },
+    { icon: ShieldCheck, label: T("Accident deductible", "مبلغ التحمل للحوادث", ar), value: endurance != null ? `${endurance.toLocaleString()} ${T("SAR", "ريال", ar)}` : "—" },
     { icon: Wrench, label: T("Next oil change", "صيانة تغيير الزيت القادمة", ar), value: `5,000 ${T("km", "كم", ar)} · 5W-30` },
   ];
 
@@ -225,14 +335,14 @@ function VehicleSummaryPanel({ ar, odometer }: { ar: boolean; odometer: number }
                     <input
                       type="text"
                       value={reasons[key] ?? ""}
-                      onChange={e => setReasons(r => ({ ...r, [key]: e.target.value }))}
+                      onChange={e => onReasonsChange({ ...reasons, [key]: e.target.value })}
                       placeholder={T("Describe the damage…", "صف الضرر…", ar)}
                       className="flex-1 min-w-0 px-3 py-2 rounded-md mk-overline text-mk-ink-900 border border-mk-blue-500/30 bg-white outline-none focus:border-mk-blue-500"
                     />
                     {photo ? (
                       <div className="relative shrink-0">
-                        <img src={photo} alt="" className="w-8 h-8 rounded-md object-cover border border-mk-blue-500/30" />
-                        <button type="button" onClick={() => setPhotos(p => omitKey(p, key))}
+                        <img src={photo.preview} alt="" className="w-8 h-8 rounded-md object-cover border border-mk-blue-500/30" />
+                        <button type="button" onClick={() => onPhotosChange(omitKey(photos, key))}
                           className="absolute -top-2 -end-1.5 w-4 h-4 rounded-full flex items-center justify-center border-0 cursor-pointer text-white bg-mk-danger">
                           <X size={9} />
                         </button>
@@ -254,68 +364,198 @@ function VehicleSummaryPanel({ ar, odometer }: { ar: boolean; odometer: number }
   );
 }
 
-// ── Main Content ──────────────────────────────────────────────────
-function ReturnProcessContent() {
-  const { dir } = useAdmin();
-  const ar = dir === "rtl";
+// ── Detail / return process view ──────────────────────────────────
+function ReturnDetailView({ id, ar }: { id: string; ar: boolean }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const id = searchParams.get("id");
-
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<TabKey>("all");
   const [showMap, setShowMap] = useState(false);
   const [sketchItems, setSketchItems] = useState<SketchItem[]>([]);
   const [returnOdometer, setReturnOdometer] = useState("");
+  const [fuel, setFuel] = useState<Types.FuelLevel | "">("");
   const [manualLateFee, setManualLateFee] = useState("");
   const [extraKmCharge, setExtraKmCharge] = useState("");
+  const [fuelDiffCharge, setFuelDiffCharge] = useState("");
+  const [damageCharge, setDamageCharge] = useState("");
+  const [damageNotes, setDamageNotes] = useState("");
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<Record<string, { file: File; preview: string }>>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [suggestion, setSuggestion] = useState<any>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [showDispute, setShowDispute] = useState(false);
+  const [disputeNotes, setDisputeNotes] = useState("");
+  const [disputing, setDisputing] = useState(false);
+  const [disputeError, setDisputeError] = useState("");
 
-  const allReturns = BOOKINGS.filter(b => b.type === "return" && (b.status === "active" || b.status === "late"));
-  const counts: Record<TabKey, number> = {
-    all: allReturns.length,
-    active: allReturns.filter(b => b.status === "active").length,
-    late: allReturns.filter(b => b.status === "late").length,
-  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [raw, setRaw] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [delivery, setDelivery] = useState<any>(null);
+  const [row, setRow] = useState<ReturnRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  const filtered = allReturns.filter(b => {
-    const matchTab = filter === "all" || b.status === filter;
-    const q = query.toLowerCase();
-    const matchQ = !query || b.id.toLowerCase().includes(q) || b.customer.toLowerCase().includes(q) || b.phone.includes(query) || b.car.toLowerCase().includes(q) || b.plate.toLowerCase().includes(q);
-    return matchTab && matchQ;
-  });
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await contractService.getById(id);
+        const c = res?.data ?? res;
+        if (cancelled) return;
+        if (!c || c.id == null) { setNotFound(true); return; }
+        setRaw(c);
+        setRow(mapReturnRow(c, ar));
 
-  // ── Detail / return process view ──────────────────────────────
-  if (id) {
-    const contract = BOOKINGS.find(b => b.id === id);
-    if (!contract) return (
+        // Delivery record gives the baseline odometer/fuel (non-blocking —
+        // 404 just means no delivery was recorded for this contract).
+        contractService.getDelivery(id)
+          .then((d) => { if (!cancelled) setDelivery(d?.data ?? d); })
+          .catch(() => {});
+      } catch {
+        if (!cancelled) setNotFound(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id, ar]);
+
+  const odometerNum = parseFloat(returnOdometer);
+  const odometerEntered = returnOdometer.trim() !== "" && !isNaN(odometerNum);
+  const fuelValid = fuel !== "";
+
+  // Suggested charges from the backend once odometer + fuel are known.
+  useEffect(() => {
+    let cancelled = false;
+    const t = setTimeout(() => {
+      if (!odometerEntered || !fuelValid) { setSuggestion(null); return; }
+      contractService.calculateReturnCharges(id, {
+        odometerAtReturn: odometerNum,
+        fuelLevelAtReturn: fuel as Types.FuelLevel,
+        actualReturnAt: new Date().toISOString(),
+      })
+        .then((s) => { if (!cancelled) setSuggestion(s?.data ?? s); })
+        .catch(() => { if (!cancelled) setSuggestion(null); });
+    }, 500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [id, odometerEntered, fuelValid, odometerNum, fuel]);
+
+  if (loading) return (
+    <div className="py-24 text-center">
+      <div className="mk-body mb-1 text-mk-ink-500">{T("Loading contract…", "جارٍ تحميل العقد…", ar)}</div>
+    </div>
+  );
+
+  if (notFound || !row || !raw) return (
+    <div className="py-24 text-center">
+      <div className="mk-display mb-3">📋</div>
+      <div className="mk-body mb-2 text-mk-ink-900">{T("Contract not found", "العقد غير موجود", ar)}</div>
+      <Link href="/employee/return" className="mk-body-sm text-mk-blue-500 no-underline">{T("← Back", "→ العودة", ar)}</Link>
+    </div>
+  );
+
+  if (submitted) {
+    return (
       <div className="py-24 text-center">
-        <div className="mk-display mb-3">📋</div>
-        <div className="mk-body mb-2 text-mk-ink-900">{T("Contract not found", "العقد غير موجود", ar)}</div>
-        <Link href="/employee/return" className="mk-body-sm text-mk-blue-500 no-underline">{T("← Back", "→ العودة", ar)}</Link>
+        <div className="mk-display mb-3">✅</div>
+        <div className="mk-h3 mb-2 text-mk-ink-900">{T("Return confirmed", "تم تأكيد الإرجاع", ar)}</div>
+        <div className="mk-body-sm mb-6 text-mk-ink-500">{T(`Contract ${row.ref} closed`, `العقد ${row.ref} أُغلق`, ar)}</div>
+        <Button variant="primary" onClick={() => router.push("/employee/return")}>
+          {T("Back to active rentals", "العودة للمركبات المؤجرة", ar)}
+        </Button>
       </div>
     );
-    const carKey = ["Camry", "Sonata", "Elantra", "Civic", "Sportage", "Patrol", "CX-5", "Land Cruiser", "Tahoe", "ZS"].find(k => contract.car.includes(k)) || "Sonata";
-    const carImages = CAR_IMAGES[carKey] || CAR_IMAGES["Sonata"];
-    const isLate = contract.status === "late";
-    const carObj = CARS.find(c => c.plate === contract.plate);
-    const subtotal = Math.round(contract.amount / 1.15);
-    const vat = contract.amount - subtotal;
-    const baseRate = Math.round(subtotal * 0.9);
-    const insurance = subtotal - baseRate;
+  }
 
-    const pickupOdometer = carObj ? 12450 + carObj.id * 3150 : 47820;
-    const odometerNum = parseFloat(returnOdometer);
-    const odometerEntered = returnOdometer.trim() !== "" && !isNaN(odometerNum);
-    const tripKm = odometerEntered ? Math.max(0, odometerNum - pickupOdometer) : null;
-    const kmCapNum = carObj && carObj.kmCap !== "Unlimited" ? Number(carObj.kmCap) : null;
-    const isOverKm = tripKm != null && kmCapNum != null && tripKm > kmCapNum;
+  const contract = toBooking(raw, ar, row);
+  const carKey = ["Camry", "Sonata", "Elantra", "Civic", "Sportage", "Patrol", "CX-5", "Land Cruiser", "Tahoe", "ZS"].find(k => contract.car.includes(k)) || "Sonata";
+  const carImages = CAR_IMAGES[carKey] || CAR_IMAGES["Sonata"];
+  const isLate = row.status === "late";
 
-    const noDamage = sketchItems.length === 0;
+  const days = Math.max(1, Math.round((new Date(raw.endAt).getTime() - new Date(raw.startAt).getTime()) / 86400000)) || 1;
+  const pickupOdometer = Number(delivery?.odometerAtDelivery ?? raw.odometerReading ?? raw.odometerAtDelivery ?? 0);
+  const pickupFuel: Types.FuelLevel | null = delivery?.fuelLevelAtDelivery != null ? Number(delivery.fuelLevelAtDelivery) as Types.FuelLevel : (raw.fuelLevel != null ? Number(raw.fuelLevel) as Types.FuelLevel : null);
+  const tripKm = odometerEntered ? Math.max(0, odometerNum - pickupOdometer) : null;
+  const kmCapNum = raw.unlimitedKm ? null : ((Number(raw.allowedKmPerDay ?? 0) * days) || null);
+  const isOverKm = tripKm != null && kmCapNum != null && tripKm > kmCapNum;
+  const extraKmCount = isOverKm && tripKm != null && kmCapNum != null ? tripKm - kmCapNum : Number(suggestion?.extraKm ?? 0);
 
-    const lateFeePerHour = carObj?.lateFeePerHour ?? 35;
-    const lateFeeNum = manualLateFee !== "" ? (parseFloat(manualLateFee) || 0) : (isLate ? lateFeePerHour : 0);
-    const extraKmNum = extraKmCharge !== "" ? (parseFloat(extraKmCharge) || 0) : 0;
-    const finalTotal = contract.amount + lateFeeNum + extraKmNum;
+  const noDamage = sketchItems.length === 0;
+  const damageCount = new Set([
+    ...Object.keys(reasons).filter(k => reasons[k]),
+    ...Object.keys(photos),
+  ]).size;
+
+  // Suggested amounts from /return/calculate-charges; manual inputs override.
+  const lateFeeNum = manualLateFee !== "" ? (parseFloat(manualLateFee) || 0) : Number(suggestion?.lateFeeAmount ?? 0);
+  const extraKmNum = extraKmCharge !== "" ? (parseFloat(extraKmCharge) || 0) : Number(suggestion?.extraKmAmount ?? 0);
+  const fuelDiffNum = fuelDiffCharge !== "" ? (parseFloat(fuelDiffCharge) || 0) : Number(suggestion?.fuelDifferenceAmount ?? 0);
+  const damageNum = damageCharge !== "" ? (parseFloat(damageCharge) || 0) : Number(suggestion?.damageAmount ?? 0);
+  const lateHoursNum = Number(suggestion?.lateHours ?? 0);
+  const extraCharges = lateFeeNum + extraKmNum + fuelDiffNum + damageNum;
+  const finalTotal = contract.amount + extraCharges;
+
+  const canConfirm = odometerEntered && fuelValid && !submitting;
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      // Upload damage photos, then build the per-item condition report.
+      const condition: Types.HandoverCondition = {};
+      for (const [key, condKey] of Object.entries(CONDITION_KEY_MAP)) {
+        const note = reasons[key]?.trim() || null;
+        const photo = photos[key];
+        let attachmentId: number | null = null;
+        if (photo) {
+          const up = await attachmentService.upload(photo.file);
+          attachmentId = Number(up?.id ?? up?.data?.id ?? up?.attachmentId) || null;
+        }
+        condition[condKey] = { isOk: !(note || photo), note, attachmentId };
+      }
+
+      await contractService.recordReturn(id, {
+        odometerAtReturn: odometerNum,
+        fuelLevelAtReturn: fuel as Types.FuelLevel,
+        sketchInfoAtReturn: sketchItems.map((s) => ({ type: s.type, x: s.x, y: s.y })),
+        condition,
+        conditionNotes: damageNotes.trim() || null,
+        lateFeeAmount: lateFeeNum,
+        lateHours: lateHoursNum || undefined,
+        extraKmAmount: extraKmNum,
+        extraKm: extraKmCount || undefined,
+        fuelDifferenceAmount: fuelDiffNum,
+        damageAmount: damageNum,
+        checklist: {
+          customerPresentAtCounter: true,
+          odometerRecorded: odometerEntered,
+          fuelLevelChecked: fuelValid,
+          walkAroundCompleted: true,
+          customerConfirmedReturn: true,
+        },
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDispute = async () => {
+    if (!disputeNotes.trim()) return;
+    setDisputing(true);
+    setDisputeError("");
+    try {
+      await contractService.dispute(id, { notes: disputeNotes.trim() });
+      router.push("/employee/return");
+    } catch (err) {
+      setDisputeError(err instanceof Error ? err.message : "Unexpected error");
+      setDisputing(false);
+    }
+  };
 
     return (
       <div className="flex flex-col gap-4">
@@ -342,7 +582,7 @@ function ReturnProcessContent() {
                 </div>
                 <div className="flex-1">
                   <div className="mk-h4 text-mk-ink-900">{T("Late return penalty in effect", "غرامة التأخر مفعّلة", ar)}</div>
-                  <div className="mk-caption mt-1 text-mk-ink-600">{T(`${lateFeePerHour} SAR/hr after 1h grace · +${lateFeeNum} SAR currently`, `${lateFeePerHour} ريال/س بعد ساعة سماح · +${lateFeeNum} ريال حالياً`, ar)}</div>
+                  <div className="mk-caption mt-1 text-mk-ink-600">{suggestion != null ? T(`${lateHoursNum}h late · +${lateFeeNum} SAR suggested`, `تأخر ${lateHoursNum} س · +${lateFeeNum} ريال مقترح`, ar) : T("Enter odometer + fuel to calculate the penalty", "أدخل العداد والوقود لحساب الغرامة", ar)}</div>
                 </div>
               </div>
             )}
@@ -410,12 +650,30 @@ function ReturnProcessContent() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 px-4 py-3 rounded-md mb-2 bg-mk-mint-600/8 border border-mk-mint-600/30">
-              <div className="w-6 h-6 rounded-sm flex items-center justify-center shrink-0 text-white bg-mk-mint-600">
-                <Check size={14} />
+            {/* Fuel level at return — required entry */}
+            <div className="flex items-center gap-3 px-4 py-3 rounded-md mb-2"
+              style={{ background: fuelValid ? "rgba(63,182,172,0.08)" : "transparent", border: fuelValid ? "1px solid rgba(63,182,172,0.30)" : "none" }}>
+              <div className="w-6 h-6 rounded-sm flex items-center justify-center shrink-0 text-white"
+                style={{ background: fuelValid ? "var(--color-mk-mint-600)" : "var(--color-mk-bg)", border: fuelValid ? "none" : "1px solid var(--color-mk-border)" }}>
+                {fuelValid && <Check size={14} />}
               </div>
               <Fuel size={16} className="text-mk-ink-500 shrink-0" />
-              <span className="mk-body-sm text-mk-ink-500">{T("Fuel level matches pickup · 7/8", "مستوى الوقود مطابق · ٧/٨", ar)}</span>
+              <div className="flex-1 flex items-center gap-2 flex-wrap">
+                <span className="mk-body-sm shrink-0" style={{ color: fuelValid ? "var(--color-mk-ink-500)" : "var(--color-mk-ink-900)" }}>{T("Fuel level at return", "مستوى الوقود عند الإرجاع", ar)}</span>
+                <Select
+                  value={fuel === "" ? "" : String(fuel)}
+                  onChange={e => setFuel(e.target.value === "" ? "" : (Number(e.target.value) as Types.FuelLevel))}
+                  className="w-[130px] py-1 mk-body-sm"
+                >
+                  <option value="">{T("Select…", "اختر…", ar)}</option>
+                  {FUEL_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{ar ? o.ar : o.en}</option>
+                  ))}
+                </Select>
+                {pickupFuel != null && (
+                  <span className="mk-caption text-mk-ink-500">{T(`pickup: ${fuelLabel(pickupFuel, ar)}`, `عند التسليم: ${fuelLabel(pickupFuel, ar)}`, ar)}</span>
+                )}
+              </div>
             </div>
 
             {/* Walk-around damage — reflects the condition diagram */}
@@ -439,10 +697,10 @@ function ReturnProcessContent() {
               <span className="mk-body-sm text-mk-ink-900">{T("Customer confirms return on screen", "العميل يؤكد وقت الإرجاع", ar)}</span>
             </div>
 
-            {/* Late fee / extra km — entered by employee on receipt */}
-            {(isLate || isOverKm) && (
+            {/* Extra charges — suggested by the backend, editable on receipt */}
+            {(suggestion != null || isLate || isOverKm) && (
               <div className="flex flex-col gap-3 py-3">
-                {isLate && (
+                {(isLate || Number(suggestion?.lateFeeAmount ?? 0) > 0) && (
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="mk-body-sm text-mk-ink-900 shrink-0">{T("Late fee amount", "مبلغ غرامة التأخر", ar)}</span>
                     <input
@@ -450,13 +708,13 @@ function ReturnProcessContent() {
                       inputMode="numeric"
                       value={manualLateFee}
                       onChange={e => setManualLateFee(e.target.value)}
-                      placeholder={String(lateFeePerHour)}
+                      placeholder={String(Number(suggestion?.lateFeeAmount ?? 0))}
                       className="w-[100px] px-2 py-1 rounded-md mk-body-sm text-mk-danger border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500"
                     />
-                    <span className="mk-caption text-mk-ink-500">{T("SAR", "ر.س", ar)}</span>
+                    <span className="mk-caption text-mk-ink-500">{T("SAR", "ر.س", ar)}{lateHoursNum > 0 && T(` · ${lateHoursNum}h late`, ` · تأخر ${lateHoursNum} س`, ar)}</span>
                   </div>
                 )}
-                {isOverKm && (
+                {(isOverKm || Number(suggestion?.extraKmAmount ?? 0) > 0) && (
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="mk-body-sm text-mk-ink-900 shrink-0">{T("Extra km charge", "رسوم الكيلومترات الزائدة", ar)}</span>
                     <input
@@ -464,7 +722,35 @@ function ReturnProcessContent() {
                       inputMode="numeric"
                       value={extraKmCharge}
                       onChange={e => setExtraKmCharge(e.target.value)}
-                      placeholder="0"
+                      placeholder={String(Number(suggestion?.extraKmAmount ?? 0))}
+                      className="w-[100px] px-2 py-1 rounded-md mk-body-sm text-mk-danger border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500"
+                    />
+                    <span className="mk-caption text-mk-ink-500">{T("SAR", "ر.س", ar)}{extraKmCount > 0 && T(` · ${extraKmCount.toLocaleString()} km over`, ` · تجاوز ${extraKmCount.toLocaleString()} كم`, ar)}</span>
+                  </div>
+                )}
+                {pickupFuel != null && fuel !== "" && fuel > pickupFuel && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="mk-body-sm text-mk-ink-900 shrink-0">{T("Fuel difference", "فرق الوقود", ar)}</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={fuelDiffCharge}
+                      onChange={e => setFuelDiffCharge(e.target.value)}
+                      placeholder={String(Number(suggestion?.fuelDifferenceAmount ?? 0))}
+                      className="w-[100px] px-2 py-1 rounded-md mk-body-sm text-mk-danger border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500"
+                    />
+                    <span className="mk-caption text-mk-ink-500">{T("SAR", "ر.س", ar)}</span>
+                  </div>
+                )}
+                {(!noDamage || damageCount > 0) && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="mk-body-sm text-mk-ink-900 shrink-0">{T("Damage charge", "رسوم الأضرار", ar)}</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={damageCharge}
+                      onChange={e => setDamageCharge(e.target.value)}
+                      placeholder={String(Number(suggestion?.damageAmount ?? 0))}
                       className="w-[100px] px-2 py-1 rounded-md mk-body-sm text-mk-danger border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500"
                     />
                     <span className="mk-caption text-mk-ink-500">{T("SAR", "ر.س", ar)}</span>
@@ -473,41 +759,144 @@ function ReturnProcessContent() {
               </div>
             )}
 
-            <Button variant="primary" className="w-full justify-center mt-4 shadow-[var(--shadow-glow-blue)]">
-              <Tablet size={16} />{T("Pass to customer", "سلّم للعميل", ar)}
+            {submitError && (
+              <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100 mt-2">{submitError}</p>
+            )}
+            <Button variant="primary" className="w-full justify-center mt-4 shadow-[var(--shadow-glow-blue)]" disabled={!canConfirm} onClick={handleConfirm}>
+              <Tablet size={16} />{submitting ? T("Processing…", "جارٍ المعالجة…", ar) : T("Pass to customer", "سلّم للعميل", ar)}
+            </Button>
+            <Button variant="outline" className="w-full justify-center mt-2 text-mk-danger border-mk-danger/30" disabled={submitting} onClick={() => setShowDispute(true)}>
+              <AlertTriangle size={15} />{T("Mark disputed", "تسجيل نزاع", ar)}
             </Button>
           </div>
 
           {/* Right: condition + invoice */}
           <div className="flex flex-col gap-4">
-            <VehicleConditionPanel ar={ar} carImages={carImages} sketchItems={sketchItems} onSketchChange={setSketchItems} />
-            <VehicleSummaryPanel ar={ar} odometer={odometerEntered ? odometerNum : pickupOdometer} />
+            <VehicleConditionPanel
+              ar={ar}
+              carImages={carImages}
+              sketchItems={sketchItems}
+              onSketchChange={setSketchItems}
+              damageNotes={damageNotes}
+              onDamageNotesChange={setDamageNotes}
+            />
+            <VehicleSummaryPanel
+              ar={ar}
+              odometer={odometerEntered ? odometerNum : pickupOdometer}
+              fuel={fuelValid ? fuelLabel(fuel, ar) : "—"}
+              endurance={raw.enduranceAmount != null ? Number(raw.enduranceAmount) : null}
+              reasons={reasons}
+              onReasonsChange={setReasons}
+              photos={photos}
+              onPhotosChange={setPhotos}
+            />
 
             {/* Invoice */}
             <div className="rounded-xl p-6 mk-surface">
               <div className="mk-h4 mb-6 text-mk-ink-900">{T("Final invoice", "الفاتورة النهائية", ar)}</div>
               <div className="flex flex-col gap-3">
-                <div className="flex justify-between mk-label"><span className="text-mk-ink-600">{T("Base rental", "الإيجار الأساسي", ar)}</span><span className="text-mk-ink-900">{baseRate.toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>
-                <div className="flex justify-between mk-label"><span className="text-mk-ink-600">{T("Insurance", "التأمين", ar)}</span><span className="text-mk-ink-900">{insurance.toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>
+                <div className="flex justify-between mk-label"><span className="text-mk-ink-600">{T("Contract amount", "مبلغ العقد", ar)}</span><span className="text-mk-ink-900">{contract.amount.toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>
                 {lateFeeNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Late fee", "غرامة التأخر", ar)}</span><span className="text-mk-danger">+{lateFeeNum} {T("SAR", "ر.س", ar)}</span></div>}
                 {extraKmNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Extra km charge", "رسوم الكيلومترات الزائدة", ar)}</span><span className="text-mk-danger">+{extraKmNum} {T("SAR", "ر.س", ar)}</span></div>}
-                <div className="border-t border-dashed border-mk-ink-100 my-1" />
-                <div className="flex justify-between mk-label"><span className="text-mk-ink-400">{T("VAT 15%", "ضريبة 15%", ar)}</span><span className="text-mk-ink-400">{vat.toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>
-                <div className="flex justify-between items-center pt-3 border-t border-mk-ink-100"><span className="mk-h4 text-mk-ink-900">{T("Final total", "الإجمالي النهائي", ar)}</span><span className="mk-h4" style={{ color: isLate ? "var(--color-mk-danger)" : "var(--color-mk-ink-900)" }}>{finalTotal.toLocaleString()} {T("SAR", "ريال", ar)}</span></div>
+                {fuelDiffNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Fuel difference", "فرق الوقود", ar)}</span><span className="text-mk-danger">+{fuelDiffNum} {T("SAR", "ر.س", ar)}</span></div>}
+                {damageNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Damage charge", "رسوم الأضرار", ar)}</span><span className="text-mk-danger">+{damageNum} {T("SAR", "ر.س", ar)}</span></div>}
+                <div className="flex justify-between items-center pt-3 border-t border-mk-ink-100"><span className="mk-h4 text-mk-ink-900">{T("Final total", "الإجمالي النهائي", ar)}</span><span className="mk-h4" style={{ color: extraCharges > 0 ? "var(--color-mk-danger)" : "var(--color-mk-ink-900)" }}>{finalTotal.toLocaleString()} {T("SAR", "ريال", ar)}</span></div>
                 <div className="flex justify-between mk-caption text-mk-ink-500">
                   <span>{T(`Captured: ${contract.amount.toLocaleString()} SAR`, `تم حجز: ${contract.amount.toLocaleString()} ريال`, ar)}</span>
-                  <span className={`mk-label ${(lateFeeNum + extraKmNum) > 0 ? "text-mk-danger" : "text-mk-mint-600"}`}>{(lateFeeNum + extraKmNum) > 0 ? `+${lateFeeNum + extraKmNum} ${T("SAR due", "ريال مستحق", ar)}` : T("No remaining balance", "لا رصيد متبقي", ar)}</span>
+                  <span className={`mk-label ${extraCharges > 0 ? "text-mk-danger" : "text-mk-mint-600"}`}>{extraCharges > 0 ? `+${extraCharges} ${T("SAR due", "ريال مستحق", ar)}` : T("No remaining balance", "لا رصيد متبقي", ar)}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
         {showMap && <VehicleMapPanel ar={ar} contract={contract} onClose={() => setShowMap(false)} />}
+
+        {showDispute && (
+          <Modal
+            open={true}
+            onClose={() => { if (!disputing) { setShowDispute(false); setDisputeNotes(""); setDisputeError(""); } }}
+            variant="centered"
+            size="md"
+            title={T("Mark contract disputed", "تسجيل نزاع على العقد", ar)}
+          >
+            <div className="p-6 flex flex-col gap-4">
+              <p className="mk-body-sm text-mk-ink-600">
+                {T(
+                  `Contract ${contract.id} will be flagged as disputed. Penalty collection is paused while the dispute is under review.`,
+                  `سيتم وضع العقد ${contract.id} كمتنازع عليه. يتوقف تحصيل الغرامات أثناء مراجعة النزاع.`,
+                  ar
+                )}
+              </p>
+              <textarea
+                value={disputeNotes}
+                onChange={e => setDisputeNotes(e.target.value)}
+                placeholder={T("Describe the dispute reason…", "صف سبب النزاع…", ar)}
+                rows={3}
+                className="w-full px-3 py-2 rounded-md mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500 resize-none"
+              />
+              {disputeError && (
+                <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100">{disputeError}</p>
+              )}
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" disabled={disputing} onClick={() => { setShowDispute(false); setDisputeNotes(""); setDisputeError(""); }}>
+                  {T("Back", "رجوع", ar)}
+                </Button>
+                <Button variant="primary" className="flex-1" disabled={!disputeNotes.trim() || disputing} onClick={handleDispute}>
+                  <AlertTriangle size={14} />
+                  {disputing ? T("Submitting…", "جارٍ الإرسال…", ar) : T("Confirm dispute", "تأكيد النزاع", ar)}
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     );
-  }
+}
 
-  // ── List / Table view ──────────────────────────────────────────
+// ── List / Table view ──────────────────────────────────────────
+function ReturnListView({ ar }: { ar: boolean }) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<TabKey>("all");
+  const [rows, setRows] = useState<ReturnRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 400);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await contractService.searchPendingReturns({
+          search: debouncedQuery || undefined,
+          pageNumber: 1,
+          pageSize: 50,
+        });
+        if (cancelled) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? [];
+        setRows((Array.isArray(items) ? items : []).map((it) => mapReturnRow(it, ar)));
+      } catch {
+        if (!cancelled) setRows([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [debouncedQuery, ar]);
+
+  const counts: Record<TabKey, number> = {
+    all: rows.length,
+    active: rows.filter((b) => b.status === "active").length,
+    late: rows.filter((b) => b.status === "late").length,
+  };
+  const filtered = rows.filter((b) => filter === "all" || b.status === filter);
+
   return (
     <div>
       {/* Toolbar */}
@@ -551,12 +940,12 @@ function ReturnProcessContent() {
               const sm = STATUS_MAP[b.status] ?? { variant: "neutral" as const, labelEn: b.status, labelAr: b.status };
               const isLate = b.status === "late";
               return (
-                <tr key={b.id}
+                <tr key={b.navId}
                   className={`cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 ${isLate ? "bg-mk-danger/[0.025]" : ""}`}
-                  onClick={() => router.push(`/employee/return?id=${b.id}`)}
+                  onClick={() => router.push(`/employee/return?id=${b.navId}`)}
                 >
                   <Td>
-                    <div className="font-mono mk-label text-mk-blue-600">{b.id}</div>
+                    <div className="font-mono mk-label text-mk-blue-600">{b.ref}</div>
                   </Td>
                   <Td>
                     <div className="flex items-center gap-3">
@@ -571,7 +960,7 @@ function ReturnProcessContent() {
                     <div className="mk-label text-mk-ink-900">{b.car}</div>
                     <div className="mk-caption text-mk-ink-500">{b.plate}</div>
                   </Td>
-                  <Td className={isLate ? "text-mk-danger mk-label" : "text-mk-ink-700 mk-label"}>{b.dropoff}</Td>
+                  <Td className={isLate ? "text-mk-danger mk-label" : "text-mk-ink-700 mk-label"}>{b.due}</Td>
                   <Td>
                     <div className="mk-label text-mk-ink-900">{b.amount.toLocaleString()}</div>
                     <div className="mk-overline text-mk-ink-400">{T("SAR", "ر.س", ar)}</div>
@@ -581,7 +970,7 @@ function ReturnProcessContent() {
                   </Td>
                   <Td onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-2">
-                      <IconButton size="sm" variant="ghost" className="bg-mk-ink-50" onClick={e => { e.stopPropagation(); router.push(`/employee/return?id=${b.id}`); }}>
+                      <IconButton size="sm" variant="ghost" className="bg-mk-ink-50" onClick={e => { e.stopPropagation(); router.push(`/employee/return?id=${b.navId}`); }}>
                         {ar ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
                       </IconButton>
                     </div>
@@ -591,7 +980,12 @@ function ReturnProcessContent() {
             })}
           </tbody>
         </Table>
-        {filtered.length === 0 && (
+        {loading && (
+          <div className="py-16 text-center">
+            <div className="mk-body-sm text-mk-ink-600">{T("Loading…", "جارٍ التحميل…", ar)}</div>
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
           <div className="py-16 text-center">
             <div className="mk-h1 mb-2">📋</div>
             <div className="mk-body-sm text-mk-ink-600">{T("No active rentals found", "لا توجد مركبات مؤجرة", ar)}</div>
@@ -601,6 +995,16 @@ function ReturnProcessContent() {
       </div>
     </div>
   );
+}
+
+// ── Router ────────────────────────────────────────────────────────
+function ReturnProcessContent() {
+  const { dir } = useAdmin();
+  const ar = dir === "rtl";
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  if (id) return <ReturnDetailView id={id} ar={ar} />;
+  return <ReturnListView ar={ar} />;
 }
 
 export default function ReturnProcessPage() {

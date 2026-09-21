@@ -14,6 +14,13 @@ import type {
 
 export type LookupItem = { id: number; nameAr: string; nameEn: string };
 export type ContractRentPolicy = LookupItem & RentPolicyDto;
+
+// submit-tajeer rejects contracts whose rent policy isn't Tajeer-synced
+// (backend: "A Tajeer-synced rent policy is required"). Synced policies are
+// source=Tajeer (1) and/or carry a tajeerId.
+export function isTajeerSyncedPolicy(p: { tajeerId?: number | null; source?: number }): boolean {
+  return p.tajeerId != null || Number(p.source) === 1;
+}
 export type ContractCancellationPolicy = LookupItem & CancellationPolicyDto;
 export type ContractAdditionalService = AdditionalServiceDto & {
   key: string;
@@ -58,6 +65,9 @@ export function useContractLookups(
         ? itemsFrom<RentPolicyDto>(rentPolicyResult.value)
           .map((item) => ({ ...item, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))
         : [];
+      // Tajeer-synced policies first so the default selection always works
+      // with submit-tajeer when ElmTajeer is enabled.
+      loadedRentPolicies.sort((a, b) => Number(isTajeerSyncedPolicy(b)) - Number(isTajeerSyncedPolicy(a)));
       const loadedCancellationPolicies = cancellationPolicyResult.status === "fulfilled"
         ? itemsFrom<CancellationPolicyDto>(cancellationPolicyResult.value)
           .map((item) => ({ ...item, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))

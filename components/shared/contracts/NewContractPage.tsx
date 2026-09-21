@@ -17,7 +17,7 @@ import { buildCreateContractRequest, mapBackendCustomerToDriver } from "./new-co
 import { contractService, customerService, driverService } from "@/lib/api-services";
 import { ApiError } from "@/lib/api-client";
 import { usePermissions } from "@/contexts/PermissionsContext";
-import { useContractLookups } from "./new-contract/useContractLookups";
+import { useContractLookups, isTajeerSyncedPolicy } from "./new-contract/useContractLookups";
 import { useCustomersPicker } from "./new-contract/useCustomersPicker";
 import { useVehiclesPicker } from "./new-contract/useVehiclesPicker";
 import { useDriversPicker } from "./new-contract/useDriversPicker";
@@ -370,6 +370,19 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const handleSubmitToTajeer = async () => {
     setContractStep("saving");
     setTajeerError("");
+    // Fail fast before creating a draft: when ElmTajeer is enabled the backend
+    // rejects submit-tajeer unless the rent policy is Tajeer-synced.
+    if (!tajeerDisabled) {
+      const policyId = rentPolicyId || (rentPolicies[0]?.id ?? 0);
+      const policy = rentPolicies.find((r) => r.id === policyId);
+      if (policy && !isTajeerSyncedPolicy(policy)) {
+        setContractStep("error");
+        setTajeerError(ar
+          ? "سياسة التأجير المحددة غير مزامنة مع تاجير. اختر سياسة متزامنة أو زامن السياسات من صفحة الأسعار."
+          : "The selected rent policy is not synced with Tajeer. Pick a synced policy or sync policies from the Pricing page.");
+        return;
+      }
+    }
     // The contract is created once; retries only re-run the issuance step.
     let contractId = createdContractId;
     try {
@@ -846,6 +859,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             setExtraDriverEnabled={setExtraDriverEnabled}
             rentPolicies={rentPolicies}
             rentPolicyId={rentPolicyId} setRentPolicyId={setRentPolicyId}
+            tajeerEnabled={!tajeerDisabled}
             cancellationPolicies={cancellationPolicies}
             cancellationPolicyId={cancellationPolicyId} setCancellationPolicyId={setCancellationPolicyId}
             extensionPolicy={extensionPolicy} setExtensionPolicy={setExtensionPolicy}

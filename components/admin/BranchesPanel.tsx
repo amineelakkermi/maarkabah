@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Loader2, MapPin, Edit, Trash2 } from "lucide-react";
+import { Plus, Loader2, MapPin, Edit, Trash2, RefreshCw } from "lucide-react";
 import { Badge, Button, Table, Th, Td, type BadgeVariant, Input, Drawer, DrawerHeader, DrawerFooter, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { branchService } from "@/lib/api-services";
@@ -24,10 +24,12 @@ export function BranchesPanel() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setEditDrawerOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editingBranch, setEditingBranch] = useState<any>(null);
   const { showToast } = useToast();
 
@@ -37,15 +39,20 @@ export function BranchesPanel() {
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
 
-  // Load branches from API
-  useEffect(() => {
-    loadBranches();
-  }, []);
+  // ── Tajeer sync (preview → import) ─────────────────────────
+  const [syncOpen, setSyncOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [tajeerBranches, setTajeerBranches] = useState<any[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const loadBranches = async () => {
     try {
       setLoading(true);
       const response = await branchService.search({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transformedBranches = (response.items || response.data || []).map((item: any) => ({
         id: item.id,
         name: item.nameEn || item.name || '',
@@ -60,6 +67,62 @@ export function BranchesPanel() {
       setBranches([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load branches from API
+  useEffect(() => {
+    const t = setTimeout(loadBranches, 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleOpenSync = async () => {
+    setSyncOpen(true);
+    setSyncLoading(true);
+    setSyncError("");
+    setSelectedIds(new Set());
+    try {
+      const res = await branchService.previewTajeerBranches();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? (Array.isArray(res) ? res : []);
+      setTajeerBranches(Array.isArray(items) ? items : []);
+      // Pre-select everything that isn't already imported.
+      setSelectedIds(new Set(
+        (Array.isArray(items) ? items : [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((b: any) => !b.isAlreadyImported && !b.alreadyImported && !b.imported)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((b: any) => Number(b.tajeerId ?? b.id))
+          .filter((n: number) => !isNaN(n))
+      ));
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "Unexpected error");
+      setTajeerBranches([]);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const toggleTajeerBranch = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    setSyncError("");
+    try {
+      await branchService.importTajeerBranches({ tajeerIds: Array.from(selectedIds) });
+      setSyncOpen(false);
+      await loadBranches();
+      showToast(T("Branches imported from Tajeer", "تم استيراد الفروع من تاجير", ar));
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -78,6 +141,7 @@ export function BranchesPanel() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEditBranch = (branch: any) => {
     setEditingBranch(branch);
     setNameAr(branch.nameAr || "");
@@ -157,6 +221,10 @@ export function BranchesPanel() {
         <div className="mk-h4 flex-1 text-mk-ink-900">
           {T("Branches", "الفروع", ar)}
         </div>
+        <Button variant="outline" onClick={handleOpenSync}>
+          <RefreshCw size={14} />
+          {T("Sync from Tajeer", "مزامنة من تاجير", ar)}
+        </Button>
         <Button 
           variant="primary" 
           className="shadow-[var(--shadow-glow-blue)]"
@@ -360,6 +428,72 @@ export function BranchesPanel() {
             </Button>
             <Button variant="primary" onClick={handleUpdateBranch} className="flex-1 shadow-[var(--shadow-glow-blue)]">
               {T("✓ Update Branch", "✓ تحديث الفرع", ar)}
+            </Button>
+          </DrawerFooter>
+        </div>
+      </Drawer>
+
+      {/* Tajeer sync drawer — preview remote branches, pick, import */}
+      <Drawer open={syncOpen} onClose={() => setSyncOpen(false)}>
+        <div className="flex flex-col gap-5 justify-between h-full max-w-[480px]">
+          <div>
+            <DrawerHeader title={T("Sync branches from Tajeer", "مزامنة الفروع من تاجير", ar)} onClose={() => setSyncOpen(false)} className="mb-0 pb-4 border-b border-mk-ink-100" />
+            <div className="mt-5">
+              {syncLoading ? (
+                <div className="py-12 text-center">
+                  <Loader2 className="animate-spin text-mk-blue-500 mx-auto" size={28} />
+                </div>
+              ) : tajeerBranches.length === 0 ? (
+                <div className="py-12 text-center mk-body-sm text-mk-ink-500">
+                  {syncError ? syncError : T("No branches returned by Tajeer", "لم يُرجع تاجير أي فروع", ar)}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {tajeerBranches.map((b: any) => {
+                    const tid = Number(b.tajeerId ?? b.id);
+                    const already = Boolean(b.alreadyImported ?? b.isAlreadyImported ?? b.imported);
+                    const checked = selectedIds.has(tid);
+                    const label = ar ? (b.nameAr || b.nameEn || String(tid)) : (b.nameEn || b.nameAr || String(tid));
+                    const city = ar ? b.cityAr : b.cityEn;
+                    return (
+                      <label key={tid} className={`flex items-center gap-3 px-4 py-3 rounded-md border ${already ? "border-mk-ink-100 bg-mk-ink-50 opacity-60" : checked ? "border-mk-blue-500/40 bg-mk-blue-50" : "border-mk-ink-100"} ${already ? "" : "cursor-pointer"}`}>
+                        <input type="checkbox" checked={already || checked} disabled={already} onChange={() => toggleTajeerBranch(tid)} className="w-4 h-4" />
+                        <div className="flex-1 min-w-0">
+                          <div className="mk-body-sm text-mk-ink-900 truncate">{label}</div>
+                          {(city || b.isMain) && (
+                            <div className="mk-caption text-mk-ink-500 truncate">
+                              {[city, b.isMain ? T("Main", "رئيسي", ar) : ""].filter(Boolean).join(" · ")}
+                            </div>
+                          )}
+                        </div>
+                        {already
+                          ? <Badge variant="neutral">{b.localBranchId != null ? T(`→ #${b.localBranchId}`, `→ #${b.localBranchId}`, ar) : T("Imported", "مستورد", ar)}</Badge>
+                          : <span className="mk-overline text-mk-ink-400">#{tid}</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {syncError && tajeerBranches.length > 0 && (
+                <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100 mt-3">{syncError}</p>
+              )}
+            </div>
+          </div>
+
+          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch">
+            <Button variant="outline" onClick={() => setSyncOpen(false)}>
+              {T("Cancel", "إلغاء", ar)}
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1 shadow-[var(--shadow-glow-blue)]"
+              disabled={importing || selectedIds.size === 0}
+              onClick={handleImport}
+            >
+              {importing
+                ? T("Importing…", "جارٍ الاستيراد…", ar)
+                : T(`Import ${selectedIds.size} branch(es)`, `استيراد ${selectedIds.size} فرع`, ar)}
             </Button>
           </DrawerFooter>
         </div>

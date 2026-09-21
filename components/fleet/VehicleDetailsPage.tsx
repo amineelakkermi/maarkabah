@@ -636,7 +636,7 @@ export function VehicleDetailsPage({
                       onChange={(e) => setForm((f: any) => ({ ...f, enduranceAmount: e.target.value }))}
                     />
                     <Input
-                      label={T("Oil type", "نوع الزيت", ar)}
+                      label={T("Oil type *", "نوع الزيت *", ar)}
                       placeholder="5W-30"
                       value={form.oilType ?? ""}
                       onChange={(e) => setForm((f: any) => ({ ...f, oilType: e.target.value }))}

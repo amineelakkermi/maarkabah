@@ -196,8 +196,13 @@ const firstDefined = (...values: any[]) => {
   return undefined;
 };
 
-const toDateInput = (value: any) =>
-  typeof value === "string" && value.length >= 10 ? value.slice(0, 10) : "";
+// The backend persists sentinel dates (DateTime.MinValue / "2001-01-01" style
+// placeholders) for unset dates — surface them as empty, not fake dates.
+const toDateInput = (value: any) => {
+  if (typeof value !== "string" || value.length < 10) return "";
+  const d = value.slice(0, 10);
+  return /^(0001|2001)-01-01/.test(d) ? "" : d;
+};
 
 // oilType is free text on the API now, but vehicles saved before that change
 // can still come back with the old numeric enum — turn those into a label so
@@ -249,7 +254,8 @@ export function mapVehicleToForm(raw: any) {
     modelId: firstDefined(info.modelId, v.modelId) ?? "",
     year: firstDefined(info.year, v.year) ?? "",
     color: firstDefined(info.color, v.color) ?? "",
-    vin: firstDefined(info.vin, v.vin, v.chassisNumber) ?? "",
+    // Older records were saved with the "UNKNOWN" placeholder — treat it as empty.
+    vin: (() => { const raw = firstDefined(info.vin, v.vin, v.chassisNumber); return raw === "UNKNOWN" ? "" : (raw ?? ""); })(),
     engineNumber: firstDefined(info.engineNumber, v.engineNumber) ?? "",
     payloadKg: firstDefined(info.payloadKg, v.payloadKg) ?? "",
     bodyType: firstDefined(info.bodyType, v.bodyType) ?? "",
@@ -360,7 +366,9 @@ export const buildVehiclePayload = (form: any, imageFileIds: number[] = []) => (
     modelId: Number(form.modelId),
     year: Number(form.year),
     color: form.color || "White",
-    vin: form.vin || "UNKNOWN",
+    // Backend REQUIRES Info.Vin — the "UNKNOWN" placeholder is what keeps an
+    // empty form field from 400ing. Display layers map "UNKNOWN" back to empty.
+    vin: String(form.vin ?? "").trim() || "UNKNOWN",
     engineNumber: form.engineNumber || undefined,
     payloadKg: form.payloadKg ? Number(form.payloadKg) : undefined,
     bodyType: form.bodyType ? Number(form.bodyType) : 1,
@@ -504,6 +512,10 @@ export const validateStep = (
       showToast(T("Please fill odometer and last oil change date", "الرجاء تعبئة عداد المسافات وتاريخ آخر تغيير زيت", ar));
       return false;
     }
+    if (!String(form.oilType ?? "").trim()) {
+      showToast(T("Oil type is required", "نوع الزيت إلزامي", ar));
+      return false;
+    }
   }
   return true;
 };
@@ -560,6 +572,7 @@ export const VEHICLE_REQUIRED_FIELDS: VehicleRequiredField[] = [
   { key: "dailyRate", labelEn: "Daily rate", labelAr: "السعر اليومي", panel: "insurance" },
   { key: "odometerReading", labelEn: "Odometer reading", labelAr: "قراءة العداد", panel: "status" },
   { key: "lastOilChangeDate", labelEn: "Last oil change date", labelAr: "تاريخ آخر تغيير زيت", panel: "status" },
+  { key: "oilType", labelEn: "Oil type", labelAr: "نوع الزيت", panel: "status" },
 ];
 
 export const VEHICLE_FIELD_PANEL_MAP: Record<string, VehicleFieldPanel> = {

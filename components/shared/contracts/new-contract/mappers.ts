@@ -79,7 +79,7 @@ export function mapBackendVehicleToCar(item: any): Car {
     plateChar1: item.plateFirstLetter ?? item.plateChar1 ?? "",
     plateChar2: item.plateSecondLetter ?? item.plateChar2 ?? "",
     plateChar3: item.plateThirdLetter ?? item.plateChar3 ?? "",
-    chassisNumber: item.chassisNumber || "",
+    chassisNumber: item.chassisNumber === "UNKNOWN" ? "" : (item.chassisNumber || ""),
     fuelTypeCode: item.fuelTypeCode || 1,
     extraKmCost: item.extraKmCost || 0,
     fullFuelCost: item.fullFuelCost || 0,
@@ -93,7 +93,7 @@ export function mapBackendVehicleToCar(item: any): Car {
     periodicInspectionExpiry: item.periodicInspectionExpiry || "",
     insuranceCompany: item.insuranceCompany || "",
     insurancePolicyNumber: item.insurancePolicyNumber || "",
-    insuranceExpiry: item.insuranceExpiry || "",
+    insuranceExpiry: /^(0001|2001)-01-01/.test(String(item.insuranceExpiry ?? "")) ? "" : (item.insuranceExpiry || ""),
     insuranceType: item.insuranceType || "شامل",
     registrationTypeCode: item.registrationTypeCode,
     operationCardNumber: item.operationCardNumber,
@@ -241,11 +241,11 @@ export function buildCreateContractRequest(
     endAt: input.returnDate.toISOString(),
     rentPolicyId: input.rentPolicyId,
     cancellationPolicyId: input.cancellationPolicyId,
+    // Tajeer rejects a null allowedKmPerDay when unlimitedKm is false —
+    // always send a positive value (entered, vehicle limit, or 200 default).
     allowedKmPerDay: input.unlimitedKm
       ? null
-      : (input.vehicle?.isKilometerLimitEnabled === false
-          ? null
-          : (input.allowedKmPerDay > 0 ? input.allowedKmPerDay : (input.vehicle?.dailyKilometerLimit ?? 200))),
+      : (input.allowedKmPerDay > 0 ? input.allowedKmPerDay : (input.vehicle?.dailyKilometerLimit ?? 200)),
     allowedKmPerHour: input.unlimitedKm ? null : (input.allowedKmPerHour > 0 ? input.allowedKmPerHour : 30),
     unlimitedKm: input.unlimitedKm,
     allowedLateHours: input.allowedLateHours,

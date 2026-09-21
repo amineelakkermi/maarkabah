@@ -386,6 +386,10 @@ export interface CreateTenantUserRequest {
   phoneNumber?: string;
   password?: string;
   fullName?: string;
+  identityType?: number;
+  nationalId?: string;
+  identityExpiryDate?: string;
+  birthDate?: string;
   roleName?: string;
   branchIds?: number[];
 }
@@ -395,6 +399,10 @@ export interface UpdateTenantUserRequest {
   email?: string;
   phoneNumber?: string;
   fullName?: string;
+  identityType?: number;
+  nationalId?: string;
+  identityExpiryDate?: string;
+  birthDate?: string;
   isActive?: boolean;
   roleName?: string;
   branchIds?: number[];
@@ -723,4 +731,251 @@ export interface ContractTajeerLogSearchRequest {
   pageNumber?: number;
   pageSize?: number;
 }
- 
+
+// ─── Tenant Settings ───────────────────────────────────────────
+
+export interface TenantOfficeProfileRequest {
+  name?: string;
+  tagline?: string;
+  taxNumber?: string;
+  taxRate?: number;
+  commercialRegistrationNumber?: string;
+  timeZone?: string;
+  supportEmail?: string;
+  supportAddress?: string;
+  supportPhone?: string;
+  supportWhatsApp?: string;
+}
+
+export interface SmsSenderId {
+  id?: string;
+  enabled?: boolean;
+}
+
+export interface TenantSystemSettingsRequest {
+  sessionTimeoutMinutes?: number;
+  contractAutoCancelHours?: number;
+  lateFeeGraceHours?: number;
+  otpResendLimit?: number;
+  otpLockoutMinutes?: number;
+  otpValidityMinutes?: number;
+  smsEnabled?: boolean;
+  senderIds?: SmsSenderId[];
+  gatewayUrl?: string;
+  gatewayKey?: string;
+  appId?: string;
+  appKey?: string;
+  authorization?: string;
+}
+
+export interface TajeerVerifyRequest {
+  gatewayUrl?: string;
+  gatewayKey?: string;
+  appId?: string;
+  appKey?: string;
+  authorization?: string;
+}
+
+// ─── Branches · Tajeer ─────────────────────────────────────────
+
+export interface ImportTajeerBranchesRequest {
+  tajeerIds?: number[];
+}
+
+// ─── Contract Handover (Delivery / Return) ─────────────────────
+
+export interface PendingDeliveriesSearchRequest {
+  search?: string;
+  branchId?: number | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PendingReturnsSearchRequest {
+  search?: string;
+  branchId?: number | null;
+  isLate?: boolean | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface HandoverSketchPoint {
+  type?: string;
+  x?: number;
+  y?: number;
+}
+
+export interface HandoverConditionItem {
+  isOk?: boolean;
+  note?: string | null;
+  attachmentId?: number | null;
+}
+
+export interface HandoverCondition {
+  ac?: HandoverConditionItem;
+  radioStereo?: HandoverConditionItem;
+  screen?: HandoverConditionItem;
+  speedometer?: HandoverConditionItem;
+  keys?: HandoverConditionItem;
+  carSeats?: HandoverConditionItem;
+  tires?: HandoverConditionItem;
+  spareTire?: HandoverConditionItem;
+  safetyTriangle?: HandoverConditionItem;
+  fireExtinguisher?: HandoverConditionItem;
+  firstAidKit?: HandoverConditionItem;
+  spareTireTools?: HandoverConditionItem;
+}
+
+export interface DeliveryChecklist {
+  contractSigned?: boolean;
+  customerIdPhotographed?: boolean;
+  securityDepositCollected?: boolean;
+  walkAroundInspectionDone?: boolean;
+  fuelLevelRecorded?: boolean;
+  keysHandedOver?: boolean;
+}
+
+export interface RecordDeliveryRequest {
+  odometerAtDelivery?: number;
+  fuelLevelAtDelivery?: FuelLevel;
+  sketchInfoAtDelivery?: HandoverSketchPoint[];
+  condition?: HandoverCondition;
+  conditionNotes?: string | null;
+  checklist?: DeliveryChecklist;
+}
+
+export interface ReturnChecklist {
+  customerPresentAtCounter?: boolean;
+  odometerRecorded?: boolean;
+  fuelLevelChecked?: boolean;
+  walkAroundCompleted?: boolean;
+  customerConfirmedReturn?: boolean;
+}
+
+export interface RecordReturnRequest {
+  odometerAtReturn?: number;
+  fuelLevelAtReturn?: FuelLevel;
+  sketchInfoAtReturn?: HandoverSketchPoint[];
+  condition?: HandoverCondition;
+  conditionNotes?: string | null;
+  lateFeeAmount?: number;
+  lateHours?: number;
+  extraKmAmount?: number;
+  extraKm?: number;
+  fuelDifferenceAmount?: number;
+  damageAmount?: number;
+  checklist?: ReturnChecklist;
+}
+
+export interface ReturnChargesQuery {
+  odometerAtReturn?: number;
+  fuelLevelAtReturn?: FuelLevel;
+  actualReturnAt?: string;
+}
+
+export interface DisputeContractRequest {
+  notes?: string;
+}
+
+// ─── Contract Tajeer lifecycle ─────────────────────────────────
+
+export interface TajeerClosePaymentRequest {
+  odometerReading?: number;
+  availableFuel?: number;
+  actualEndAt?: string;
+  paid?: number;
+  discount?: number;
+  oilChangeCost?: number;
+  sparePartsCost?: number;
+  damageCost?: number;
+}
+
+export interface TajeerCloseContractRequest {
+  mainClosureCode: number;
+  closureCode?: number | null;
+  actualEndAt?: string;
+  odometerReading?: number;
+  fuelLevel?: number;
+  paid?: number;
+  discount?: number;
+  oilChangeCost?: number;
+  paymentMethodCode?: number;
+}
+
+export interface TajeerSuspendContractRequest {
+  suspensionCode: number;
+  mojEnabled?: boolean;
+  odometerReading?: number;
+  fuelLevel?: number;
+  paid?: number;
+  oilChangeCost?: number;
+  sparePartsCost?: number;
+  damageCost?: number;
+  paymentMethodCode?: number;
+}
+
+export interface TajeerUpdatePaidRequest {
+  newPaidAmount: number;
+  paymentMethodCode?: number;
+}
+
+export interface TajeerWebhookRequest {
+  notificationUrl: string;
+  secret: string;
+}
+
+// ─── Late Returns ──────────────────────────────────────────────
+
+export interface LateReturnSearchRequest {
+  search?: string;
+  branchId?: number | null;
+  displayStatus?: string | null;
+  from?: string | null;
+  to?: string | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// ─── Pricing ───────────────────────────────────────────────────
+
+export interface LateReturnPenaltySettings {
+  graceHours?: number;
+  perHourDivisor?: number;
+  fullDayThresholdHours?: number;
+}
+
+export interface DisputePolicyTerm {
+  textAr?: string;
+  textEn?: string;
+}
+
+export interface DisputePolicy {
+  disputeWindowHours?: number;
+  terms?: DisputePolicyTerm[];
+}
+
+export interface DiscountRateSearchRequest {
+  search?: string;
+  isActive?: boolean | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface SaveDiscountRateRequest {
+  nameAr?: string;
+  nameEn?: string;
+  percent?: number;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+// ─── Tajeer API Logs ───────────────────────────────────────────
+
+export interface TajeerApiLogSearchRequest {
+  search?: string;
+  operation?: string | null;
+  contractId?: number | null;
+  isSuccess?: boolean | null;
+  pageNumber?: number;
+  pageSize?: number;
+}

@@ -54,3 +54,33 @@ export async function forwardContractRequest(
     );
   }
 }
+
+// Binary-safe variant for endpoints returning files (e.g. Tajeer PDF).
+// response.text() would corrupt the bytes, so we stream the arrayBuffer.
+export async function forwardBinaryContractRequest(
+  request: NextRequest,
+  backendPath: string,
+  method: 'GET' = 'GET'
+) {
+  try {
+    const response = await fetch(`${API_BASE_URL}${backendPath}${request.nextUrl.search}`, {
+      method,
+      headers: { Authorization: `Bearer ${getAccessTokenFromRequest(request) || ''}` },
+    });
+
+    const contentType = response.headers.get('content-type') ?? 'application/octet-stream';
+    const contentDisposition = response.headers.get('content-disposition');
+    const buffer = await response.arrayBuffer();
+    console.log(`[PROXY ${method} ${backendPath}] ${response.status}: ${buffer.byteLength} bytes (${contentType})`);
+
+    const headers: Record<string, string> = { 'Content-Type': contentType };
+    if (contentDisposition) headers['Content-Disposition'] = contentDisposition;
+
+    return new NextResponse(buffer.byteLength ? buffer : null, { status: response.status, headers });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}

@@ -7,6 +7,7 @@ import type { Car, DriverProfile } from "@/lib/data";
 import { VehicleTypeIcon } from "@/components/employee/VehicleTypeIcon";
 import { T, ADD_ONS, RENTAL_POLICY_OPTIONS } from "./constants";
 import type { ContractAdditionalService, ContractCancellationPolicy, ContractRentPolicy, LookupItem } from "./useContractLookups";
+import { isTajeerSyncedPolicy } from "./useContractLookups";
 import { PersonPicker } from "./PersonPicker";
 
 export type Addons = Record<string, boolean>;
@@ -31,6 +32,7 @@ export type StepAddonsProps = {
   // Rental policies
   rentPolicies: ContractRentPolicy[];
   rentPolicyId: number; setRentPolicyId: (v: number) => void;
+  tajeerEnabled?: boolean;
   cancellationPolicies: ContractCancellationPolicy[];
   cancellationPolicyId: number; setCancellationPolicyId: (v: number) => void;
   extensionPolicy: string; setExtensionPolicy: (v: string) => void;
@@ -51,7 +53,7 @@ export function StepAddons({
   ar, car, days, total, isHourlyRental, driverFarePerDay, driverFarePerHour,
   branches, receiveBranchId, setReceiveBranchId, returnBranchId, setReturnBranchId, setWorkingBranchId,
   addons, setAddons, additionalServices, setExtraDriverEnabled,
-  rentPolicies, rentPolicyId, setRentPolicyId, cancellationPolicies, cancellationPolicyId, setCancellationPolicyId,
+  rentPolicies, rentPolicyId, setRentPolicyId, tajeerEnabled, cancellationPolicies, cancellationPolicyId, setCancellationPolicyId,
   extensionPolicy, setExtensionPolicy, earlyReturnPolicy, setEarlyReturnPolicy,
   accidentReportPolicy, setAccidentReportPolicy, fuelReturnPolicy, setFuelReturnPolicy,
   breakdownReportPolicy, setBreakdownReportPolicy,
@@ -233,9 +235,20 @@ export function StepAddons({
                   if (policy.breakdownReportPolicy) setBreakdownReportPolicy(RENTAL_POLICY_OPTIONS.breakdownReport[policy.breakdownReportPolicy - 1]?.key ?? breakdownReportPolicy);
                 }}>
                   {rentPolicies.map((policy) => (
-                    <option key={policy.id} value={policy.id}>{ar ? policy.nameAr : policy.nameEn}</option>
+                    <option key={policy.id} value={policy.id}>
+                      {ar ? policy.nameAr : policy.nameEn}{isTajeerSyncedPolicy(policy) ? " · Tajeer ✓" : ""}
+                    </option>
                   ))}
                 </Select>
+                {tajeerEnabled && rentPolicyId > 0 && !isTajeerSyncedPolicy(rentPolicies.find((p) => p.id === rentPolicyId) ?? {}) && (
+                  <p className="mk-caption mt-2 flex items-center gap-1.5" style={{ color: "#B45309" }}>
+                    ⚠ {T(
+                      "This policy isn't synced with Tajeer — issuance will fail. Sync policies from Pricing → Sync Tajeer, or pick a Tajeer ✓ policy.",
+                      "هذه السياسة غير مزامنة مع تاجير — سي فشل الإصدار. زامن السياسات من الأسعار ← مزامنة تاجير، أو اختر سياسة Tajeer ✓.",
+                      ar
+                    )}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="mk-overline mb-2 block text-mk-ink-600">{T("Cancellation policy", "سياسة الإلغاء", ar)}</label>

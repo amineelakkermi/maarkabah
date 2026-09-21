@@ -615,7 +615,7 @@ export function StepCustomerVehicle({
               {availCars
                 .map((c) => {
                   const picked = c.plate === pickedPlate;
-                  const odometer = 0;
+                  const odometer = c.odometerReading ?? 0;
                   return (
                     <div
                       key={c.plate}
@@ -720,7 +720,7 @@ export function StepCustomerVehicle({
               {availCars
                 .map((c) => {
                   const picked = c.plate === pickedPlate;
-                  const odometer = 0;
+                  const odometer = c.odometerReading ?? 0;
                   const statusColor: Record<string, string> = {
                     available: "var(--color-mk-mint-600)", rented: "var(--color-mk-blue-500)", overdue: "var(--color-mk-danger)",
                     maintenance: "var(--color-mk-warning)", reserved: "var(--color-mk-violet-500)",

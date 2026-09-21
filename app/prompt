@@ -1,0 +1,41 @@
+Refactorer les pages pickup/return en composants partagés admin+employee.
+
+CONTEXTE
+- Repo : maarkbh-main (Next.js 16 + Turbopack, React, TS)
+- Convention existante à suivre : components/shared/contracts/ContractsListPage.tsx
+  est utilisé par app/(admin)/contracts/page.tsx ET app/employee/contracts/page.tsx,
+  chaque wrapper passant ses paths (newContractPath, contractDetailPath).
+  Pareil pour ContractDetailPage, NewContractPage.
+- lib/route-permissions.ts a déjà des placeholders : "/pickup" et "/return" (admin).
+- Les pages sources : app/employee/pickup/page.tsx et app/employee/return/page.tsx
+  sont déjà 100% backend (contractService.searchPendingDeliveries/getById/recordDelivery,
+  searchPendingReturns/getDelivery/calculateReturnCharges/recordReturn/dispute,
+  attachmentService.upload pour les photos).
+
+TÂCHES
+1. Extraire app/employee/pickup/page.tsx → components/shared/pickup/PickupPage.tsx
+   Props : detailPath (fn ou pattern pour la nav liste→détail), listPath (retour),
+   et toute navigation interne actuellement hardcodée en /employee/...
+2. Extraire app/employee/return/page.tsx → components/shared/return/ReturnPage.tsx
+   Props : listPath (redirect post-return + bouton back), detailPath, toute autre
+   navigation interne /employee/... devenue prop.
+3. Wrappers fins :
+   - app/employee/pickup/page.tsx   → <PickupPage listPath="/employee/pickup" detailPath={(id)=>`/employee/pickup?id=${id}`} />
+   - app/(admin)/pickup/page.tsx    → <PickupPage listPath="/pickup" detailPath={(id)=>`/pickup?id=${id}`} />
+   - app/employee/return/page.tsx   → <ReturnPage listPath="/employee/return" detailPath={(id)=>`/employee/return?id=${id}`} />
+   - app/(admin)/return/page.tsx    → <ReturnPage listPath="/return" detailPath={(id)=>`/return?id=${id}`} />
+   (adapter les props à ce que les pages utilisent réellement)
+4. Si le lien "return/pickup" doit apparaître dans la sidebar admin, l'ajouter dans
+   le composant sidebar admin avec la permission existante (route-permissions a déjà
+   /pickup et /return).
+5. Garder le pattern T(en, ar, isAr) bilingue et les états loading/error/empty.
+
+CONTRAINTES
+- Ne PAS casser les routes /employee/* (même comportement qu'aujourd'hui).
+- Ne PAS ajouter de mock data — tout reste sur contractService/attachmentService.
+- Pas de nouveaux packages.
+
+VÉRIFICATION
+- npx tsc --noEmit → 0 erreur
+- npx eslint sur tous les fichiers touchés → 0 erreur
+- Tester /employee/pickup, /employee/return, /pickup, /return en admin et employee.

@@ -15,6 +15,22 @@
       }
     ]
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const path = pm.request.url.getPath();",
+          "if (path.includes('/connect/token')) return;",
+          "const token = pm.variables.get('access_token');",
+          "if (!token) {",
+          "  throw new Error('No access_token. Run Auth → Login (password grant) first. Do not paste id_token.');",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
@@ -125,6 +141,18 @@
       "value": "1"
     },
     {
+      "key": "paymentTypeId",
+      "value": "1"
+    },
+    {
+      "key": "paymentMethodId",
+      "value": "1"
+    },
+    {
+      "key": "discountRateId",
+      "value": "1"
+    },
+    {
       "key": "tajeerApiLogId",
       "value": "1"
     },
@@ -151,8 +179,16 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "  const json = pm.response.json();",
-                  "  if (json.access_token) pm.collectionVariables.set('access_token', json.access_token);",
-                  "  if (json.refresh_token) pm.collectionVariables.set('refresh_token', json.refresh_token);",
+                  "  if (json.access_token) {",
+                  "    pm.collectionVariables.set('access_token', json.access_token);",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.globals.unset('access_token');",
+                  "  }",
+                  "  if (json.refresh_token) {",
+                  "    pm.collectionVariables.set('refresh_token', json.refresh_token);",
+                  "    pm.environment.unset('refresh_token');",
+                  "    pm.globals.unset('refresh_token');",
+                  "  }",
                   "}"
                 ]
               }
@@ -203,8 +239,16 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "  const json = pm.response.json();",
-                  "  if (json.access_token) pm.collectionVariables.set('access_token', json.access_token);",
-                  "  if (json.refresh_token) pm.collectionVariables.set('refresh_token', json.refresh_token);",
+                  "  if (json.access_token) {",
+                  "    pm.collectionVariables.set('access_token', json.access_token);",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.globals.unset('access_token');",
+                  "  }",
+                  "  if (json.refresh_token) {",
+                  "    pm.collectionVariables.set('refresh_token', json.refresh_token);",
+                  "    pm.environment.unset('refresh_token');",
+                  "    pm.globals.unset('refresh_token');",
+                  "  }",
                   "}"
                 ]
               }
@@ -255,8 +299,16 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "  const json = pm.response.json();",
-                  "  if (json.access_token) pm.collectionVariables.set('access_token', json.access_token);",
-                  "  if (json.refresh_token) pm.collectionVariables.set('refresh_token', json.refresh_token);",
+                  "  if (json.access_token) {",
+                  "    pm.collectionVariables.set('access_token', json.access_token);",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.globals.unset('access_token');",
+                  "  }",
+                  "  if (json.refresh_token) {",
+                  "    pm.collectionVariables.set('refresh_token', json.refresh_token);",
+                  "    pm.environment.unset('refresh_token');",
+                  "    pm.globals.unset('refresh_token');",
+                  "  }",
                   "}"
                 ]
               }
@@ -331,6 +383,74 @@
       ]
     },
     {
+      "name": "Tenant Settings",
+      "item": [
+        {
+          "name": "Get tenant settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tenant/settings",
+            "description": "Requires Permissions.Settings.View. Returns office profile, system settings, masked Tajeer status, current user snapshot, and timezone options."
+          }
+        },
+        {
+          "name": "Update office profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Markaba Riyadh\",\n  \"tagline\": \"Cloud fleet and rental management\",\n  \"taxNumber\": \"310123456700003\",\n  \"taxRate\": 15,\n  \"commercialRegistrationNumber\": \"1131310497\",\n  \"timeZone\": \"Asia/Riyadh\",\n  \"supportEmail\": \"support@maarkbh.sa\",\n  \"supportAddress\": \"Olaya District, Riyadh\",\n  \"supportPhone\": \"966550001234\",\n  \"supportWhatsApp\": \"966550001234\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tenant/settings/profile",
+            "description": "Requires Permissions.Settings.Edit"
+          }
+        },
+        {
+          "name": "Update system settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionTimeoutMinutes\": 30,\n  \"contractAutoCancelHours\": 12,\n  \"lateFeeGraceHours\": 1,\n  \"otpResendLimit\": 3,\n  \"otpLockoutMinutes\": 15,\n  \"otpValidityMinutes\": 5,\n  \"smsEnabled\": false,\n  \"senderIds\": [{ \"id\": \"MAARKBH\", \"enabled\": true }],\n  \"gatewayUrl\": \"http://8.213.81.159:81\",\n  \"gatewayKey\": \"C91547D8-070F-45BA-9C77-DDB0B16E28D1\",\n  \"appId\": \"c49fda9f\",\n  \"appKey\": \"0a0ecdd133cbda8414c36b1d9f8f8f51\",\n  \"authorization\": \"Basic YXBpVXNlcjgyOTgzNzpBYUAxMjM0NTY=\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tenant/settings/system",
+            "description": "Requires Permissions.Settings.Edit. Omit or leave secret fields empty to keep stored values. Any Tajeer field present re-verifies via GET /rental-api/branch/all."
+          }
+        },
+        {
+          "name": "Verify Tajeer connection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gatewayUrl\": \"http://8.213.81.159:81\",\n  \"gatewayKey\": \"C91547D8-070F-45BA-9C77-DDB0B16E28D1\",\n  \"appId\": \"c49fda9f\",\n  \"appKey\": \"0a0ecdd133cbda8414c36b1d9f8f8f51\",\n  \"authorization\": \"Basic YXBpVXNlcjgyOTgzNzpBYUAxMjM0NTY=\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tenant/settings/tajeer/verify",
+            "description": "Requires Permissions.Settings.Edit. Empty body uses stored credentials. Sends X-Gateway-Key, app-id, app-key, and Basic Authorization to the tenant Gateway URL."
+          }
+        }
+      ]
+    },
+    {
       "name": "Branches",
       "item": [
         {
@@ -377,7 +497,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nameAr\": \"ÙØ±Ø¹ Ø§Ù„Ø±ÙŠØ§Ø¶ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ\",\n  \"nameEn\": \"Riyadh Main Branch\",\n  \"isActive\": true,\n  \"latitude\": 24.713600,\n  \"longitude\": 46.675300\n}"
+              "raw": "{\n  \"nameAr\": \"فرع الرياض الرئيسي\",\n  \"nameEn\": \"Riyadh Main Branch\",\n  \"isActive\": true,\n  \"latitude\": 24.713600,\n  \"longitude\": 46.675300,\n  \"cityAr\": \"الرياض\",\n  \"cityEn\": \"Riyadh\",\n  \"addressAr\": \"العليا\",\n  \"addressEn\": \"Olaya\",\n  \"phone\": \"966550001234\",\n  \"hoursFrom\": \"08:00\",\n  \"hoursTo\": \"22:00\",\n  \"tajeerExternalId\": null\n}"
             },
             "url": "{{baseUrl}}/api/branches",
             "description": "Requires Permissions.Branches.Create"
@@ -404,10 +524,37 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nameAr\": \"ÙØ±Ø¹ Ø§Ù„Ø±ÙŠØ§Ø¶ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ\",\n  \"nameEn\": \"Riyadh Main Branch\",\n  \"isActive\": true,\n  \"latitude\": 24.713600,\n  \"longitude\": 46.675300\n}"
+              "raw": "{\n  \"nameAr\": \"فرع الرياض الرئيسي\",\n  \"nameEn\": \"Riyadh Main Branch\",\n  \"isActive\": true,\n  \"latitude\": 24.713600,\n  \"longitude\": 46.675300,\n  \"cityAr\": \"الرياض\",\n  \"cityEn\": \"Riyadh\",\n  \"addressAr\": \"العليا\",\n  \"addressEn\": \"Olaya\",\n  \"phone\": \"966550001234\",\n  \"hoursFrom\": \"08:00\",\n  \"hoursTo\": \"22:00\",\n  \"tajeerExternalId\": null\n}"
             },
             "url": "{{baseUrl}}/api/branches/{{branchId}}",
             "description": "Requires Permissions.Branches.Edit"
+          }
+        },
+        {
+          "name": "Preview Tajeer branches",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/branches/tajeer/preview",
+            "description": "Requires Permissions.Branches.View and a verified Tajeer connection. Fetches GET {gatewayUrl}/rental-api/branch/all and marks already imported rows."
+          }
+        },
+        {
+          "name": "Import Tajeer branches",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tajeerIds\": [10779, 12215]\n}"
+            },
+            "url": "{{baseUrl}}/api/branches/tajeer/import",
+            "description": "Requires Permissions.Branches.Create. Upserts selected Tajeer branch ids only. Does not delete local-only branches."
           }
         },
         {
@@ -1340,7 +1487,7 @@
               "raw": "{\n  \"search\": \"\",\n  \"status\": null,\n  \"statuses\": null,\n  \"branchId\": null,\n  \"customerId\": null,\n  \"vehicleId\": null,\n  \"from\": null,\n  \"to\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
             },
             "url": "{{baseUrl}}/api/contracts/search",
-            "description": "Requires Permissions.Contracts.View. Branch-scoped on workingBranchId. Flat rows include customer/vehicle/branch display fields. Search matches contract number, Tajeer number, customer name/phone, plate. statuses[] for multi-status tabs (pending = [1,2]). from/to filter StartAt."
+            "description": "Requires Permissions.Contracts.View. Branch-scoped on workingBranchId. Rows include nested payment (type/method ids + code snapshots, paid, deposit, remaining) plus canDeliver (Active, no delivery) and canReturn (Active/Overdue, has delivery, no return). Search matches contract number, Tajeer number, customer name/phone, plate. statuses[] for multi-status tabs (pending = [1,2]). from/to filter StartAt."
           }
         },
         {
@@ -1362,7 +1509,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/contracts/{{contractId}}",
-            "description": "Detail with customer/vehicle/branch display fields and durationDays. Timeline via Search contract activities."
+            "description": "Detail with customer/vehicle/branch display fields, durationDays, and nested payment. Timeline via Search contract activities."
           }
         },
         {
@@ -1387,10 +1534,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": {{customerId}},\n  \"vehicleId\": {{vehicleId}},\n  \"workingBranchId\": {{branchId}},\n  \"receiveBranchId\": {{branchId}},\n  \"returnBranchId\": {{branchId}},\n  \"contractType\": 1,\n  \"startAt\": \"2026-09-01T10:00:00Z\",\n  \"endAt\": \"2026-09-03T10:00:00Z\",\n  \"rentPolicyId\": {{rentPolicyId}},\n  \"cancellationPolicyId\": {{cancellationPolicyId}},\n  \"allowedKmPerDay\": 200,\n  \"unlimitedKm\": false,\n  \"allowedLateHours\": 2,\n  \"rentDayCost\": 200,\n  \"rentHourCost\": 0,\n  \"extraKmCost\": 1,\n  \"fullFuelCost\": 100,\n  \"driverFarePerDay\": 0,\n  \"driverFarePerHour\": 0,\n  \"vehicleTransferCost\": 0,\n  \"extraDriverCost\": 0,\n  \"internationalAuthorizationCost\": 0,\n  \"discountPercent\": 0,\n  \"paymentType\": 1,\n  \"paidAmount\": 230,\n  \"paymentMethodCode\": \"1\",\n  \"otherPaymentMethodCode\": null,\n  \"depositAmount\": 500,\n  \"extendedCoverageId\": null,\n  \"odometerReading\": 10000,\n  \"fuelLevel\": 1,\n  \"enduranceAmount\": 1500,\n  \"additionalServices\": []\n}"
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"vehicleId\": {{vehicleId}},\n  \"workingBranchId\": {{branchId}},\n  \"receiveBranchId\": {{branchId}},\n  \"returnBranchId\": {{branchId}},\n  \"contractType\": 1,\n  \"startAt\": \"2026-09-01T10:00:00Z\",\n  \"endAt\": \"2026-09-03T10:00:00Z\",\n  \"rentPolicyId\": {{rentPolicyId}},\n  \"cancellationPolicyId\": {{cancellationPolicyId}},\n  \"allowedKmPerDay\": 200,\n  \"unlimitedKm\": false,\n  \"allowedLateHours\": 2,\n  \"rentDayCost\": 200,\n  \"rentHourCost\": 0,\n  \"extraKmCost\": 1,\n  \"fullFuelCost\": 100,\n  \"driverFarePerDay\": 0,\n  \"driverFarePerHour\": 0,\n  \"vehicleTransferCost\": 0,\n  \"extraDriverCost\": 0,\n  \"internationalAuthorizationCost\": 0,\n  \"discountPercent\": 0,\n  \"paymentTypeId\": {{paymentTypeId}},\n  \"paymentMethodId\": {{paymentMethodId}},\n  \"otherPaymentMethodCode\": null,\n  \"paidAmount\": 230,\n  \"depositAmount\": 500,\n  \"extendedCoverageId\": null,\n  \"odometerReading\": 10000,\n  \"fuelLevel\": 1,\n  \"enduranceAmount\": 1500,\n  \"additionalServices\": []\n}"
             },
             "url": "{{baseUrl}}/api/contracts",
-            "description": "Creates Draft. paymentType: 1=Full, 2=Advance. paymentMethodCode required when paidAmount > 0 (1=Cash, 2=POS). extendedCoverageId is optional (null = none); set after Extended Coverages → Sync + Update cost if needed. depositAmount is Maarkbh-only. Check integrations.tajeerEnabled before activate vs submit-tajeer."
+            "description": "Creates Draft. paymentTypeId / paymentMethodId come from POST /api/lookups/context (PaymentTypes / PaymentMethods). Method is required when paidAmount > 0; codes stay FULL/ADVANCE and Tajeer 1=Cash / 2=POS. extendedCoverageId is optional (null = none). depositAmount is Maarkbh-only inside payment. Check integrations.tajeerEnabled before activate vs submit-tajeer."
           }
         },
         {
@@ -1417,6 +1564,134 @@
             "method": "POST",
             "header": [],
             "url": "{{baseUrl}}/api/contracts/{{contractId}}/refresh-tajeer"
+          }
+        },
+        {
+          "name": "Validate with Tajeer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/validate",
+            "description": "V9.7 6.12 validate-contract for the draft/linked contract renter and plate."
+          }
+        },
+        {
+          "name": "Get Tajeer PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/pdf?summarized=false",
+            "description": "V9.7 6.2 full or summarized PDF. Set summarized=true for the QR summary."
+          }
+        },
+        {
+          "name": "Get Tajeer portal links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/links",
+            "description": "Issuance URL plus optional public rent-status and return-status portal pages."
+          }
+        },
+        {
+          "name": "Save Tajeer vehicle rent status",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/rent-status",
+            "description": "V9.7 6.1.2 optional save-vehicle-status when rentStatus was omitted on save."
+          }
+        },
+        {
+          "name": "Calculate Tajeer close payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"odometerReading\": 10500,\n  \"availableFuel\": 4,\n  \"actualEndAt\": \"2026-09-23T10:00:00\",\n  \"paid\": 0,\n  \"discount\": 0,\n  \"oilChangeCost\": 0,\n  \"sparePartsCost\": 0,\n  \"damageCost\": 0\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/calculate-payment",
+            "description": "V9.7 6.13 calculate-contract-payment before close or suspend."
+          }
+        },
+        {
+          "name": "Close contract on Tajeer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mainClosureCode\": 1,\n  \"closureCode\": null,\n  \"actualEndAt\": \"2026-09-23T10:00:00\",\n  \"odometerReading\": 10500,\n  \"fuelLevel\": 4,\n  \"paid\": 0,\n  \"discount\": 0,\n  \"oilChangeCost\": 0,\n  \"paymentMethodCode\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/close",
+            "description": "V9.7 6.6 close. mainClosureCode from GET /api/contracts/tajeer/lookups/closure-reasons."
+          }
+        },
+        {
+          "name": "Suspend contract on Tajeer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"suspensionCode\": 2,\n  \"mojEnabled\": false,\n  \"odometerReading\": 10500,\n  \"fuelLevel\": 4,\n  \"paid\": 0,\n  \"oilChangeCost\": 0,\n  \"sparePartsCost\": 0,\n  \"damageCost\": 0,\n  \"paymentMethodCode\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/suspend",
+            "description": "V9.7 6.10 suspend. 1=non-traffic accident, 2=financial claims."
+          }
+        },
+        {
+          "name": "Update Tajeer paid amount",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPaidAmount\": 100,\n  \"paymentMethodCode\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/paid",
+            "description": "V9.7 6.11 update-paid-price."
+          }
+        },
+        {
+          "name": "Get Tajeer execution status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/tajeer/execution-status",
+            "description": "V9.7 6.15 MOJ execution status."
+          }
+        },
+        {
+          "name": "Get Tajeer saved contracts by plate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/tajeer/saved-by-plate/{{vehicleId}}",
+            "description": "V9.7 6.4 get-saved-contract by the vehicle plate."
+          }
+        },
+        {
+          "name": "Get Tajeer lookup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/contracts/tajeer/lookups/closure-reasons",
+            "description": "V9.7 6.14. Names: authorization-type, contract-status, contract-type, external-authorization-countries, fuel-type, id-type, payment-method, yakeen-nationality, gccNationality, country, closure-reasons, suspension-reasons. Optional ?id= for closure-reasons/{id}."
+          }
+        },
+        {
+          "name": "Register Tajeer webhook",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notificationUrl\": \"https://partner.example.com/webhooks/tajeer\",\n  \"secret\": \"partner-shared-secret\"\n}"
+            },
+            "url": "{{baseUrl}}/api/contracts/tajeer/webhook",
+            "description": "V9.7 6.16 register notification URL + secret."
           }
         },
         {
@@ -1483,6 +1758,323 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/contracts/{{contractId}}"
+          }
+        },
+        {
+          "name": "Delivery (Pickup Handover)",
+          "item": [
+            {
+              "name": "Search pending deliveries",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "  const json = pm.response.json();",
+                      "  const first = json.items && json.items[0];",
+                      "  if (first && first.id) pm.collectionVariables.set('contractId', String(first.id));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"search\": \"\",\n  \"branchId\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+                },
+                "url": "{{baseUrl}}/api/contracts/pending-deliveries/search",
+                "description": "Active contracts that have not yet been physically delivered to the customer. Requires Permissions.Contracts.View."
+              }
+            },
+            {
+              "name": "Record delivery (confirm handover)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"odometerAtDelivery\": 10000,\n  \"fuelLevelAtDelivery\": 4,\n  \"sketchInfoAtDelivery\": [\n    { \"type\": \"scratch\", \"x\": 42.5, \"y\": 18.0 }\n  ],\n  \"condition\": {\n    \"ac\": { \"isOk\": true },\n    \"radioStereo\": { \"isOk\": true },\n    \"screen\": { \"isOk\": true },\n    \"speedometer\": { \"isOk\": true },\n    \"keys\": { \"isOk\": true },\n    \"carSeats\": { \"isOk\": true },\n    \"tires\": { \"isOk\": false, \"note\": \"Left rear worn\", \"attachmentId\": 1 },\n    \"spareTire\": { \"isOk\": true },\n    \"safetyTriangle\": { \"isOk\": true },\n    \"fireExtinguisher\": { \"isOk\": true },\n    \"firstAidKit\": { \"isOk\": true },\n    \"spareTireTools\": { \"isOk\": true }\n  },\n  \"conditionNotes\": null,\n  \"checklist\": {\n    \"contractSigned\": true,\n    \"customerIdPhotographed\": true,\n    \"securityDepositCollected\": true,\n    \"walkAroundInspectionDone\": true,\n    \"fuelLevelRecorded\": true,\n    \"keysHandedOver\": true\n  }\n}"
+                },
+                "url": "{{baseUrl}}/api/contracts/{{contractId}}/deliver",
+                "description": "Records the physical key handover to customer. Send typed JSON (not stringified). checklist (قائمة التسليم) is required and all 6 items must be true. sketchInfoAtDelivery: [{ type, x, y }]. condition: 12 items { isOk, note?, attachmentId? }. Upload photos via /api/attachments first. fuelLevelAtDelivery: 0=Empty … 4=Full. Requires Permissions.Contracts.Deliver."
+              }
+            },
+            {
+              "name": "Get delivery record",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/contracts/{{contractId}}/delivery",
+                "description": "Returns the delivery snapshot or null if not yet delivered. Requires Permissions.Contracts.View."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Return (Vehicle Handback)",
+          "item": [
+            {
+              "name": "Search pending returns",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "  const json = pm.response.json();",
+                      "  const first = json.items && json.items[0];",
+                      "  if (first && first.id) pm.collectionVariables.set('contractId', String(first.id));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"search\": \"\",\n  \"branchId\": null,\n  \"isLate\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+                },
+                "url": "{{baseUrl}}/api/contracts/pending-returns/search",
+                "description": "Active or Overdue contracts that have not yet been returned. isLate: true = Overdue only, false = Active only, null = both. Requires Permissions.Contracts.View."
+              }
+            },
+            {
+              "name": "Calculate return charges (suggestion)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/contracts/{{contractId}}/return/calculate-charges?odometerAtReturn=10500&fuelLevelAtReturn=2&actualReturnAt=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "contracts", "{{contractId}}", "return", "calculate-charges"],
+                  "query": [
+                    { "key": "odometerAtReturn", "value": "10500" },
+                    { "key": "fuelLevelAtReturn", "value": "2" },
+                    { "key": "actualReturnAt", "value": "" }
+                  ]
+                },
+                "description": "Returns suggested late fee, extra KM, and fuel difference amounts. Employee can override any value when calling the record return endpoint. fuelLevelAtReturn: 0=Empty … 4=Full. actualReturnAt defaults to now if omitted."
+              }
+            },
+            {
+              "name": "Record return (close contract)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"odometerAtReturn\": 10500,\n  \"fuelLevelAtReturn\": 2,\n  \"sketchInfoAtReturn\": [\n    { \"type\": \"dent\", \"x\": 60.0, \"y\": 22.5 }\n  ],\n  \"condition\": {\n    \"ac\": { \"isOk\": true },\n    \"radioStereo\": { \"isOk\": true },\n    \"screen\": { \"isOk\": true },\n    \"speedometer\": { \"isOk\": true },\n    \"keys\": { \"isOk\": true },\n    \"carSeats\": { \"isOk\": true },\n    \"tires\": { \"isOk\": false, \"note\": \"Left rear worn\", \"attachmentId\": 1 },\n    \"spareTire\": { \"isOk\": true },\n    \"safetyTriangle\": { \"isOk\": true },\n    \"fireExtinguisher\": { \"isOk\": true },\n    \"firstAidKit\": { \"isOk\": true },\n    \"spareTireTools\": { \"isOk\": true }\n  },\n  \"conditionNotes\": null,\n  \"lateFeeAmount\": 25.00,\n  \"lateHours\": 2,\n  \"extraKmAmount\": 300.00,\n  \"extraKm\": 300,\n  \"fuelDifferenceAmount\": 50.00,\n  \"damageAmount\": 0.00,\n  \"checklist\": {\n    \"customerPresentAtCounter\": true,\n    \"odometerRecorded\": true,\n    \"fuelLevelChecked\": true,\n    \"walkAroundCompleted\": true,\n    \"customerConfirmedReturn\": true\n  }\n}"
+                },
+                "url": "{{baseUrl}}/api/contracts/{{contractId}}/return",
+                "description": "Records vehicle return. checklist (معاينة الإرجاع) is required and all 5 items must be true. Send typed JSON (not stringified): sketchInfoAtReturn [{ type, x, y }], condition { isOk, note?, attachmentId? }. Transitions to Completed and releases the vehicle. Requires Permissions.Contracts.Return."
+              }
+            },
+            {
+              "name": "Get return record",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/contracts/{{contractId}}/return",
+                "description": "Returns the return snapshot (charges + condition) or null if not yet returned. Requires Permissions.Contracts.View."
+              }
+            },
+            {
+              "name": "Mark contract disputed",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"notes\": \"Customer refuses penalty charges — escalated to manager.\"\n}"
+                },
+                "url": "{{baseUrl}}/api/contracts/{{contractId}}/dispute",
+                "description": "Marks a contract as disputed. Allowed while Overdue and not yet returned, or after return while still inside the snapshotted dispute window (DisputeWindowHours after ReturnedAt). Does not change contract status. Suggested late fee is paused while disputed. Requires Permissions.Contracts.Return."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Late Returns",
+      "item": [
+        {
+          "name": "Late return stats (KPIs)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/late-returns/stats",
+            "description": "Returns 4 KPI cards: overdueCount, averageLatenessMinutes, penaltiesThisMonth, disputesOpen. Requires Permissions.LateReturns.View. Branch-scoped."
+          }
+        },
+        {
+          "name": "Search late returns",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"branchId\": null,\n  \"displayStatus\": null,\n  \"from\": null,\n  \"to\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/late-returns/search",
+            "description": "Paged table of overdue and resolved-with-late-fee contracts. displayStatus: \"active\" | \"disputed\" | \"resolved\" (null = all). Requires Permissions.LateReturns.View."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pricing",
+      "item": [
+        {
+          "name": "Get late-return penalty settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/pricing/late-return-penalty",
+            "description": "Tenant-wide late-return rules (graceHours, perHourDivisor, fullDayThresholdHours). Creates defaults 1 / 8 / 4 on first GET. Snapshotted onto new/updated drafts. Requires Permissions.Settings.View."
+          }
+        },
+        {
+          "name": "Update late-return penalty settings",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graceHours\": 1,\n  \"perHourDivisor\": 8,\n  \"fullDayThresholdHours\": 4\n}"
+            },
+            "url": "{{baseUrl}}/api/pricing/late-return-penalty",
+            "description": "Updates tenant-wide late-return rules used as defaults for new drafts. Existing issued contracts keep their snapshot. Requires Permissions.Settings.Edit."
+          }
+        },
+        {
+          "name": "Get dispute policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/pricing/dispute-policy",
+            "description": "Tenant-wide dispute window (hours after return) and terms. Creates defaults (72h + two seed terms) on first GET. Snapshotted onto new/updated drafts. Requires Permissions.Settings.View."
+          }
+        },
+        {
+          "name": "Update dispute policy",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"disputeWindowHours\": 72,\n  \"terms\": [\n    { \"textAr\": \"صور/فيديو التسليم والاستلام دليل إلزامي\", \"textEn\": \"Handover photos/video are required evidence\" },\n    { \"textAr\": \"يُعلَّق تحصيل الغرامة أثناء مراجعة النزاع\", \"textEn\": \"Penalty collection is paused while a dispute is under review\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/pricing/dispute-policy",
+            "description": "Updates the dispute window and terms. Window is measured after return, not from contract EndAt. Requires Permissions.Settings.Edit."
+          }
+        },
+        {
+          "name": "Search discount rates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const first = json.items && json.items[0];",
+                  "  if (first && first.id) pm.collectionVariables.set('discountRateId', String(first.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"\",\n  \"isActive\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/pricing/discount-rates/search",
+            "description": "Admin CRUD list of named discount rates (name + percent). Requires Permissions.DiscountRates.View. Contract create/update still send discountPercent only — pick a rate then copy percent."
+          }
+        },
+        {
+          "name": "Pick discount rates",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/api/pricing/discount-rates/picker",
+            "description": "Active discount rates for the new-contract dropdown. Requires Permissions.DiscountRates.View. Apply the returned percent onto the contract; do not persist discountRateId."
+          }
+        },
+        {
+          "name": "Get discount rate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/pricing/discount-rates/{{discountRateId}}",
+            "description": "Requires Permissions.DiscountRates.View."
+          }
+        },
+        {
+          "name": "Create discount rate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const id = json.id || (json.data && json.data.id);",
+                  "  if (id) pm.collectionVariables.set('discountRateId', String(id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"حجز أسبوعي (٧+ أيام)\",\n  \"nameEn\": \"Weekly rental (7+ days)\",\n  \"percent\": 10,\n  \"sortOrder\": 1,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/pricing/discount-rates",
+            "description": "Requires Permissions.DiscountRates.Create. Percent is 0–100. Changing a rate does not rewrite existing contracts."
+          }
+        },
+        {
+          "name": "Update discount rate",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"حجز أسبوعي (٧+ أيام)\",\n  \"nameEn\": \"Weekly rental (7+ days)\",\n  \"percent\": 12,\n  \"sortOrder\": 1,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/pricing/discount-rates/{{discountRateId}}",
+            "description": "Requires Permissions.DiscountRates.Edit."
+          }
+        },
+        {
+          "name": "Delete discount rate",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/pricing/discount-rates/{{discountRateId}}",
+            "description": "Soft-delete. Existing contracts keep their stored discountPercent. Requires Permissions.DiscountRates.Delete."
           }
         }
       ]
@@ -1630,7 +2222,7 @@
               "raw": "{}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums, additionalServiceEnums (billingUnits), rentPolicyEnums (extension / early return / accident / fuel / breakdown)."
+            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums, additionalServiceEnums (billingUnits), rentPolicyEnums, contractEnums (types/statuses only), paymentTypes (FULL/ADVANCE), paymentMethods (1=Cash, 2=POS)."
           }
         },
         {
@@ -1645,10 +2237,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\", \"ContractEnums\"]\n}"
+              "raw": "{\n  \"sections\": [\"VehicleMakes\", \"VehicleModels\", \"PlateTypes\", \"InsuranceCompanies\", \"InsuranceTypes\", \"VehicleFeatureTypes\", \"VehicleEnums\", \"Countries\", \"Branches\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\", \"ContractEnums\", \"PaymentTypes\", \"PaymentMethods\"]\n}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\", \"AdditionalServiceEnums\", \"RentPolicyEnums\") or their integer values."
+            "description": "Same endpoint with explicit section filter. Only requested sections are included in the response; unrequested ones are omitted entirely. Section values accept enum names (case-insensitive strings, e.g. \"VehicleMakes\", \"PersonEnums\", \"PaymentTypes\", \"PaymentMethods\") or their integer values. ContractEnums no longer includes payment type/method — use PaymentTypes / PaymentMethods."
           }
         },
         {
@@ -2365,7 +2957,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/tenant/users/{{userId}}",
-            "description": "Requires Permissions.Users.View. Returns a single tenant user with role and branch assignments."
+            "description": "Requires Permissions.Users.View. Returns a single tenant user with role, branch assignments, and identity (identityType, nationalId, expiry, Gregorian birthDate)."
           }
         },
         {
@@ -2394,10 +2986,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userName\": \"sales.user\",\n  \"email\": \"sales@demo.maarkbh.com\",\n  \"phoneNumber\": \"966512345678\",\n  \"password\": \"Sales@1234\",\n  \"fullName\": \"Sales User\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
+              "raw": "{\n  \"userName\": \"sales.user\",\n  \"email\": \"sales@demo.maarkbh.com\",\n  \"phoneNumber\": \"966512345678\",\n  \"password\": \"Sales@1234\",\n  \"fullName\": \"Sales User\",\n  \"identityType\": 1,\n  \"nationalId\": \"1234567890\",\n  \"identityExpiryDate\": \"2028-06-15\",\n  \"birthDate\": \"1992-03-20\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
             },
             "url": "{{baseUrl}}/api/tenant/users",
-            "description": "Requires Permissions.Users.Create.\n\n`userName` is required and unique (used for login).\n`phoneNumber` is optional; when provided must be Saudi mobile `9665XXXXXXXX`.\n`roleName` must be the Identity name from Roles → Lookup (e.g. sales_lead_1), not the display name."
+            "description": "Requires Permissions.Users.Create.\n\n`userName` is required and unique (used for login).\n`phoneNumber` is optional; when provided must be Saudi mobile `9665XXXXXXXX`.\n`roleName` must be the Identity name from Roles → Lookup (e.g. sales_lead_1), not the display name.\n\nIdentity uses `POST /api/lookups/context` PersonEnums.identityTypes: 1 National (Saudi ID), 2 Residence (Iqama), 3 Visitor (Passport), 4 Gulf. Required when Tajeer is connected.\nAll types: `nationalId` + `identityExpiryDate` + Gregorian `birthDate`."
           }
         },
         {
@@ -2412,10 +3004,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userName\": \"sales.user\",\n  \"email\": \"sales@demo.maarkbh.com\",\n  \"phoneNumber\": \"966512345678\",\n  \"fullName\": \"Sales User Updated\",\n  \"isActive\": true,\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": null\n}"
+              "raw": "{\n  \"userName\": \"sales.user\",\n  \"email\": \"sales@demo.maarkbh.com\",\n  \"phoneNumber\": \"966512345678\",\n  \"fullName\": \"Sales User Updated\",\n  \"identityType\": 2,\n  \"nationalId\": \"2123456789\",\n  \"identityExpiryDate\": \"2028-06-15\",\n  \"birthDate\": \"1992-03-20\",\n  \"isActive\": true,\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": null\n}"
             },
             "url": "{{baseUrl}}/api/tenant/users/{{userId}}",
-            "description": "Requires Permissions.Users.Edit. TenantAdmin user cannot be modified from tenant API.\n\n`userName` must remain unique when changed.\n`phoneNumber`: omit to leave unchanged, empty string to clear, or Saudi mobile `9665XXXXXXXX`."
+            "description": "Requires Permissions.Users.Edit. TenantAdmin user cannot be modified from tenant API.\n\n`userName` must remain unique when changed.\n`phoneNumber`: omit to leave unchanged, empty string to clear, or Saudi mobile `9665XXXXXXXX`.\nOmit identity fields to leave them unchanged. Same identityType catalog as create."
           }
         },
         {
@@ -2509,7 +3101,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/tenant/roles/lookup",
-            "description": "Requires authenticated user only. Dropdown for create-user. Returns Identity Name (use as roleName when creating users)."
+            "description": "Requires authenticated user only. Dropdown for create-user. `name` is the Identity slug (use as roleName). `displayName` is the UI label. `description` is the optional note."
           }
         },
         {
@@ -2568,7 +3160,7 @@
               "raw": "{\n  \"name\": \"{{roleName}}\",\n  \"description\": \"Sales team lead (updated)\",\n  \"permissions\": [\n    \"Permissions.Users.View\",\n    \"Permissions.Users.Create\",\n    \"Permissions.Roles.View\",\n    \"Permissions.Settings.View\"\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/tenant/roles/{{roleId}}",
-            "description": "Requires Permissions.Roles.Edit"
+            "description": "Requires Permissions.Roles.Edit. `name` is the display name (not overwritten by `description`). Identity slug is rebuilt as slug_{tenantId}."
           }
         },
         {
@@ -2651,7 +3243,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/{{userId}}",
-            "description": "Requires SuperAdmin role. Returns a single user of the tenant, 404 when not found."
+            "description": "Requires SuperAdmin role. Returns a single user of the tenant including identity fields, 404 when not found."
           }
         },
         {
@@ -2689,10 +3281,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userName\": \"ops.user\",\n  \"email\": \"ops@demo.maarkbh.com\",\n  \"phoneNumber\": \"966587654321\",\n  \"password\": \"Ops@12345\",\n  \"fullName\": \"Ops User\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
+              "raw": "{\n  \"userName\": \"ops.user\",\n  \"email\": \"ops@demo.maarkbh.com\",\n  \"phoneNumber\": \"966587654321\",\n  \"password\": \"Ops@12345\",\n  \"fullName\": \"Ops User\",\n  \"identityType\": 1,\n  \"nationalId\": \"1098765432\",\n  \"identityExpiryDate\": \"2028-06-15\",\n  \"birthDate\": \"1992-03-20\",\n  \"roleName\": \"{{roleIdentityName}}\",\n  \"branchIds\": []\n}"
             },
             "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users",
-            "description": "Requires SuperAdmin. `userName` required and unique. `phoneNumber` optional Saudi mobile `9665XXXXXXXX`. roleName = Identity name ending with _{tenantId}."
+            "description": "Requires SuperAdmin. `userName` required and unique. `phoneNumber` optional Saudi mobile `9665XXXXXXXX`. roleName = Identity name ending with _{tenantId}. Same identity fields as Tenant Users → Create user (`POST /api/lookups/context` PersonEnums.identityTypes)."
           }
         },
         {
@@ -2707,10 +3299,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userName\": \"ops.user\",\n  \"email\": \"ops@demo.maarkbh.com\",\n  \"phoneNumber\": \"966587654321\",\n  \"fullName\": \"Ops User Updated\",\n  \"isActive\": true,\n  \"branchIds\": null\n}"
+              "raw": "{\n  \"userName\": \"ops.user\",\n  \"email\": \"ops@demo.maarkbh.com\",\n  \"phoneNumber\": \"966587654321\",\n  \"fullName\": \"Ops User Updated\",\n  \"identityType\": 2,\n  \"nationalId\": \"2123456789\",\n  \"identityExpiryDate\": \"2028-06-15\",\n  \"birthDate\": \"1992-03-20\",\n  \"isActive\": true,\n  \"branchIds\": null\n}"
             },
             "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/{{userId}}",
-            "description": "Requires SuperAdmin. `userName` unique when changed. `phoneNumber` optional Saudi mobile `9665XXXXXXXX`."
+            "description": "Requires SuperAdmin. `userName` unique when changed. `phoneNumber` optional Saudi mobile `9665XXXXXXXX`. Same identity fields as Tenant Users → Update user."
           }
         },
         {
@@ -2759,7 +3351,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
@@ -2775,7 +3367,7 @@
           "name": "Get warehouse summary",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": "{{baseUrl}}/api/customer-warehouse/{{warehouseCustomerId}}",
             "description": "Returns masked identity + per-office risk records."
           }
@@ -2784,7 +3376,7 @@
           "name": "Import from warehouse",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": "{{baseUrl}}/api/customer-warehouse/{{warehouseCustomerId}}/import",
             "description": "Fetches full data and creates a local Customer (or returns existing id). Requires Permissions.CustomerWarehouse.Import. Response: { customerId }."
           }
@@ -2798,7 +3390,7 @@
           "name": "Get stats",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": "{{baseUrl}}/api/admin/customer-warehouse/stats",
             "description": "Requires SuperAdmin role."
           }
@@ -2808,7 +3400,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
@@ -2824,7 +3416,7 @@
           "name": "Download import template",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": "{{baseUrl}}/api/admin/customer-warehouse/import/template",
             "description": "Downloads the blank Excel template. Requires SuperAdmin."
           }
@@ -2833,7 +3425,7 @@
           "name": "Import from Excel",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "body": {
               "mode": "formdata",
               "formdata": [

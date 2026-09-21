@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Banknote, CalendarDays, Check, Clock, Pencil, Plus, Trash2, type LucideIcon } from "lucide-react";
+import { useState, useEffect, type ReactNode } from "react";
+import { Banknote, CalendarDays, Check, Clock, Pencil, Plus, Trash2, Scale, type LucideIcon } from "lucide-react";
 import { CARS } from "@/lib/data";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Button, Badge, Table, Th, Td, Tabs, Input, Modal, IconButton } from "@/components/ui";
 import AdditionalServicesSection from "@/components/shared/additional-services/AdditionalServicesSection";
 import RentPoliciesSection from "@/components/shared/rent-policies/RentPoliciesSection";
 import CancellationPoliciesSection from "@/components/shared/cancellation-policies/CancellationPoliciesSection";
+import { pricingService } from "@/lib/api-services";
+import type { DisputePolicyTerm } from "@/lib/api-types";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -48,45 +50,256 @@ function PolicyRow({ icon, tone, children }: { icon: LucideIcon; tone?: keyof ty
 }
 
 type PricingTab = "vehicles" | "policies" | "discounts" | "addons";
-type DiscountItem = { k: string; nameEn: string; nameAr: string; pct: number };
+type DiscountItem = { id: number; nameEn: string; nameAr: string; pct: number; sortOrder: number; isActive: boolean };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDiscount(item: any): DiscountItem {
+  return {
+    id: Number(item.id),
+    nameEn: String(item.nameEn ?? ""),
+    nameAr: String(item.nameAr ?? ""),
+    pct: Number(item.percent ?? item.pct ?? 0),
+    sortOrder: Number(item.sortOrder ?? 0),
+    isActive: item.isActive !== false,
+  };
+}
+
+// ── Late-return penalty card — GET/PUT /pricing/late-return-penalty ────────────
+function LateReturnPenaltyCard({ ar }: { ar: boolean }) {
+  const [penalty, setPenalty] = useState({ graceHours: 1, perHourDivisor: 8, fullDayThresholdHours: 4 });
+  const [draft, setDraft] = useState(penalty);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    pricingService.getLateReturnPenalty()
+      .then((p) => {
+        if (cancelled) return;
+        const d = p?.data ?? p;
+        if (d && typeof d === "object") {
+          setPenalty({
+            graceHours: Number(d.graceHours ?? 1),
+            perHourDivisor: Number(d.perHourDivisor ?? 8),
+            fullDayThresholdHours: Number(d.fullDayThresholdHours ?? 4),
+          });
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const startEdit = () => { setDraft(penalty); setEditing(true); setError(""); };
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await pricingService.updateLateReturnPenalty(draft);
+      setPenalty(draft);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SectionCard
+      title={T("Late-return penalty", "غرامة التأخر في الإرجاع", ar)}
+      action={!editing && <Button variant="ghost" size="sm" onClick={startEdit}><Pencil size={12} />{T("Edit", "تعديل", ar)}</Button>}
+    >
+      {!editing ? (
+        <div className="flex flex-col gap-3 mk-caption normal-case tracking-normal text-mk-ink-600">
+          <PolicyRow icon={Clock} tone="blue"><b>{T(`${penalty.graceHours}h grace`, `${penalty.graceHours} ساعة سماح`, ar)}</b> — {T("no charge", "بدون رسوم", ar)}</PolicyRow>
+          <PolicyRow icon={Banknote} tone="warning"><b>{T(`Daily rate ÷ ${penalty.perHourDivisor}`, `السعر اليومي ÷ ${penalty.perHourDivisor}`, ar)}</b> {T("per hour after grace", "لكل ساعة بعد السماح", ar)}</PolicyRow>
+          <PolicyRow icon={CalendarDays} tone="violet"><b>{T(`${penalty.fullDayThresholdHours}h or more`, `${penalty.fullDayThresholdHours} ساعات أو أكثر`, ar)}</b> = {T("full extra day", "يوم كامل إضافي", ar)}</PolicyRow>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <Input label={T("Grace hours", "ساعات السماح", ar)} variant="muted" type="number" min={0} value={draft.graceHours} onChange={(e) => setDraft({ ...draft, graceHours: Math.max(0, Number(e.target.value) || 0) })} />
+          <Input label={T("Per-hour divisor (daily ÷ N)", "مقسوم الساعة (اليومي ÷ N)", ar)} variant="muted" type="number" min={1} value={draft.perHourDivisor} onChange={(e) => setDraft({ ...draft, perHourDivisor: Math.max(1, Number(e.target.value) || 1) })} />
+          <Input label={T("Full-day threshold (hours)", "حد اليوم الكامل (ساعات)", ar)} variant="muted" type="number" min={1} value={draft.fullDayThresholdHours} onChange={(e) => setDraft({ ...draft, fullDayThresholdHours: Math.max(1, Number(e.target.value) || 1) })} />
+          {error && <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100">{error}</p>}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1" disabled={saving} onClick={() => setEditing(false)}>{T("Cancel", "إلغاء", ar)}</Button>
+            <Button variant="primary" size="sm" className="flex-1" disabled={saving} onClick={save}><Check size={13} />{saving ? T("Saving…", "جارٍ الحفظ…", ar) : T("Save", "حفظ", ar)}</Button>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Dispute policy card — GET/PUT /pricing/dispute-policy ──────────────────────
+function DisputePolicyCard({ ar }: { ar: boolean }) {
+  const [windowHours, setWindowHours] = useState(72);
+  const [terms, setTerms] = useState<DisputePolicyTerm[]>([]);
+  const [draftWindow, setDraftWindow] = useState(72);
+  const [draftTerms, setDraftTerms] = useState<DisputePolicyTerm[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    pricingService.getDisputePolicy()
+      .then((p) => {
+        if (cancelled) return;
+        const d = p?.data ?? p;
+        if (d && typeof d === "object") {
+          setWindowHours(Number(d.disputeWindowHours ?? 72));
+          setTerms(Array.isArray(d.terms) ? d.terms : []);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const startEdit = () => { setDraftWindow(windowHours); setDraftTerms(terms.map((t) => ({ ...t }))); setEditing(true); setError(""); };
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const payload = { disputeWindowHours: draftWindow, terms: draftTerms.filter((t) => (t.textEn ?? "").trim() || (t.textAr ?? "").trim()) };
+      await pricingService.updateDisputePolicy(payload);
+      setWindowHours(payload.disputeWindowHours);
+      setTerms(payload.terms);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setTerm = (i: number, patch: Partial<DisputePolicyTerm>) =>
+    setDraftTerms((cur) => cur.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
+
+  return (
+    <SectionCard
+      title={T("Dispute policy", "سياسة النزاعات", ar)}
+      action={!editing && <Button variant="ghost" size="sm" onClick={startEdit}><Pencil size={12} />{T("Edit", "تعديل", ar)}</Button>}
+    >
+      {!editing ? (
+        <div className="flex flex-col gap-3 mk-caption normal-case tracking-normal text-mk-ink-600">
+          <PolicyRow icon={Scale} tone="violet"><b>{T(`${windowHours}h window`, `مهلة ${windowHours} ساعة`, ar)}</b> — {T("to open a dispute after return", "لفتح نزاع بعد الإرجاع", ar)}</PolicyRow>
+          {terms.map((t, i) => (
+            <PolicyRow key={i} icon={Check} tone="blue">{ar ? (t.textAr ?? t.textEn) : (t.textEn ?? t.textAr)}</PolicyRow>
+          ))}
+          {terms.length === 0 && (
+            <div className="mk-caption text-mk-ink-400">{T("No terms configured", "لا توجد شروط", ar)}</div>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <Input label={T("Dispute window (hours)", "مهلة النزاع (ساعات)", ar)} variant="muted" type="number" min={0} value={draftWindow} onChange={(e) => setDraftWindow(Math.max(0, Number(e.target.value) || 0))} />
+          <div className="mk-overline uppercase text-mk-ink-400">{T("Terms", "الشروط", ar)}</div>
+          {draftTerms.map((t, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <div className="flex-1 flex flex-col gap-2">
+                <Input placeholder={T("English text", "النص بالإنجليزية", ar)} variant="muted" value={t.textEn ?? ""} onChange={(e) => setTerm(i, { textEn: e.target.value })} />
+                <Input placeholder={T("Arabic text", "النص بالعربية", ar)} variant="muted" value={t.textAr ?? ""} onChange={(e) => setTerm(i, { textAr: e.target.value })} />
+              </div>
+              <IconButton size="sm" variant="ghost" className="text-mk-danger mt-1" aria-label={T("Remove term", "حذف الشرط", ar)} onClick={() => setDraftTerms((cur) => cur.filter((_, idx) => idx !== i))}><Trash2 size={13} /></IconButton>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" onClick={() => setDraftTerms((cur) => [...cur, { textEn: "", textAr: "" }])}><Plus size={13} />{T("Add term", "إضافة شرط", ar)}</Button>
+          {error && <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100">{error}</p>}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1" disabled={saving} onClick={() => setEditing(false)}>{T("Cancel", "إلغاء", ar)}</Button>
+            <Button variant="primary" size="sm" className="flex-1" disabled={saving} onClick={save}><Check size={13} />{saving ? T("Saving…", "جارٍ الحفظ…", ar) : T("Save", "حفظ", ar)}</Button>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
 
 export default function PricingPage() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const pricingCars = CARS.filter((c) => c.status !== "draft").slice(0, 6);
   const [activeTab, setActiveTab] = useState<PricingTab>("policies");
-  const [discounts, setDiscounts] = useState<DiscountItem[]>([
-    { k: "weekly", nameEn: "Weekly rental (7+ days)", nameAr: "حجز أسبوعي (٧+ أيام)", pct: 10 },
-    { k: "monthly", nameEn: "Monthly rental (30+ days)", nameAr: "حجز شهري (٣٠+ يوم)", pct: 20 },
-    { k: "full-prepay", nameEn: "Full advance payment", nameAr: "الدفع المقدّم بالكامل", pct: 5 },
-  ]);
+  const [discounts, setDiscounts] = useState<DiscountItem[]>([]);
+  const [discountsLoading, setDiscountsLoading] = useState(true);
+  const [discountsError, setDiscountsError] = useState("");
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState<DiscountItem | null>(null);
   const [discountForm, setDiscountForm] = useState({ nameEn: "", nameAr: "", pct: 0 });
+  const [discountSaving, setDiscountSaving] = useState(false);
+
+  const loadDiscounts = () => {
+    setDiscountsLoading(true);
+    pricingService.searchDiscountRates({ pageNumber: 1, pageSize: 50 })
+      .then((res) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? [];
+        setDiscounts((Array.isArray(items) ? items : []).map(mapDiscount));
+      })
+      .catch(() => setDiscounts([]))
+      .finally(() => setDiscountsLoading(false));
+  };
+
+  useEffect(() => {
+    const t = setTimeout(loadDiscounts, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   function openAddDiscount() {
     setEditingDiscount(null);
     setDiscountForm({ nameEn: "", nameAr: "", pct: 0 });
+    setDiscountsError("");
     setDiscountModalOpen(true);
   }
 
   function openEditDiscount(discount: DiscountItem) {
     setEditingDiscount(discount);
     setDiscountForm({ nameEn: discount.nameEn, nameAr: discount.nameAr, pct: discount.pct });
+    setDiscountsError("");
     setDiscountModalOpen(true);
   }
 
-  function handleSaveDiscount() {
-    if (editingDiscount) {
-      setDiscounts((current) => current.map((discount) => discount.k === editingDiscount.k ? { ...discount, ...discountForm } : discount));
-    } else {
-      setDiscounts((current) => [...current, { k: `discount-${Date.now()}`, ...discountForm }]);
+  async function handleSaveDiscount() {
+    setDiscountSaving(true);
+    setDiscountsError("");
+    try {
+      if (editingDiscount) {
+        await pricingService.updateDiscountRate(editingDiscount.id, {
+          nameEn: discountForm.nameEn,
+          nameAr: discountForm.nameAr,
+          percent: discountForm.pct,
+          sortOrder: editingDiscount.sortOrder,
+          isActive: editingDiscount.isActive,
+        });
+      } else {
+        await pricingService.createDiscountRate({
+          nameEn: discountForm.nameEn,
+          nameAr: discountForm.nameAr,
+          percent: discountForm.pct,
+          sortOrder: discounts.length + 1,
+          isActive: true,
+        });
+      }
+      setDiscountModalOpen(false);
+      loadDiscounts();
+    } catch (err) {
+      setDiscountsError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setDiscountSaving(false);
     }
-    setDiscountModalOpen(false);
   }
 
-  function handleDeleteDiscount(key: string) {
-    setDiscounts((current) => current.filter((discount) => discount.k !== key));
+  async function handleDeleteDiscount(id: number) {
+    try {
+      await pricingService.deleteDiscountRate(id);
+      loadDiscounts();
+    } catch (err) {
+      setDiscountsError(err instanceof Error ? err.message : "Unexpected error");
+    }
   }
 
   return (
@@ -141,33 +354,38 @@ export default function PricingPage() {
           {/* Cancellation policies — live catalog (POST /cancellation-policies) */}
           <CancellationPoliciesSection />
 
-          {/* Late return rules */}
-          <SectionCard title={T("Late-return penalty", "غرامة التأخر في الإرجاع", ar)}>
-            <div className="flex flex-col gap-3 mk-caption normal-case tracking-normal text-mk-ink-600">
-              <PolicyRow icon={Clock} tone="blue"><b>{T("1h grace", "ساعة سماح", ar)}</b> — {T("no charge", "بدون رسوم", ar)}</PolicyRow>
-              <PolicyRow icon={Banknote} tone="warning"><b>{T("Daily rate ÷ 8", "السعر اليومي ÷ ٨", ar)}</b> {T("per hour after grace", "لكل ساعة بعد السماح", ar)}</PolicyRow>
-              <PolicyRow icon={CalendarDays} tone="violet"><b>{T("4h or more", "٤ ساعات أو أكثر", ar)}</b> = {T("full extra day", "يوم كامل إضافي", ar)}</PolicyRow>
-            </div>
-          </SectionCard>
+          {/* Late return rules — live settings (GET/PUT /pricing/late-return-penalty) */}
+          <LateReturnPenaltyCard ar={ar} />
+
+          {/* Dispute policy — live settings (GET/PUT /pricing/dispute-policy) */}
+          <DisputePolicyCard ar={ar} />
           </div>
         </div>
       )}
 
       {activeTab === "discounts" && (
         <SectionCard title={T("Discount rules", "قواعد الخصومات", ar)} action={<Button variant="outline" size="sm" onClick={openAddDiscount}><Plus size={16} />{T("Add discount", "إضافة خصم", ar)}</Button>}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {discounts.map((discount) => (
-              <div key={discount.k} className="flex items-center justify-between gap-3 px-3 py-3 rounded-md bg-mk-ink-50">
-                <span className="mk-label text-mk-ink-900">{ar ? discount.nameAr : discount.nameEn}</span>
-                <div className="flex items-center gap-1">
-                  <span className="mk-label text-mk-blue-500">%{discount.pct}</span>
-                  <IconButton size="sm" variant="ghost" aria-label={T("Edit discount", "تعديل الخصم", ar)} onClick={() => openEditDiscount(discount)}><Pencil size={13} /></IconButton>
-                  <IconButton size="sm" variant="ghost" className="text-mk-danger hover:text-mk-danger" aria-label={T("Delete discount", "حذف الخصم", ar)} onClick={() => handleDeleteDiscount(discount.k)}><Trash2 size={13} /></IconButton>
+          {discountsError && !discountModalOpen && (
+            <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100 mb-3">{discountsError}</p>
+          )}
+          {discountsLoading ? (
+            <div className="py-10 text-center mk-body-sm text-mk-ink-500">{T("Loading…", "جارٍ التحميل…", ar)}</div>
+          ) : discounts.length === 0 ? (
+            <div className="py-10 text-center mk-body-sm text-mk-ink-500">{T("No discount rules yet", "لا توجد قواعد خصم بعد", ar)}</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {discounts.map((discount) => (
+                <div key={discount.id} className="flex items-center justify-between gap-3 px-3 py-3 rounded-md bg-mk-ink-50">
+                  <span className="mk-label text-mk-ink-900">{ar ? discount.nameAr : discount.nameEn}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="mk-label text-mk-blue-500">{discount.pct}%</span>
+                    <IconButton size="sm" variant="ghost" aria-label={T("Edit discount", "تعديل الخصم", ar)} onClick={() => openEditDiscount(discount)}><Pencil size={13} /></IconButton>
+                    <IconButton size="sm" variant="ghost" className="text-mk-danger hover:text-mk-danger" aria-label={T("Delete discount", "حذف الخصم", ar)} onClick={() => handleDeleteDiscount(discount.id)}><Trash2 size={13} /></IconButton>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          <p className="mk-caption text-mk-ink-500 mt-4">{T("Discount changes are temporary until the backend endpoints are connected.", "تغييرات الخصومات مؤقتة حتى يتم ربط واجهات الخادم.", ar)}</p>
+              ))}
+            </div>
+          )}
         </SectionCard>
       )}
 
@@ -181,9 +399,12 @@ export default function PricingPage() {
             <Input label={T("English name", "الاسم بالإنجليزية", ar)} variant="muted" value={discountForm.nameEn} onChange={(event) => setDiscountForm({ ...discountForm, nameEn: event.target.value })} />
             <Input label={T("Percentage", "النسبة", ar)} variant="muted" type="number" min={0} max={100} value={discountForm.pct} onChange={(event) => setDiscountForm({ ...discountForm, pct: Math.min(100, Math.max(0, Number(event.target.value) || 0)) })} />
           </div>
+          {discountsError && (
+            <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100 mb-4">{discountsError}</p>
+          )}
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setDiscountModalOpen(false)} className="flex-1 justify-center">{T("Cancel", "إلغاء", ar)}</Button>
-            <Button variant="primary" disabled={!discountForm.nameAr || !discountForm.nameEn} onClick={handleSaveDiscount} className="flex-1 justify-center"><Check size={13} />{editingDiscount ? T("Save changes", "حفظ التعديلات", ar) : T("Add discount", "إضافة خصم", ar)}</Button>
+            <Button variant="outline" disabled={discountSaving} onClick={() => setDiscountModalOpen(false)} className="flex-1 justify-center">{T("Cancel", "إلغاء", ar)}</Button>
+            <Button variant="primary" disabled={!discountForm.nameAr || !discountForm.nameEn || discountSaving} onClick={handleSaveDiscount} className="flex-1 justify-center"><Check size={13} />{discountSaving ? T("Saving…", "جارٍ الحفظ…", ar) : editingDiscount ? T("Save changes", "حفظ التعديلات", ar) : T("Add discount", "إضافة خصم", ar)}</Button>
           </div>
         </div>
       </Modal>

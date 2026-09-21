@@ -7,7 +7,8 @@ import { Avatar, Badge, Button, Input, Select, Toggle, Table, Th, Td, Tabs } fro
 import { useAdmin } from "@/contexts/AdminContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Permission, type PermissionRequirement } from "@/lib/permissions";
-import { tajeerVerifyOffice } from "@/lib/tajeer";
+import { tenantSettingsService } from "@/lib/api-services";
+import type { SmsSenderId } from "@/lib/api-types";
 import { BranchesPanel } from "@/components/admin/BranchesPanel";
 import { StaffRolesPanel } from "@/components/admin/StaffRolesPanel";
 import { RolesPermissionsPanel } from "@/components/admin/RolesPermissionsPanel";
@@ -79,34 +80,42 @@ function SettingsContent() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [activeTab, pathname, router, searchParams]);
 
-  // ── Office profile ──────────────────────────────────────
+  // ── Office profile (PUT /tenant/settings/profile) ─────
   const [tenantId] = useState("MK-100234");
-  const [officeName, setOfficeName] = useState("مركبة — الرياض");
-  const [tagline, setTagline] = useState(T("Cloud fleet & rental management for Saudi car rental offices.", "منصة سحابية لإدارة الأسطول والتأجير لمكاتب تأجير السيارات في السعودية.", ar));
+  const [officeName, setOfficeName] = useState("");
+  const [tagline, setTagline] = useState("");
   const [adminFirstName, setAdminFirstName] = useState("Abdullah");
   const [adminLastName, setAdminLastName] = useState("Al-Otaibi");
   const [adminEmail, setAdminEmail] = useState("abdullah.otaibi@maarkbh.sa");
   const [timezone, setTimezone] = useState("Asia/Riyadh");
-  const [supportEmail, setSupportEmail] = useState("support@maarkbh.sa");
-  const [supportAddress, setSupportAddress] = useState(T("Olaya District, Riyadh 12213", "حي العليا، الرياض 12213", ar));
-  const [supportPhone, setSupportPhone] = useState("+966 55 000 1234");
-  const [supportWhatsapp, setSupportWhatsapp] = useState("+966 55 000 1234");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportAddress, setSupportAddress] = useState("");
+  const [supportPhone, setSupportPhone] = useState("");
+  const [supportWhatsapp, setSupportWhatsapp] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
 
-  // ── System settings ──────────────────────────────────────
-  const [taxNumber, setTaxNumber] = useState("310123456700003");
+  // ── System settings (PUT /tenant/settings/system) ──────
+  const [taxNumber, setTaxNumber] = useState("");
   const [crNumber, setCrNumber] = useState("");
   const [taxRate, setTaxRate] = useState("15");
-  // ── Tajeer platform account — every office registers its own app-id/app-key/
-  // client-id via the Rabet portal, plus an Authorization token generated
-  // from the Tajeer portal itself. See Maarkbh_Tajeer_Integration_Analysis.md.
-  const [tajeerClientId, setTajeerClientId] = useState("");
+  // ── Tajeer platform account — office credentials issued via the Tajeer
+  // portal (app-id / app-key / authorization) plus the SMS gateway pair.
   const [tajeerAppId, setTajeerAppId] = useState("");
   const [tajeerAppKey, setTajeerAppKey] = useState("");
-  const [tajeerAuthToken, setTajeerAuthToken] = useState("");
+  const [tajeerAuthorization, setTajeerAuthorization] = useState("");
+  const [tajeerGatewayUrl, setTajeerGatewayUrl] = useState("");
+  const [tajeerGatewayKey, setTajeerGatewayKey] = useState("");
   const [showTajeerSecrets, setShowTajeerSecrets] = useState(false);
   const [tajeerVerifyStatus, setTajeerVerifyStatus] = useState<"idle" | "verifying" | "verified" | "error">("idle");
   const [tajeerVerifyError, setTajeerVerifyError] = useState<string | null>(null);
+  // Secrets never come back from the API — only has* flags.
+  const [tajeerMeta, setTajeerMeta] = useState<{
+    hasGatewayKey?: boolean; hasAppKey?: boolean; hasAuthorization?: boolean;
+    isActive?: boolean; tajeerOfficeId?: number | null; lastVerifiedAt?: string | null;
+  }>({});
+  const [timezoneOptions, setTimezoneOptions] = useState(TIMEZONE_OPTIONS);
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [contractAutoCancel, setContractAutoCancel] = useState("12");
   const [lateFeeGrace, setLateFeeGrace] = useState("1");
@@ -114,46 +123,160 @@ function SettingsContent() {
   const [otpLockout, setOtpLockout] = useState("15");
   const [otpValidity, setOtpValidity] = useState("5");
   const [smsEnabled, setSmsEnabled] = useState(true);
-  const [senderIds, setSenderIds] = useState([
-    { id: "MAARKBH", enabled: true },
-    { id: "MAARKBH-AR", enabled: false },
-  ]);
+  const [senderIds, setSenderIds] = useState<SmsSenderId[]>([]);
   const [systemSaved, setSystemSaved] = useState(false);
+  const [systemError, setSystemError] = useState("");
+  const [systemSaving, setSystemSaving] = useState(false);
 
   const TAGLINE_MAX = 140;
 
-  function handleSaveProfile() {
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 1800);
+  // Load tenant settings once on mount — GET /tenant/settings returns both
+  // the office profile and the system configuration.
+  useEffect(() => {
+    let cancelled = false;
+    tenantSettingsService.getSettings()
+      .then((res) => {
+        if (cancelled) return;
+        const d = res?.data ?? res;
+        if (!d || typeof d !== "object") return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const p: any = d.profile ?? d;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const s: any = d.system ?? d;
+
+        if (p.name != null) setOfficeName(String(p.name));
+        if (p.tagline != null) setTagline(String(p.tagline));
+        if (p.supportEmail != null) setSupportEmail(String(p.supportEmail));
+        if (p.supportAddress != null) setSupportAddress(String(p.supportAddress));
+        if (p.supportPhone != null) setSupportPhone(String(p.supportPhone));
+        if (p.supportWhatsApp != null) setSupportWhatsapp(String(p.supportWhatsApp));
+        if (p.taxNumber != null) setTaxNumber(String(p.taxNumber));
+        if (p.taxRate != null) setTaxRate(String(p.taxRate));
+        if (p.commercialRegistrationNumber != null) setCrNumber(String(p.commercialRegistrationNumber));
+        // Timezone options ship with the settings payload; fall back to the
+        // hardcoded list when absent.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tzOpts: any[] = Array.isArray(d.timezoneOptions) ? d.timezoneOptions : [];
+        if (tzOpts.length > 0) {
+          setTimezoneOptions(tzOpts.map((t) => ({ value: String(t.value ?? ""), en: String(t.labelEn ?? t.value ?? ""), ar: String(t.labelAr ?? t.labelEn ?? t.value ?? "") })));
+        }
+        if (p.timeZone != null) setTimezone(String(p.timeZone));
+
+        // Tajeer credentials live under `tajeer` — secrets are masked and only
+        // exposed as has* flags, so never write them into editable state.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tj: any = d.tajeer ?? {};
+        if (tj.gatewayUrl != null) setTajeerGatewayUrl(String(tj.gatewayUrl));
+        if (tj.appId != null) setTajeerAppId(String(tj.appId));
+        setTajeerMeta({
+          hasGatewayKey: Boolean(tj.hasGatewayKey),
+          hasAppKey: Boolean(tj.hasAppKey),
+          hasAuthorization: Boolean(tj.hasAuthorization),
+          isActive: Boolean(tj.isActive),
+          tajeerOfficeId: tj.tajeerOfficeId ?? null,
+          lastVerifiedAt: tj.lastVerifiedAt ?? null,
+        });
+        if (tj.isActive) setTajeerVerifyStatus("verified");
+        if (s.sessionTimeoutMinutes != null) setSessionTimeout(String(s.sessionTimeoutMinutes));
+        if (s.contractAutoCancelHours != null) setContractAutoCancel(String(s.contractAutoCancelHours));
+        if (s.lateFeeGraceHours != null) setLateFeeGrace(String(s.lateFeeGraceHours));
+        if (s.otpResendLimit != null) setOtpResendLimit(String(s.otpResendLimit));
+        if (s.otpLockoutMinutes != null) setOtpLockout(String(s.otpLockoutMinutes));
+        if (s.otpValidityMinutes != null) setOtpValidity(String(s.otpValidityMinutes));
+        if (s.smsEnabled != null) setSmsEnabled(Boolean(s.smsEnabled));
+        if (Array.isArray(s.senderIds)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setSenderIds(s.senderIds.map((x: any) => ({ id: String(x.id ?? ""), enabled: Boolean(x.enabled) })));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleSaveProfile() {
+    setProfileSaving(true);
+    setProfileError("");
+    try {
+      await tenantSettingsService.updateProfile({
+        name: officeName,
+        tagline,
+        taxNumber,
+        taxRate: Number(taxRate) || 0,
+        commercialRegistrationNumber: crNumber,
+        timeZone: timezone,
+        supportEmail,
+        supportAddress,
+        supportPhone,
+        supportWhatsApp: supportWhatsapp,
+      });
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 1800);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
   async function handleVerifyTajeer() {
     setTajeerVerifyStatus("verifying");
     setTajeerVerifyError(null);
-    const result = await tajeerVerifyOffice({
-      crNumber,
-      clientId: tajeerClientId,
-      appId: tajeerAppId,
-      appKey: tajeerAppKey,
-      authToken: tajeerAuthToken,
-    });
-    if (result.verified) {
-      setTajeerVerifyStatus("verified");
-    } else {
+    try {
+      // Only send fields the user actually filled — secrets stay server-side
+      // (the API never returns them) so empty inputs must not blank them out.
+      const res = await tenantSettingsService.verifyTajeer({
+        gatewayUrl: tajeerGatewayUrl || undefined,
+        gatewayKey: tajeerGatewayKey || undefined,
+        appId: tajeerAppId || undefined,
+        appKey: tajeerAppKey || undefined,
+        authorization: tajeerAuthorization || undefined,
+      });
+      const d = res?.data ?? res;
+      const verified = Boolean(d?.verified ?? d?.isVerified ?? d?.success);
+      if (verified) {
+        setTajeerVerifyStatus("verified");
+      } else {
+        setTajeerVerifyStatus("error");
+        setTajeerVerifyError(d?.message ?? d?.error ?? null);
+      }
+    } catch (err) {
       setTajeerVerifyStatus("error");
-      setTajeerVerifyError(result.message ?? null);
+      setTajeerVerifyError(err instanceof Error ? err.message : "Unexpected error");
     }
   }
 
   async function handleSaveSystem() {
-    // Any Tajeer credential filled in → re-verify the office with Tajeer as
-    // part of saving, so a stale/never-checked connection can't silently
-    // sit there looking fine.
-    if (tajeerClientId || tajeerAppId || tajeerAppKey || tajeerAuthToken) {
-      await handleVerifyTajeer();
+    setSystemSaving(true);
+    setSystemError("");
+    try {
+      // Any Tajeer credential filled in → re-verify with the backend as part
+      // of saving, so a stale/never-checked connection can't silently sit
+      // there looking fine.
+      if (tajeerAppId || tajeerAppKey || tajeerAuthorization || tajeerGatewayUrl || tajeerGatewayKey) {
+        await handleVerifyTajeer();
+      }
+      await tenantSettingsService.updateSystem({
+        sessionTimeoutMinutes: Number(sessionTimeout) || 0,
+        contractAutoCancelHours: Number(contractAutoCancel) || 0,
+        lateFeeGraceHours: Number(lateFeeGrace) || 0,
+        otpResendLimit: Number(otpResendLimit) || 0,
+        otpLockoutMinutes: Number(otpLockout) || 0,
+        otpValidityMinutes: Number(otpValidity) || 0,
+        smsEnabled,
+        senderIds,
+        gatewayUrl: tajeerGatewayUrl || undefined,
+        gatewayKey: tajeerGatewayKey || undefined,
+        appId: tajeerAppId || undefined,
+        appKey: tajeerAppKey || undefined,
+        authorization: tajeerAuthorization || undefined,
+      });
+      setSystemSaved(true);
+      setTimeout(() => setSystemSaved(false), 1800);
+    } catch (err) {
+      setSystemError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setSystemSaving(false);
     }
-    setSystemSaved(true);
-    setTimeout(() => setSystemSaved(false), 1800);
   }
 
   function toggleSender(id: string) {
@@ -163,8 +286,8 @@ function SettingsContent() {
   const wide = activeTab === "staff" || activeTab === "roles" || activeTab === "branches";
 
   const TAB_LABELS: Record<SettingsTab, { en: string; ar: string }> = {
-    profile: { en: "General Settings (Not ready)", ar: "إعدادات عامة (غير مكتمل)" },
-    system: { en: "System (Not ready)", ar: "النظام (غير مكتمل)" },
+    profile: { en: "General Settings", ar: "إعدادات عامة" },
+    system: { en: "System", ar: "النظام" },
     branches: { en: "Branches", ar: "الفروع" },
     staff: { en: "Staff", ar: "الفريق" },
     roles: { en: "Roles & Permissions", ar: "الأدوار والصلاحيات" },
@@ -197,12 +320,18 @@ function SettingsContent() {
               variant="primary"
               size="sm"
               onClick={handleSaveProfile}
+              disabled={profileSaving}
               className={profileSaved ? "bg-mk-mint-500 hover:bg-mk-mint-500" : ""}
             >
-              {profileSaved ? T("Saved!", "تم الحفظ!", ar) : T("Save Changes", "حفظ التعديلات", ar)}
+              {profileSaving ? T("Saving…", "جارٍ الحفظ…", ar) : profileSaved ? T("Saved!", "تم الحفظ!", ar) : T("Save Changes", "حفظ التعديلات", ar)}
             </Button>
           </div>
         </div>
+        {profileError && (
+          <div className="px-6 pt-4">
+            <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100">{profileError}</p>
+          </div>
+        )}
 
         <div className="px-6">
           <SettingsRow title={T("Tenant ID", "رقم المشترك", ar)} sub={T("Unique number for your subscription", "الرقم الفريد لاشتراكك", ar)}>
@@ -282,7 +411,7 @@ function SettingsContent() {
           <SettingsRow title={T("Timezone", "المنطقة الزمنية", ar)} hint>
             <div className="relative">
               <Select value={timezone} onChange={(e) => setTimezone(e.target.value)} variant="muted" className="ps-9">
-                {TIMEZONE_OPTIONS.map((tz) => (
+                {timezoneOptions.map((tz) => (
                   <option key={tz.value} value={tz.value}>{ar ? tz.ar : tz.en}</option>
                 ))}
               </Select>
@@ -328,12 +457,18 @@ function SettingsContent() {
               variant="primary"
               size="sm"
               onClick={handleSaveSystem}
+              disabled={systemSaving}
               className={systemSaved ? "bg-mk-mint-500 hover:bg-mk-mint-500" : ""}
             >
-              {systemSaved ? T("Saved!", "تم الحفظ!", ar) : T("Save Changes", "حفظ التعديلات", ar)}
+              {systemSaving ? T("Saving…", "جارٍ الحفظ…", ar) : systemSaved ? T("Saved!", "تم الحفظ!", ar) : T("Save Changes", "حفظ التعديلات", ar)}
             </Button>
           </div>
         </div>
+        {systemError && (
+          <div className="px-6 pt-4">
+            <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100">{systemError}</p>
+          </div>
+        )}
 
         <div className="px-6">
           <SettingsRow
@@ -342,8 +477,21 @@ function SettingsContent() {
           >
             <div className="flex flex-col gap-3">
               <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
-                <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Client ID", "معرّف العميل", ar)}</span>
-                <input className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono" placeholder="client-id" value={tajeerClientId} onChange={(e) => { setTajeerClientId(e.target.value); setTajeerVerifyStatus("idle"); }} />
+                <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Gateway URL", "رابط البوابة", ar)}</span>
+                <input className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono" dir="ltr" placeholder="https://api.tajeer.sa" value={tajeerGatewayUrl} onChange={(e) => { setTajeerGatewayUrl(e.target.value); setTajeerVerifyStatus("idle"); }} />
+              </div>
+              <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
+                <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Gateway Key", "مفتاح البوابة", ar)}</span>
+                <input
+                  type={showTajeerSecrets ? "text" : "password"}
+                  className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono"
+                  placeholder={tajeerMeta.hasGatewayKey ? "••••••••" : "gateway-key"}
+                  value={tajeerGatewayKey}
+                  onChange={(e) => { setTajeerGatewayKey(e.target.value); setTajeerVerifyStatus("idle"); }}
+                />
+                {tajeerMeta.hasGatewayKey && !tajeerGatewayKey && (
+                  <span className="mk-caption text-mk-mint-600 px-3 shrink-0">{T("✓ configured", "✓ مُهيأ", ar)}</span>
+                )}
               </div>
               <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
                 <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("App ID", "معرّف التطبيق", ar)}</span>
@@ -354,10 +502,13 @@ function SettingsContent() {
                 <input
                   type={showTajeerSecrets ? "text" : "password"}
                   className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono"
-                  placeholder="app-key"
+                  placeholder={tajeerMeta.hasAppKey ? "••••••••" : "app-key"}
                   value={tajeerAppKey}
                   onChange={(e) => { setTajeerAppKey(e.target.value); setTajeerVerifyStatus("idle"); }}
                 />
+                {tajeerMeta.hasAppKey && !tajeerAppKey && (
+                  <span className="mk-caption text-mk-mint-600 px-3 shrink-0">{T("✓ configured", "✓ مُهيأ", ar)}</span>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowTajeerSecrets((s) => !s)}
@@ -368,16 +519,19 @@ function SettingsContent() {
                 </button>
               </div>
               <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
-                <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Authorization Token", "رمز التفويض", ar)}</span>
+                <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Authorization", "رمز التفويض", ar)}</span>
                 <input
                   type={showTajeerSecrets ? "text" : "password"}
                   className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono"
-                  placeholder="Basic ••••••••"
-                  value={tajeerAuthToken}
-                  onChange={(e) => { setTajeerAuthToken(e.target.value); setTajeerVerifyStatus("idle"); }}
+                  placeholder={tajeerMeta.hasAuthorization ? "••••••••" : "Basic ••••••••"}
+                  value={tajeerAuthorization}
+                  onChange={(e) => { setTajeerAuthorization(e.target.value); setTajeerVerifyStatus("idle"); }}
                 />
+                {tajeerMeta.hasAuthorization && !tajeerAuthorization && (
+                  <span className="mk-caption text-mk-mint-600 px-3 shrink-0">{T("✓ configured", "✓ مُهيأ", ar)}</span>
+                )}
               </div>
-              <p className="mk-overline text-mk-ink-400">{T("Client ID / App ID / App Key come from the Rabet portal; the Authorization token is generated from the Tajeer portal itself. The CR number is set in General Settings.", "معرّف العميل ومعرّف ورمز التطبيق من بوابة رابط، ورمز التفويض يُولَّد من بوابة تاجير نفسها. رقم السجل التجاري يُضبط في إعدادات عامة.", ar)}</p>
+              <p className="mk-overline text-mk-ink-400">{T("Gateway URL/Key connect to the Tajeer gateway; App ID / App Key / Authorization are issued for your office in the Tajeer portal.", "رابط ومفتاح البوابة للاتصال ببوابة تاجير، ومعرّف ومفتاح التطبيق ورمز التفويض تُصدر لمكتبك من بوابة تاجير.", ar)}</p>
 
               <div className="flex items-center justify-between gap-3 pt-1">
                 <Button
@@ -415,6 +569,21 @@ function SettingsContent() {
                   </span>
                 )}
               </div>
+
+              {/* Persisted link state from GET /tenant/settings (tajeer.*) */}
+              {tajeerMeta.isActive && (
+                <div className="flex items-center gap-4 flex-wrap rounded-lg px-4 py-2.5" style={{ background: "rgba(27,156,144,0.07)", border: "1px solid rgba(27,156,144,0.2)" }}>
+                  <span className="mk-caption text-mk-mint-700 font-semibold">{T("Tajeer link active", "الربط مع تاجير نشط", ar)}</span>
+                  {tajeerMeta.tajeerOfficeId != null && (
+                    <span className="mk-caption text-mk-ink-500 font-mono" dir="ltr">Office #{tajeerMeta.tajeerOfficeId}</span>
+                  )}
+                  {tajeerMeta.lastVerifiedAt && (
+                    <span className="mk-caption text-mk-ink-400">
+                      {T("Verified", "آخر تحقق", ar)}: {new Date(tajeerMeta.lastVerifiedAt).toLocaleString(ar ? "ar-SA" : "en-US")}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </SettingsRow>
 
@@ -479,12 +648,20 @@ function SettingsContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {senderIds.map((s) => (
-                      <tr key={s.id}>
-                        <Td className="font-mono mk-label text-mk-ink-900">{s.id}</Td>
-                        <Td><Toggle checked={s.enabled} onChange={() => toggleSender(s.id)} disabled={!smsEnabled} size="sm" /></Td>
+                    {senderIds.length === 0 ? (
+                      <tr>
+                        <Td colSpan={2} className="text-center mk-caption text-mk-ink-400 py-6">
+                          {T("No sender IDs configured", "لا توجد معرّفات مرسل", ar)}
+                        </Td>
                       </tr>
-                    ))}
+                    ) : (
+                      senderIds.map((s) => (
+                        <tr key={s.id}>
+                          <Td className="font-mono mk-label text-mk-ink-900">{s.id}</Td>
+                          <Td><Toggle checked={s.enabled ?? false} onChange={() => toggleSender(s.id ?? "")} disabled={!smsEnabled} size="sm" /></Td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </Table>
               </div>

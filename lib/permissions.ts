@@ -97,6 +97,11 @@ export const Permission = {
     View: "Permissions.ExtendedCoverages.View",
     Edit: "Permissions.ExtendedCoverages.Edit",
   },
+  LateReturns: {
+    Mange: "Permissions.LateReturns.Manage",
+    View: "Permissions.LateReturns.View",
+
+  }
 } as const;
 
 type NestedValues<T> = T extends readonly (infer U)[]

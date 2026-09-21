@@ -355,6 +355,27 @@ export const branchService = {
       method: 'DELETE',
     });
   },
+
+  /**
+   * Preview branches available on Tajeer before importing
+   * POST /api/branches/tajeer/preview
+   */
+  async previewTajeerBranches(): Promise<any> {
+    return apiClient.request('/branches/tajeer/preview', {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Import selected Tajeer branches
+   * POST /api/branches/tajeer/import
+   */
+  async importTajeerBranches(request: Types.ImportTajeerBranchesRequest): Promise<any> {
+    return apiClient.request('/branches/tajeer/import', {
+      method: 'POST',
+      body: request,
+    });
+  },
 };
 
 // ─── Country Service ────────────────────────────────────────────
@@ -1427,6 +1448,97 @@ export const contractService = {
     return apiClient.request(`/contracts/${id}/tajeer-logs/search`, { method: 'POST', body: request });
   },
 
+  // ── Delivery (Pickup Handover) ──
+
+  async searchPendingDeliveries(request: Types.PendingDeliveriesSearchRequest): Promise<any> {
+    return apiClient.request('/contracts/pending-deliveries/search', { method: 'POST', body: request });
+  },
+
+  async recordDelivery(id: number | string, request: Types.RecordDeliveryRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/deliver`, { method: 'POST', body: request });
+  },
+
+  async getDelivery(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/delivery`, { method: 'GET' });
+  },
+
+  // ── Return (Vehicle Handback) ──
+
+  async searchPendingReturns(request: Types.PendingReturnsSearchRequest): Promise<any> {
+    return apiClient.request('/contracts/pending-returns/search', { method: 'POST', body: request });
+  },
+
+  async calculateReturnCharges(id: number | string, query: Types.ReturnChargesQuery): Promise<any> {
+    const params: Record<string, string | number> = {};
+    if (query.odometerAtReturn !== undefined) params.odometerAtReturn = query.odometerAtReturn;
+    if (query.fuelLevelAtReturn !== undefined) params.fuelLevelAtReturn = query.fuelLevelAtReturn;
+    if (query.actualReturnAt !== undefined) params.actualReturnAt = query.actualReturnAt;
+
+    return apiClient.request(`/contracts/${id}/return/calculate-charges`, { method: 'GET', params });
+  },
+
+  async recordReturn(id: number | string, request: Types.RecordReturnRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/return`, { method: 'POST', body: request });
+  },
+
+  async getReturn(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/return`, { method: 'GET' });
+  },
+
+  async dispute(id: number | string, request: Types.DisputeContractRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/dispute`, { method: 'POST', body: request });
+  },
+
+  // ── Tajeer lifecycle ──
+
+  async validateWithTajeer(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/validate`, { method: 'POST' });
+  },
+
+  async getTajeerExecutionStatus(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/execution-status`, { method: 'GET' });
+  },
+
+  async getTajeerLinks(id: number | string): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/links`, { method: 'GET' });
+  },
+
+  async saveTajeerRentStatus(id: number | string, request: Record<string, unknown>): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/rent-status`, { method: 'POST', body: request });
+  },
+
+  async calculateTajeerClosePayment(id: number | string, request: Types.TajeerClosePaymentRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/calculate-payment`, { method: 'POST', body: request });
+  },
+
+  async closeOnTajeer(id: number | string, request: Types.TajeerCloseContractRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/close`, { method: 'POST', body: request });
+  },
+
+  async suspendOnTajeer(id: number | string, request: Types.TajeerSuspendContractRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/suspend`, { method: 'POST', body: request });
+  },
+
+  async updateTajeerPaid(id: number | string, request: Types.TajeerUpdatePaidRequest): Promise<any> {
+    return apiClient.request(`/contracts/${id}/tajeer/paid`, { method: 'POST', body: request });
+  },
+
+  async getTajeerSavedByPlate(vehicleId: number | string): Promise<any> {
+    return apiClient.request(`/contracts/tajeer/saved-by-plate/${vehicleId}`, { method: 'GET' });
+  },
+
+  async getTajeerLookup(name: string): Promise<any> {
+    return apiClient.request(`/contracts/tajeer/lookups/${name}`, { method: 'GET' });
+  },
+
+  async getTajeerClosureReasons(): Promise<any> {
+    return apiClient.request('/contracts/tajeer/lookups/closure-reasons', { method: 'GET' });
+  },
+
+  async registerTajeerWebhook(request: Types.TajeerWebhookRequest): Promise<any> {
+    return apiClient.request('/contracts/tajeer/webhook', { method: 'POST', body: request });
+  },
+
   async delete(id: number | string): Promise<void> {
     await apiClient.request(`/contracts/${id}`, { method: 'DELETE' });
   },
@@ -1644,6 +1756,213 @@ export const driverService = {
   async removeFromBlacklist(id: number | string): Promise<void> {
     await apiClient.request(`/drivers/${id}/blacklist`, {
       method: 'DELETE',
+    });
+  },
+};
+
+// ─── Tenant Settings Service ────────────────────────────────────
+
+export const tenantSettingsService = {
+  /**
+   * Get tenant settings (office profile + system settings)
+   * GET /api/tenant/settings
+   */
+  async getSettings(): Promise<any> {
+    return apiClient.request('/tenant/settings', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Update office profile
+   * PUT /api/tenant/settings/profile
+   */
+  async updateProfile(request: Types.TenantOfficeProfileRequest): Promise<any> {
+    return apiClient.request('/tenant/settings/profile', {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Update system settings
+   * PUT /api/tenant/settings/system
+   */
+  async updateSystem(request: Types.TenantSystemSettingsRequest): Promise<any> {
+    return apiClient.request('/tenant/settings/system', {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Verify Tajeer connection
+   * POST /api/tenant/settings/tajeer/verify
+   */
+  async verifyTajeer(request: Types.TajeerVerifyRequest): Promise<any> {
+    return apiClient.request('/tenant/settings/tajeer/verify', {
+      method: 'POST',
+      body: request,
+    });
+  },
+};
+
+// ─── Late Returns Service ───────────────────────────────────────
+
+export const lateReturnsService = {
+  /**
+   * Get late-return KPI stats
+   * GET /api/late-returns/stats
+   */
+  async getStats(): Promise<any> {
+    return apiClient.request('/late-returns/stats', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Search late returns
+   * POST /api/late-returns/search
+   */
+  async search(request: Types.LateReturnSearchRequest): Promise<any> {
+    return apiClient.request('/late-returns/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+};
+
+// ─── Pricing Service ────────────────────────────────────────────
+
+export const pricingService = {
+  /**
+   * Get late-return penalty settings
+   * GET /api/pricing/late-return-penalty
+   */
+  async getLateReturnPenalty(): Promise<any> {
+    return apiClient.request('/pricing/late-return-penalty', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Update late-return penalty settings
+   * PUT /api/pricing/late-return-penalty
+   */
+  async updateLateReturnPenalty(request: Types.LateReturnPenaltySettings): Promise<any> {
+    return apiClient.request('/pricing/late-return-penalty', {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Get dispute policy
+   * GET /api/pricing/dispute-policy
+   */
+  async getDisputePolicy(): Promise<any> {
+    return apiClient.request('/pricing/dispute-policy', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Update dispute policy
+   * PUT /api/pricing/dispute-policy
+   */
+  async updateDisputePolicy(request: Types.DisputePolicy): Promise<any> {
+    return apiClient.request('/pricing/dispute-policy', {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Search discount rates
+   * POST /api/pricing/discount-rates/search
+   */
+  async searchDiscountRates(request: Types.DiscountRateSearchRequest): Promise<any> {
+    return apiClient.request('/pricing/discount-rates/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Pick discount rates (contract bootstrap)
+   * POST /api/pricing/discount-rates/picker
+   */
+  async pickDiscountRates(): Promise<any> {
+    return apiClient.request('/pricing/discount-rates/picker', {
+      method: 'POST',
+      body: {},
+    });
+  },
+
+  /**
+   * Get discount rate by ID
+   * GET /api/pricing/discount-rates/{id}
+   */
+  async getDiscountRate(id: number | string): Promise<any> {
+    return apiClient.request(`/pricing/discount-rates/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Create discount rate
+   * POST /api/pricing/discount-rates
+   */
+  async createDiscountRate(request: Types.SaveDiscountRateRequest): Promise<any> {
+    return apiClient.request('/pricing/discount-rates', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Update discount rate
+   * PUT /api/pricing/discount-rates/{id}
+   */
+  async updateDiscountRate(id: number | string, request: Types.SaveDiscountRateRequest): Promise<any> {
+    return apiClient.request(`/pricing/discount-rates/${id}`, {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Delete discount rate
+   * DELETE /api/pricing/discount-rates/{id}
+   */
+  async deleteDiscountRate(id: number | string): Promise<void> {
+    await apiClient.request(`/pricing/discount-rates/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ─── Tajeer API Logs Service ────────────────────────────────────
+
+export const tajeerApiLogsService = {
+  /**
+   * Search Tajeer API logs
+   * POST /api/tajeer-api-logs/search
+   */
+  async search(request: Types.TajeerApiLogSearchRequest): Promise<any> {
+    return apiClient.request('/tajeer-api-logs/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Get Tajeer API log by ID
+   * GET /api/tajeer-api-logs/{id}
+   */
+  async getById(id: number | string): Promise<any> {
+    return apiClient.request(`/tajeer-api-logs/${id}`, {
+      method: 'GET',
     });
   },
 };

@@ -81,6 +81,11 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { pattern: "/employee/customer", permission: Permission.Customers.View },
   { pattern: "/employee/customer/inquiry", permission: Permission.CustomerWarehouse.View },
   { pattern: "/employee/customer/:id", permission: Permission.Customers.View },
+ 
+
+  { pattern: "/late-returns", permission: Permission.LateReturns.View },
+
+
 ];
 
 function segmentToRegex(segment: string): string {
