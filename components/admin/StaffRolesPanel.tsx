@@ -22,6 +22,10 @@ const extractBranchIds = (details: any): number[] =>
 
 // The backend expects Saudi mobile numbers in the form 9665XXXXXXXX.
 // Normalize common input formats (+9665..., 009665..., 05..., 5...) to that shape.
+// Matches the backend password policy (ASP.NET Identity-style):
+// 8+ chars, upper, lower, digit, special char — e.g. "Employee@123".
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
 const normalizeSaudiPhone = (raw: string): string => {
   let digits = raw.replace(/\D/g, "");
   if (digits.startsWith("00966")) digits = digits.slice(2);
@@ -301,6 +305,10 @@ export function StaffRolesPanel() {
       return;
     }
     if (!validatePhone()) return;
+    if (!PASSWORD_RULE.test(password)) {
+      showToast(T("Password must be 8+ characters with an uppercase, a lowercase, a digit and a special character (e.g. Employee@123)", "كلمة المرور: 8 أحرف على الأقل تتضمن حرفًا كبيرًا وحرفًا صغيرًا ورقمًا ورمزًا خاصًا (مثال: Employee@123)", ar), "error");
+      return;
+    }
 
     const normalizedPhone = phoneNumber ? normalizeSaudiPhone(phoneNumber) : "";
     setCreating(true);
@@ -429,8 +437,8 @@ export function StaffRolesPanel() {
 
   const handleResetPassword = async () => {
     if (!resetUser) return;
-    if (newPassword.length < 8 || !/\d/.test(newPassword)) {
-      showToast(T("Password must be at least 8 characters and include a digit", "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على رقم", ar), "error");
+    if (!PASSWORD_RULE.test(newPassword)) {
+      showToast(T("Password must be 8+ characters with an uppercase, a lowercase, a digit and a special character (e.g. Employee@123)", "كلمة المرور: 8 أحرف على الأقل تتضمن حرفًا كبيرًا وحرفًا صغيرًا ورقمًا ورمزًا خاصًا (مثال: Employee@123)", ar), "error");
       return;
     }
 
@@ -751,6 +759,7 @@ export function StaffRolesPanel() {
                   label={<>{T("Password", "كلمة المرور", ar)} <span className="text-mk-danger">*</span></>}
                   type={showPassword ? "text" : "password"}
                   placeholder={T("Enter password", "أدخل كلمة المرور", ar)}
+                  helpText={T("8+ chars · uppercase · lowercase · digit · special char (e.g. Employee@123)", "8 أحرف+ · حرف كبير · حرف صغير · رقم · رمز خاص (مثال: Employee@123)", ar)}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -1051,7 +1060,8 @@ export function StaffRolesPanel() {
               className="font-mono"
               label={T("New password", "كلمة المرور الجديدة", ar)}
               type={showNewPassword ? "text" : "password"}
-              placeholder={T("Min. 8 characters with a digit", "8 أحرف على الأقل مع رقم", ar)}
+              placeholder={T("e.g. Employee@123", "مثال: Employee@123", ar)}
+              helpText={T("8+ chars · uppercase · lowercase · digit · special char", "8 أحرف+ · حرف كبير · حرف صغير · رقم · رمز خاص", ar)}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />

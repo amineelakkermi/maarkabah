@@ -221,13 +221,15 @@ function DateRangeButton({ ar, from, to, onChange }: { ar: boolean; from: string
 /* ── Backend ContractStatus → UI tab key ────────────────────────────── */
 // Verified against the live API:
 // 1=Draft 2=PendingIssuance 3=Active 4=Cancelled 5=Overdue 6=Completed
+// NOTE: the backend search treats a null/empty `statuses` list as
+// "match nothing" rather than "match all" — "all" must enumerate.
 const FILTER_STATUSES: Record<FilterKey, ContractStatus[] | null> = {
-  all: null,
+  all: [1, 2, 3, 4, 5, 6],
   pending: [1, 2],
   active: [3],
   late: [5],
   completed: [6],
-  cancelled: [4],
+  cancelled: [4], 
 };
 
 function statusKey(s: number | string | undefined): string {

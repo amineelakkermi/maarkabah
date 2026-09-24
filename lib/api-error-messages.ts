@@ -34,6 +34,12 @@ const FIELD_LABELS: Record<string, [string, string]> = {
   UserName: ["Username", "اسم المستخدم"],
   Vin: ["VIN", "رقم الهيكل"],
   PlateNumber: ["Plate number", "رقم اللوحة"],
+  RentPolicyId: ["Rent policy", "سياسة الإيجار"],
+  CancellationPolicyId: ["Cancellation policy", "سياسة الإلغاء"],
+  ExtendedCoverageId: ["Extended coverage", "التغطية الإضافية"],
+  VehicleId: ["Vehicle", "المركبة"],
+  CustomerId: ["Customer", "العميل"],
+  WorkingBranchId: ["Branch", "الفرع"],
 };
 
 const fieldLabel = (name: string, ar: boolean) => {
@@ -99,9 +105,10 @@ export function describeApiError(err: unknown, ar: boolean, fallback?: string): 
   // 1) ASP.NET-style field validation object: { errors: { PhoneNumber: ["..."] } }
   const fieldErrors = response?.errors;
   if (fieldErrors && typeof fieldErrors === "object") {
-    const firstField = Object.keys(fieldErrors)[0];
+    const rawField = Object.keys(fieldErrors)[0];
+    const firstField = rawField?.includes(".") ? rawField.split(".").pop() : rawField;
     if (firstField) {
-      const detail = Array.isArray(fieldErrors[firstField]) ? fieldErrors[firstField][0] : "";
+      const detail = Array.isArray(fieldErrors[rawField]) ? fieldErrors[rawField][0] : "";
       for (const rule of RULES) {
         if (rule.pattern.test(detail)) return rule.message(ar);
       }

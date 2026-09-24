@@ -11,6 +11,8 @@ const PAGE_META: Record<string, { en: string; ar: string; crumbEn?: string; crum
   "/fleet":        { en: "Fleet Management",    ar: "إدارة الأسطول",     crumbEn: "Fleet",    crumbAr: "الأسطول"  },
   "/contracts":    { en: "Contracts",           ar: "العقود",             crumbEn: "Operations", crumbAr: "العمليات" },
   "/new-contract": { en: "New contract",        ar: "عقد جديد",           crumbEn: "Operations", crumbAr: "العمليات" },
+  "/pickup":       { en: "Pickup handover",     ar: "تسليم المركبة",      crumbEn: "Operations", crumbAr: "العمليات" },
+  "/return":       { en: "Return processing",   ar: "استلام الإرجاع",     crumbEn: "Operations", crumbAr: "العمليات" },
   "/drivers":      { en: "Drivers",             ar: "بيانات السائقين",   crumbEn: "Customer", crumbAr: "العملاء"  },
   "/kyc-queue":    { en: "KYC Queue",           ar: "مراجعة الهوية",     crumbEn: "Customer", crumbAr: "العملاء"  },
   "/drivers-kyc-queue": { en: "Driver KYC Queue", ar: "مراجعة هوية السائقين", crumbEn: "Customer", crumbAr: "العملاء" },

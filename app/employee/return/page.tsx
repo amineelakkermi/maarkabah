@@ -15,7 +15,7 @@ import { CAR_IMAGES } from "@/lib/data";
 import { SketchComponent } from "@/components/employee/SketchComponent";
 import { VehicleMapPanel } from "@/components/employee/VehicleMapPanel";
 import type { SketchItem } from "@/lib/tajeer";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { contractService, attachmentService } from "@/lib/api-services";
 import * as Types from "@/lib/api-types";
@@ -365,7 +365,7 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance, reasons, onReasons
 }
 
 // ── Detail / return process view ──────────────────────────────────
-function ReturnDetailView({ id, ar }: { id: string; ar: boolean }) {
+function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; basePath: string }) {
   const router = useRouter();
   const [showMap, setShowMap] = useState(false);
   const [sketchItems, setSketchItems] = useState<SketchItem[]>([]);
@@ -452,7 +452,7 @@ function ReturnDetailView({ id, ar }: { id: string; ar: boolean }) {
     <div className="py-24 text-center">
       <div className="mk-display mb-3">📋</div>
       <div className="mk-body mb-2 text-mk-ink-900">{T("Contract not found", "العقد غير موجود", ar)}</div>
-      <Link href="/employee/return" className="mk-body-sm text-mk-blue-500 no-underline">{T("← Back", "→ العودة", ar)}</Link>
+      <Link href={basePath} className="mk-body-sm text-mk-blue-500 no-underline">{T("← Back", "→ العودة", ar)}</Link>
     </div>
   );
 
@@ -462,7 +462,7 @@ function ReturnDetailView({ id, ar }: { id: string; ar: boolean }) {
         <div className="mk-display mb-3">✅</div>
         <div className="mk-h3 mb-2 text-mk-ink-900">{T("Return confirmed", "تم تأكيد الإرجاع", ar)}</div>
         <div className="mk-body-sm mb-6 text-mk-ink-500">{T(`Contract ${row.ref} closed`, `العقد ${row.ref} أُغلق`, ar)}</div>
-        <Button variant="primary" onClick={() => router.push("/employee/return")}>
+        <Button variant="primary" onClick={() => router.push(basePath)}>
           {T("Back to active rentals", "العودة للمركبات المؤجرة", ar)}
         </Button>
       </div>
@@ -550,7 +550,7 @@ function ReturnDetailView({ id, ar }: { id: string; ar: boolean }) {
     setDisputeError("");
     try {
       await contractService.dispute(id, { notes: disputeNotes.trim() });
-      router.push("/employee/return");
+      router.push(basePath);
     } catch (err) {
       setDisputeError(err instanceof Error ? err.message : "Unexpected error");
       setDisputing(false);
@@ -561,7 +561,7 @@ function ReturnDetailView({ id, ar }: { id: string; ar: boolean }) {
       <div className="flex flex-col gap-4">
         {/* Back nav */}
         <div className="flex items-center gap-3">
-          <Link href="/employee/return" className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-[var(--shadow-card)] text-mk-ink-600 no-underline hover:bg-mk-ink-50 transition-colors">
+          <Link href={basePath} className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-[var(--shadow-card)] text-mk-ink-600 no-underline hover:bg-mk-ink-50 transition-colors">
             {ar ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </Link>
           <span className="mk-body-sm text-mk-ink-500">{T("Back to Active Rentals", "العودة للمركبات المؤجرة", ar)}</span>
@@ -854,7 +854,7 @@ function ReturnDetailView({ id, ar }: { id: string; ar: boolean }) {
 }
 
 // ── List / Table view ──────────────────────────────────────────
-function ReturnListView({ ar }: { ar: boolean }) {
+function ReturnListView({ ar, basePath }: { ar: boolean; basePath: string }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TabKey>("all");
@@ -942,7 +942,7 @@ function ReturnListView({ ar }: { ar: boolean }) {
               return (
                 <tr key={b.navId}
                   className={`cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 ${isLate ? "bg-mk-danger/[0.025]" : ""}`}
-                  onClick={() => router.push(`/employee/return?id=${b.navId}`)}
+                  onClick={() => router.push(`${basePath}?id=${b.navId}`)}
                 >
                   <Td>
                     <div className="font-mono mk-label text-mk-blue-600">{b.ref}</div>
@@ -970,7 +970,7 @@ function ReturnListView({ ar }: { ar: boolean }) {
                   </Td>
                   <Td onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-2">
-                      <IconButton size="sm" variant="ghost" className="bg-mk-ink-50" onClick={e => { e.stopPropagation(); router.push(`/employee/return?id=${b.navId}`); }}>
+                      <IconButton size="sm" variant="ghost" className="bg-mk-ink-50" onClick={e => { e.stopPropagation(); router.push(`${basePath}?id=${b.navId}`); }}>
                         {ar ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
                       </IconButton>
                     </div>
@@ -1002,9 +1002,11 @@ function ReturnProcessContent() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const basePath = pathname?.startsWith("/employee") ? "/employee/return" : "/return";
   const id = searchParams.get("id");
-  if (id) return <ReturnDetailView id={id} ar={ar} />;
-  return <ReturnListView ar={ar} />;
+  if (id) return <ReturnDetailView id={id} ar={ar} basePath={basePath} />;
+  return <ReturnListView ar={ar} basePath={basePath} />;
 }
 
 export default function ReturnProcessPage() {

@@ -13,10 +13,11 @@ import { CAR_IMAGES } from "@/lib/data";
 import { SketchComponent } from "@/components/employee/SketchComponent";
 import { VehicleMapPanel } from "@/components/employee/VehicleMapPanel";
 import type { SketchItem } from "@/lib/tajeer";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { contractService } from "@/lib/api-services";
+import { contractService, vehicleService, attachmentService } from "@/lib/api-services";
 import * as Types from "@/lib/api-types";
+import { extractVehicleImageFileIds } from "@/lib/fleet";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import type { Booking } from "@/lib/data";
 
@@ -169,7 +170,7 @@ function ReadonlyCarCarousel({ images, ar }: { images: string[]; ar: boolean }) 
 }
 
 // ── Vehicle Condition Panel ───────────────────────────────────────
-function VehicleConditionPanel({ ar, sketchItems, onSketchChange }: { ar: boolean; sketchItems: SketchItem[]; onSketchChange: (i: SketchItem[]) => void }) {
+function VehicleConditionPanel({ ar, sketchItems, onSketchChange, images }: { ar: boolean; sketchItems: SketchItem[]; onSketchChange: (i: SketchItem[]) => void; images: string[] }) {
   const [view, setView] = useState<"diagram" | "photos">("diagram");
   return (
     <div className="rounded-xl p-6 mk-surface">
@@ -188,34 +189,75 @@ function VehicleConditionPanel({ ar, sketchItems, onSketchChange }: { ar: boolea
       </div>
       {view === "diagram"
         ? <div className="rounded-lg flex items-center justify-center w-full"><SketchComponent value={sketchItems} onChange={onSketchChange} ar={ar} disabled /></div>
-        : <ReadonlyCarCarousel images={CAR_IMAGES["Camry"]} ar={ar} />
+        : <ReadonlyCarCarousel images={images} ar={ar} />
       }
     </div>
   );
 }
 
 // ── Vehicle Condition Summary ───────────────────────────────────────
-function VehicleSummaryPanel({ ar, odometer, fuel, endurance }: { ar: boolean; odometer: number | null; fuel: string; endurance: number | null }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function VehicleSummaryPanel({ ar, odometer, fuel, endurance, status }: { ar: boolean; odometer: number | null; fuel: string; endurance: number | null; status?: any }) {
+  const st = status ?? {};
+
+  // ConditionGrade 1–4
+  const gradeLabel = (v: unknown): string => {
+    const n = Number(v);
+    if (n === 1) return T("Excellent", "ممتاز", ar);
+    if (n === 2) return T("Good", "جيد", ar);
+    if (n === 3) return T("Weak", "ضعيف", ar);
+    if (n === 4) return T("Broken", "معطل", ar);
+    return "—";
+  };
+  // WorkingStatus 0/1
+  const workingLabel = (v: unknown): string => {
+    if (v == null) return "—";
+    return Number(v) === 1 ? T("Working", "يعمل", ar) : T("Not working", "لا يعمل", ar);
+  };
+  // CleanlinessStatus 1/2
+  const cleanLabel = (v: unknown): string => {
+    if (v == null) return "—";
+    return Number(v) === 1 ? T("Clean", "نظيف", ar) : T("Dirty", "غير نظيف", ar);
+  };
+  // TireCondition 1–3
+  const tireLabel = (v: unknown): string => {
+    const n = Number(v);
+    if (n === 1) return T("Excellent", "ممتاز", ar);
+    if (n === 2) return T("Good", "جيد", ar);
+    if (n === 3) return T("Weak", "ضعيف", ar);
+    return "—";
+  };
+  // PresenceStatus 0/1
+  const presentLabel = (v: unknown): string => {
+    if (v == null) return "—";
+    return Number(v) === 1 ? T("Present", "موجود", ar) : T("Missing", "غير موجود", ar);
+  };
+
+  const oilDistance = st.oilChangeDistance != null && st.oilChangeDistance !== "" ? Number(st.oilChangeDistance) : null;
+  const oilChangeValue = oilDistance != null || st.oilType
+    ? [oilDistance != null ? `${oilDistance.toLocaleString()} ${T("km", "كم", ar)}` : null, st.oilType || null].filter(Boolean).join(" · ")
+    : "—";
+
   const INDICATORS = [
     { icon: Gauge, label: T("Current odometer", "عداد الكيلومتر الحالي", ar), value: odometer != null ? `${odometer.toLocaleString()} ${T("km", "كم", ar)}` : "—" },
     { icon: Droplet, label: T("Current fuel", "الوقود الحالي", ar), value: fuel },
     { icon: ShieldCheck, label: T("Accident deductible", "مبلغ التحمل للحوادث", ar), value: endurance != null ? `${endurance.toLocaleString()} ${T("SAR", "ريال", ar)}` : "—" },
-    { icon: Wrench, label: T("Next oil change", "صيانة تغيير الزيت القادمة", ar), value: `5,000 ${T("km", "كم", ar)} · 5W-30` },
+    { icon: Wrench, label: T("Next oil change", "صيانة تغيير الزيت القادمة", ar), value: oilChangeValue },
   ];
 
   const INSPECTION = [
-    { icon: Gauge, label: T("Speedometer", "حالة عداد السرعة", ar), value: T("Working", "يعمل", ar) },
-    { icon: Monitor, label: T("Screen", "حالة الشاشة الداخلية", ar), value: T("Excellent", "ممتاز", ar) },
-    { icon: Music, label: T("Radio/Stereo", "حالة الراديو/المسجل", ar), value: T("Excellent", "ممتاز", ar) },
-    { icon: Wind, label: T("A/C", "حالة التكييف", ar), value: T("Excellent", "ممتاز", ar) },
-    { icon: CircleDot, label: T("Spare tire", "حالة العجلة الاحتياطية", ar), value: T("Excellent", "ممتاز", ar) },
-    { icon: CircleDot, label: T("Tires", "حالة العجلات", ar), value: T("Excellent", "ممتاز", ar) },
-    { icon: Armchair, label: T("Seats", "المقاعد", ar), value: T("Clean", "نظيف", ar) },
-    { icon: KeyRound, label: T("Keys", "حالة المفتاح", ar), value: T("Working", "يعمل", ar) },
-    { icon: TriangleAlert, label: T("Warning triangle", "توفر المثلث العاكس", ar), value: T("Present", "موجود", ar) },
-    { icon: FireExtinguisher, label: T("Fire extinguisher", "توفر طفاية الحريق", ar), value: T("Present", "موجود", ar) },
-    { icon: HeartPulse, label: T("First aid kit", "حالة حقيبة الاسعافات الأولية", ar), value: T("Present", "موجود", ar) },
-    { icon: Wrench, label: T("Tire kit", "معدات الكفر الاحتياطية", ar), value: T("Present", "موجود", ar) },
+    { icon: Gauge, label: T("Speedometer", "حالة عداد السرعة", ar), value: workingLabel(st.odometerStatus) },
+    { icon: Monitor, label: T("Screen", "حالة الشاشة الداخلية", ar), value: gradeLabel(st.screenStatus) },
+    { icon: Music, label: T("Radio/Stereo", "حالة الراديو/المسجل", ar), value: gradeLabel(st.radioStatus) },
+    { icon: Wind, label: T("A/C", "حالة التكييف", ar), value: gradeLabel(st.airConditionGrade) },
+    { icon: CircleDot, label: T("Spare tire", "حالة العجلة الاحتياطية", ar), value: tireLabel(st.spareTireStatus) },
+    { icon: CircleDot, label: T("Tires", "حالة العجلات", ar), value: tireLabel(st.tireCondition) },
+    { icon: Armchair, label: T("Seats", "المقاعد", ar), value: cleanLabel(st.seatCleanliness) },
+    { icon: KeyRound, label: T("Keys", "حالة المفتاح", ar), value: workingLabel(st.keyStatus) },
+    { icon: TriangleAlert, label: T("Warning triangle", "توفر المثلث العاكس", ar), value: presentLabel(st.safetyTriangleStatus) },
+    { icon: FireExtinguisher, label: T("Fire extinguisher", "توفر طفاية الحريق", ar), value: presentLabel(st.fireExtinguisherStatus) },
+    { icon: HeartPulse, label: T("First aid kit", "حالة حقيبة الاسعافات الأولية", ar), value: presentLabel(st.firstAidKitStatus) },
+    { icon: Wrench, label: T("Tire kit", "معدات الكفر الاحتياطية", ar), value: presentLabel(st.tireToolsStatus) },
   ];
 
   return (
@@ -255,7 +297,7 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance }: { ar: boolean; o
 }
 
 // ── Detail View (separate component — no conditional hooks) ────────
-function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
+function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; basePath: string }) {
   const router = useRouter();
   const [checks, setChecks] = useState<Record<string, boolean>>({ contract: true, id: true, deposit: true, inspect: false, fuel: false, keys: false });
   const [sketchItems, setSketchItems] = useState<SketchItem[]>([]);
@@ -268,9 +310,12 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [raw, setRaw] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [vehicle, setVehicle] = useState<any>(null);
   const [row, setRow] = useState<PickupRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [deliveredAt, setDeliveredAt] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,6 +331,27 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
         const odo = c.odometerReading ?? c.odometerAtDelivery;
         if (odo != null) setOdometer(String(odo));
         if (c.fuelLevel != null) setFuel(Number(c.fuelLevel) as Types.FuelLevel);
+
+        try {
+          const dRes = await contractService.getDelivery(id);
+          const d = dRes?.data ?? dRes;
+          if (!cancelled && d && (d.id != null || d.deliveredAt)) {
+            setDeliveredAt(d.deliveredAt ?? "");
+          }
+        } catch { /* no delivery yet */ }
+
+        const vehicleId = Number(c.vehicleId ?? c.vehicle?.id ?? 0);
+        if (vehicleId) {
+          try {
+            const vRes = await vehicleService.getById(vehicleId);
+            const v = vRes?.data ?? vRes;
+            if (cancelled) return;
+            setVehicle(v);
+            const st = v?.tajeerStatus ?? v ?? {};
+            if (odo == null && st.odometerReading != null) setOdometer(String(st.odometerReading));
+            if (c.fuelLevel == null && st.fuelLevel != null) setFuel(Number(st.fuelLevel) as Types.FuelLevel);
+          } catch { /* vehicle enrichment is optional */ }
+        }
       } catch {
         if (!cancelled) setNotFound(true);
       } finally {
@@ -298,7 +364,7 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
   const allDone = Object.values(checks).every(Boolean);
   const odometerValid = odometer.trim() !== "" && !isNaN(Number(odometer));
   const fuelValid = fuel !== "";
-  const canConfirm = allDone && odometerValid && fuelValid && !submitting;
+  const canConfirm = allDone && odometerValid && fuelValid && !submitting && !deliveredAt;
   const toggle = (k: string) => setChecks(s => ({ ...s, [k]: !s[k] }));
 
   const handleConfirm = async () => {
@@ -338,7 +404,7 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
     <div className="py-24 text-center">
       <div className="mk-display mb-3">📋</div>
       <div className="mk-body mb-2 text-mk-ink-900">{T("Contract not found", "العقد غير موجود", ar)}</div>
-      <Link href="/employee/pickup" className="mk-body-sm text-mk-blue-500 no-underline">{T("← Back", "→ العودة", ar)}</Link>
+      <Link href={basePath} className="mk-body-sm text-mk-blue-500 no-underline">{T("← Back", "→ العودة", ar)}</Link>
     </div>
   );
 
@@ -348,7 +414,7 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
         <div className="mk-display mb-3">✅</div>
         <div className="mk-h3 mb-2 text-mk-ink-900">{T("Handover confirmed", "تم تأكيد التسليم", ar)}</div>
         <div className="mk-body-sm mb-6 text-mk-ink-500">{T(`Contract ${row.ref} · vehicle handed over to ${row.customer}`, `العقد ${row.ref} · تم تسليم المركبة إلى ${row.customer}`, ar)}</div>
-        <Button variant="primary" onClick={() => router.push("/employee/pickup")}>
+        <Button variant="primary" onClick={() => router.push(basePath)}>
           {T("Back to handovers", "العودة للتسليمات", ar)}
         </Button>
       </div>
@@ -356,9 +422,13 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
   }
 
   const contract = toBooking(raw, ar, row);
-  const deposit = Number(raw.depositAmount ?? 0);
+  const deposit = Number(raw.payment?.depositAmount ?? raw.depositAmount ?? 0);
+  const vehicleImageIds = extractVehicleImageFileIds(vehicle);
   const carKey = ["Camry", "Sonata", "Elantra", "Civic", "Sportage", "Patrol", "CX-5", "Land Cruiser", "Tahoe", "ZS"].find(k => contract.car.includes(k)) || "Camry";
-  const carImages = CAR_IMAGES[carKey] || CAR_IMAGES["Camry"];
+  const carImages = vehicleImageIds.length
+    ? vehicleImageIds.map((fid) => attachmentService.getDownloadUrl(fid))
+    : (CAR_IMAGES[carKey] || CAR_IMAGES["Camry"]);
+  const vehicleStatus = vehicle?.tajeerStatus ?? vehicle ?? null;
 
   const CHECKLIST = [
     { key: "contract", label: ["Contract signed", "العقد موقَّع"], icon: FileText },
@@ -372,7 +442,7 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <Link href="/employee/pickup" className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-[var(--shadow-card)] text-mk-ink-600 no-underline hover:bg-mk-ink-50 transition-colors">
+        <Link href={basePath} className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-[var(--shadow-card)] text-mk-ink-600 no-underline hover:bg-mk-ink-50 transition-colors">
           {ar ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </Link>
         <span className="mk-body-sm text-mk-ink-500">{T("Back to Handovers", "العودة للقائمة", ar)}</span>
@@ -381,7 +451,9 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
         <div className="rounded-xl p-6 mk-surface">
           <div className="flex items-center gap-3 mb-6">
             <div className="mk-h4 flex-1 text-mk-ink-900">{T(`Handover · ${contract.id}`, `تسليم · ${contract.id}`, ar)}</div>
-            <Badge variant="warning" dot>{T("In progress", "قيد التنفيذ", ar)}</Badge>
+            <Badge variant={deliveredAt ? "success" : "warning"} dot>
+              {deliveredAt ? T("Delivered", "تم التسليم", ar) : T("In progress", "قيد التنفيذ", ar)}
+            </Badge>
           </div>
           <div className="flex items-center gap-3 py-3 border-b border-mk-ink-100">
             <Avatar name={contract.customer} size="lg" />
@@ -462,6 +534,11 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
               </span>
             </div>
           ))}
+          {deliveredAt && (
+            <p className="mk-label text-mk-mint-700 px-4 py-3 rounded-lg mt-3" style={{ background: "rgba(27,156,144,0.08)" }}>
+              {T(`Already delivered${deliveredAt ? ` · ${String(deliveredAt).replace("T", " ").slice(0, 16)}` : ""}`, `تم التسليم مسبقاً${deliveredAt ? ` · ${String(deliveredAt).replace("T", " ").slice(0, 16)}` : ""}`, ar)}
+            </p>
+          )}
           {submitError && (
             <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100 mt-3">{submitError}</p>
           )}
@@ -470,12 +547,13 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
           </Button>
         </div>
         <div className="flex flex-col gap-4">
-          <VehicleConditionPanel ar={ar} sketchItems={sketchItems} onSketchChange={setSketchItems} />
+          <VehicleConditionPanel ar={ar} sketchItems={sketchItems} onSketchChange={setSketchItems} images={carImages} />
           <VehicleSummaryPanel
             ar={ar}
             odometer={odometerValid ? Number(odometer) : null}
             fuel={fuelValid ? fuelLabel(fuel, ar) : "—"}
-            endurance={raw.enduranceAmount != null ? Number(raw.enduranceAmount) : null}
+            endurance={raw.enduranceAmount != null ? Number(raw.enduranceAmount) : (vehicleStatus?.enduranceAmount != null ? Number(vehicleStatus.enduranceAmount) : null)}
+            status={vehicleStatus}
           />
         </div>
       </div>
@@ -485,7 +563,7 @@ function PickupDetailView({ id, ar }: { id: string; ar: boolean }) {
 }
 
 // ── List View ─────────────────────────────────────────────────────
-function PickupListView({ ar }: { ar: boolean }) {
+function PickupListView({ ar, basePath }: { ar: boolean; basePath: string }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TabKey>("all");
@@ -563,7 +641,7 @@ function PickupListView({ ar }: { ar: boolean }) {
             {filtered.map(b => {
               const sm = STATUS_MAP[b.status] ?? { variant: "neutral" as const, labelEn: b.status, labelAr: b.status };
               return (
-                <tr key={b.navId} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50" onClick={() => router.push(`/employee/pickup?id=${b.navId}`)}>
+                <tr key={b.navId} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50" onClick={() => router.push(`${basePath}?id=${b.navId}`)}>
                   <Td><div className="font-mono mk-label text-mk-blue-600">{b.ref}</div></Td>
                   <Td>
                     <div className="flex items-center gap-3">
@@ -582,7 +660,7 @@ function PickupListView({ ar }: { ar: boolean }) {
                   <Td><Badge variant={sm.variant} dot>{ar ? sm.labelAr : sm.labelEn}</Badge></Td>
                   <Td onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-2">
-                      <IconButton size="sm" variant="ghost" className="bg-mk-ink-50" onClick={e => { e.stopPropagation(); router.push(`/employee/pickup?id=${b.navId}`); }}>
+                      <IconButton size="sm" variant="ghost" className="bg-mk-ink-50" onClick={e => { e.stopPropagation(); router.push(`${basePath}?id=${b.navId}`); }}>
                         {ar ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
                       </IconButton>
                     </div>
@@ -614,9 +692,11 @@ function PickupHandoverContent() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const basePath = pathname?.startsWith("/employee") ? "/employee/pickup" : "/pickup";
   const id = searchParams.get("id");
-  if (id) return <PickupDetailView id={id} ar={ar} />;
-  return <PickupListView ar={ar} />;
+  if (id) return <PickupDetailView id={id} ar={ar} basePath={basePath} />;
+  return <PickupListView ar={ar} basePath={basePath} />;
 }
 
 export default function PickupHandoverPage() {

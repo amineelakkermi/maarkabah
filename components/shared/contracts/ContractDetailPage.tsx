@@ -9,9 +9,9 @@ import {
   FileText, Printer, XCircle, ArrowLeft, ArrowRight,
   AlertTriangle, Eye, CalendarPlus, Check, Clock, X,
   MoreVertical, MapPin, Pencil, Lock, Tag,
-  ShieldCheck, ExternalLink, RefreshCw,
+  ShieldCheck, ExternalLink, RefreshCw, Wallet, PauseCircle, Gauge, Calculator,
 } from "lucide-react";
-import { Avatar, Badge, Modal, Button, Chip, IconButton } from "@/components/ui";
+import { Avatar, Badge, Modal, Button, Chip, IconButton, Select } from "@/components/ui";
 import type { Booking } from "@/lib/data";
 import { contractService, vehicleService } from "@/lib/api-services";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
@@ -663,9 +663,40 @@ export default function ContractDetailPage({
   // Backend capability flags (canActivate / canDeliver / canReturn)
   const [caps, setCaps] = useState<{ canActivate?: boolean; canDeliver?: boolean; canReturn?: boolean }>({});
   // Tajeer link state + action feedback
-  const [tajeerInfo, setTajeerInfo] = useState<{ linked: boolean; issuanceUrl: string | null; number: string | null }>({ linked: false, issuanceUrl: null, number: null });
+  const [tajeerInfo, setTajeerInfo] = useState<{ linked: boolean; issuanceUrl: string | null; number: string | null; lastError: string | null }>({ linked: false, issuanceUrl: null, number: null, lastError: null });
   const [tajeerBusy, setTajeerBusy] = useState(false);
   const [tajeerMsg, setTajeerMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [tajeerLogs, setTajeerLogs] = useState<any[] | null>(null);
+  // ── Advanced Tajeer actions ─────────────────────────────────────
+  const [showPaid, setShowPaid] = useState(false);
+  const [paidAmount, setPaidAmount] = useState("");
+  const [paidMethod, setPaidMethod] = useState("1");
+  const [paidBusy, setPaidBusy] = useState(false);
+
+  const [showSuspend, setShowSuspend] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [suspendReasons, setSuspendReasons] = useState<any[]>([]);
+  const [suspendCode, setSuspendCode] = useState<number | null>(null);
+  const [suspendBusy, setSuspendBusy] = useState(false);
+
+  const [showClose, setShowClose] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [closeReasons, setCloseReasons] = useState<any[]>([]);
+  const [closeCode, setCloseCode] = useState<number | null>(null);
+  const [closeOdometer, setCloseOdometer] = useState("");
+  const [closeFuel, setCloseFuel] = useState("");
+  const [closePaid, setClosePaid] = useState("");
+  const [closeBusy, setCloseBusy] = useState(false);
+  const [closeCalc, setCloseCalc] = useState<string | null>(null);
+  const [closeCalcBusy, setCloseCalcBusy] = useState(false);
+
+  const [showRentStatus, setShowRentStatus] = useState(false);
+  const [rsOdometer, setRsOdometer] = useState("");
+  const [rsFuel, setRsFuel] = useState("");
+  const [rsNotes, setRsNotes] = useState("");
+  const [rsBusy, setRsBusy] = useState(false);
+  const [tajeerLogsOpen, setTajeerLogsOpen] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
   const [contract, setContract] = useState<ContractView | null>(null);
@@ -693,6 +724,7 @@ export default function ContractDetailPage({
           linked: c.tajeerContractNumber != null || c.issuanceUrl != null,
           issuanceUrl: c.issuanceUrl ?? null,
           number: c.tajeerContractNumber ?? null,
+          lastError: c.tajeerLastErrorKey ?? c.tajeerLastError ?? null,
         });
 
         // Timeline from the real activity log (non-blocking)
@@ -786,6 +818,7 @@ export default function ContractDetailPage({
         linked: c.tajeerContractNumber != null || c.issuanceUrl != null,
         issuanceUrl: c.issuanceUrl ?? null,
         number: c.tajeerContractNumber ?? null,
+        lastError: c.tajeerLastErrorKey ?? c.tajeerLastError ?? null,
       });
     }
   };
@@ -849,6 +882,155 @@ export default function ContractDetailPage({
       else setTajeerMsg({ ok: false, text: T("No Tajeer portal link available", "لا يوجد رابط لبوابة تاجير", ar) });
     } catch {
       setTajeerMsg({ ok: false, text: T("Failed to fetch Tajeer links", "تعذر جلب روابط تاجير", ar) });
+    }
+  };
+
+  const handleTajeerLogs = async () => {
+    setShowActions(false);
+    setTajeerBusy(true);
+    try {
+      const res = await contractService.searchTajeerLogs(id, { contractId: Number(id), pageNumber: 1, pageSize: 10 });
+      const items = res?.items ?? res?.data?.items ?? res?.data ?? [];
+      setTajeerLogs(Array.isArray(items) ? items : []);
+      setTajeerLogsOpen(true);
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Failed to fetch Tajeer logs" });
+    }
+    setTajeerBusy(false);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const normalizeLookup = (res: any): any[] => {
+    const items = res?.items ?? res?.data?.items ?? res?.data ?? res ?? [];
+    return (Array.isArray(items) ? items : []).map((r) => ({
+      code: Number(r.code ?? r.id ?? r.value ?? 0),
+      label: (ar ? (r.arName ?? r.nameAr ?? r.arabicName) : (r.enName ?? r.nameEn ?? r.englishName)) ?? r.arName ?? r.enName ?? String(r.code ?? r.id),
+    })).filter((r) => r.code > 0);
+  };
+
+  const handleRefreshTajeer = async () => {
+    setShowActions(false);
+    setTajeerBusy(true);
+    setTajeerMsg(null);
+    try {
+      await contractService.refreshFromTajeer(id);
+      await refetchContract();
+      setTajeerMsg({ ok: true, text: T("Contract synced from Tajeer", "تم تحديث العقد من تاجير", ar) });
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+    } finally {
+      setTajeerBusy(false);
+    }
+  };
+
+  const handleUpdatePaid = async () => {
+    const amount = Number(paidAmount);
+    if (!paidAmount || isNaN(amount) || amount < 0) return;
+    setPaidBusy(true);
+    try {
+      await contractService.updateTajeerPaid(id, { newPaidAmount: amount, paymentMethodCode: Number(paidMethod) });
+      setShowPaid(false);
+      setPaidAmount("");
+      await refetchContract();
+      setTajeerMsg({ ok: true, text: T("Payment recorded on Tajeer", "تم تسجيل الدفعة في تاجير", ar) });
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+    } finally {
+      setPaidBusy(false);
+    }
+  };
+
+  const openSuspend = async () => {
+    setShowActions(false);
+    setShowSuspend(true);
+    if (suspendReasons.length) return;
+    try {
+      setSuspendReasons(normalizeLookup(await contractService.getTajeerLookup("suspension-reasons")));
+    } catch { /* fallback codes below */ }
+  };
+
+  const handleSuspend = async () => {
+    if (suspendCode == null) return;
+    setSuspendBusy(true);
+    try {
+      await contractService.suspendOnTajeer(id, { suspensionCode: suspendCode });
+      setShowSuspend(false);
+      setSuspendCode(null);
+      await refetchContract();
+      setTajeerMsg({ ok: true, text: T("Contract suspended on Tajeer", "تم تعليق العقد في تاجير", ar) });
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+    } finally {
+      setSuspendBusy(false);
+    }
+  };
+
+  const openClose = async () => {
+    setShowActions(false);
+    setShowClose(true);
+    setCloseCalc(null);
+    if (closeReasons.length) return;
+    try {
+      setCloseReasons(normalizeLookup(await contractService.getTajeerClosureReasons()));
+    } catch { /* keep empty — numeric fallback */ }
+  };
+
+  const handleCloseCalc = async () => {
+    setCloseCalcBusy(true);
+    setCloseCalc(null);
+    try {
+      const res = await contractService.calculateTajeerClosePayment(id, {
+        odometerReading: closeOdometer ? Number(closeOdometer) : undefined,
+        availableFuel: closeFuel !== "" ? Number(closeFuel) : undefined,
+        paid: closePaid ? Number(closePaid) : undefined,
+      });
+      const d = res?.data ?? res;
+      const total = d?.finalTotal ?? d?.total ?? d?.remaining;
+      setCloseCalc(total != null
+        ? `${T("Calculated amount", "المبلغ المحسوب", ar)}: ${total} ${T("SAR", "ر.س", ar)}`
+        : JSON.stringify(d));
+    } catch (err) {
+      setCloseCalc(err instanceof Error ? err.message : "Calculation failed");
+    } finally {
+      setCloseCalcBusy(false);
+    }
+  };
+
+  const handleCloseTajeer = async () => {
+    if (closeCode == null) return;
+    setCloseBusy(true);
+    try {
+      await contractService.closeOnTajeer(id, {
+        mainClosureCode: closeCode,
+        odometerReading: closeOdometer ? Number(closeOdometer) : undefined,
+        fuelLevel: closeFuel !== "" ? Number(closeFuel) : undefined,
+        paid: closePaid ? Number(closePaid) : undefined,
+      });
+      setShowClose(false);
+      setCloseCode(null);
+      await refetchContract();
+      setTajeerMsg({ ok: true, text: T("Contract closed on Tajeer", "تم إغلاق العقد في تاجير", ar) });
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+    } finally {
+      setCloseBusy(false);
+    }
+  };
+
+  const handleRentStatus = async () => {
+    setRsBusy(true);
+    try {
+      await contractService.saveTajeerRentStatus(id, {
+        odometerReading: rsOdometer ? Number(rsOdometer) : undefined,
+        availableFuel: rsFuel !== "" ? Number(rsFuel) : undefined,
+        notes: rsNotes.trim() || undefined,
+      });
+      setShowRentStatus(false);
+      setTajeerMsg({ ok: true, text: T("Vehicle rent status saved on Tajeer", "تم حفظ حالة المركبة في تاجير", ar) });
+    } catch (err) {
+      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+    } finally {
+      setRsBusy(false);
     }
   };
 
@@ -962,8 +1144,46 @@ export default function ContractDetailPage({
                   >
                     <ExternalLink size={14} />{T("Open in Tajeer portal", "فتح في بوابة تاجير", ar)}
                   </button>
+                  <button
+                    onClick={handleRefreshTajeer}
+                    disabled={tajeerBusy}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
+                  >
+                    <RefreshCw size={14} />{T("Sync from Tajeer", "تحديث من تاجير", ar)}
+                  </button>
+                  <button
+                    onClick={() => { setShowActions(false); setShowPaid(true); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
+                  >
+                    <Wallet size={14} />{T("Record payment", "تسجيل دفعة", ar)}
+                  </button>
+                  <button
+                    onClick={() => { setShowActions(false); setShowRentStatus(true); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
+                  >
+                    <Gauge size={14} />{T("Vehicle rent status", "حالة المركبة", ar)}
+                  </button>
+                  <button
+                    onClick={openSuspend}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
+                  >
+                    <PauseCircle size={14} />{T("Suspend on Tajeer", "تعليق في تاجير", ar)}
+                  </button>
+                  <button
+                    onClick={openClose}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
+                  >
+                    <XCircle size={14} />{T("Close on Tajeer", "إغلاق في تاجير", ar)}
+                  </button>
                 </>
               )}
+              <button
+                onClick={handleTajeerLogs}
+                disabled={tajeerBusy}
+                className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
+              >
+                <FileText size={14} />{T("Tajeer logs", "سجلات تاجير", ar)}
+              </button>
               {canCancel ? (
                 <>
                   <div className="my-1 border-t border-mk-ink-100" />
@@ -1038,6 +1258,13 @@ export default function ContractDetailPage({
           <button onClick={() => setTajeerMsg(null)} className="border-0 bg-transparent cursor-pointer opacity-60 hover:opacity-100 shrink-0">
             <X size={14} />
           </button>
+        </div>
+      )}
+
+      {/* Last Tajeer rejection (persisted by backend after a failed submit) */}
+      {tajeerInfo.lastError && (
+        <div className="rounded-lg px-5 py-3 mb-4 mk-body-sm" style={{ background: "rgba(226,65,113,0.08)", border: "1px solid rgba(226,65,113,0.25)", color: "#C01A52" }}>
+          {T("Last Tajeer error", "آخر خطأ من تاجير", ar)}: <span className="font-mono">{tajeerInfo.lastError}</span>
         </div>
       )}
 
@@ -1275,6 +1502,204 @@ export default function ContractDetailPage({
               >
                 <XCircle size={14} />
                 {cancelling ? T("Cancelling…", "جارٍ الإلغاء…", ar) : T("Confirm cancellation", "تأكيد الإلغاء", ar)}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Tajeer technical logs */}
+      {tajeerLogsOpen && (
+        <Modal
+          open={true}
+          onClose={() => setTajeerLogsOpen(false)}
+          variant="centered"
+          size="xl"
+          title={T("Tajeer technical logs", "السجلات التقنية لتاجير", ar)}
+        >
+          <div className="p-6 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
+            {tajeerLogs && tajeerLogs.length === 0 && (
+              <p className="mk-body-sm text-mk-ink-400">{T("No logs recorded for this contract", "لا توجد سجلات لهذا العقد", ar)}</p>
+            )}
+            {(tajeerLogs ?? []).map((log, i) => {
+              const ok = log.isSuccess ?? log.success ?? log.status === 200;
+              const label = log.operation ?? log.endpoint ?? log.action ?? `Log ${i + 1}`;
+              const when = log.occurredAtUtc ?? log.createdAtUtc ?? log.createdAt ?? null;
+              const detail = log.errorMessage ?? log.responseBody ?? log.response ?? log.requestBody ?? JSON.stringify(log, null, 2);
+              return (
+                <div key={log.id ?? i} className="rounded-lg border border-mk-ink-100 overflow-hidden">
+                  <div className={`flex items-center gap-2 px-3 py-2 mk-label ${ok ? "bg-mk-mint-50 text-mk-mint-700" : "bg-mk-danger-100 text-mk-danger-700"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${ok ? "bg-mk-mint-500" : "bg-mk-danger"}`} />
+                    {label}
+                    {when && <span className="ms-auto mk-caption opacity-70 font-mono">{String(when).replace("T", " ").slice(0, 19)}</span>}
+                  </div>
+                  <pre dir="ltr" className="p-3 mk-caption text-mk-ink-600 whitespace-pre-wrap break-all font-mono max-h-48 overflow-y-auto text-start">{typeof detail === "string" ? detail : JSON.stringify(detail, null, 2)}</pre>
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
+      )}
+
+      {/* Record payment on Tajeer */}
+      {showPaid && (
+        <Modal open={true} onClose={() => { if (!paidBusy) setShowPaid(false); }} variant="centered" size="md"
+          title={T("Record payment on Tajeer", "تسجيل دفعة في تاجير", ar)}>
+          <div className="p-6 flex flex-col gap-4">
+            <div>
+              <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("New paid amount", "المبلغ المدفوع الجديد", ar)}</div>
+              <input
+                type="number" inputMode="decimal" min="0" dir="ltr"
+                value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3 py-2.5 rounded-lg mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500"
+              />
+            </div>
+            <div>
+              <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Payment method", "طريقة الدفع", ar)}</div>
+              <Select value={paidMethod} onChange={(e) => setPaidMethod(e.target.value)} className="w-full">
+                <option value="1">{T("Cash", "كاش", ar)}</option>
+                <option value="2">{T("POS", "شبكة", ar)}</option>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" disabled={paidBusy} onClick={() => setShowPaid(false)}>
+                {T("Back", "رجوع", ar)}
+              </Button>
+              <Button variant="primary" className="flex-1" disabled={paidBusy || !paidAmount} onClick={handleUpdatePaid}>
+                <Wallet size={14} />{paidBusy ? T("Saving…", "جارٍ الحفظ…", ar) : T("Confirm", "تأكيد", ar)}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Suspend on Tajeer */}
+      {showSuspend && (
+        <Modal open={true} onClose={() => { if (!suspendBusy) setShowSuspend(false); }} variant="centered" size="md"
+          title={T("Suspend contract on Tajeer", "تعليق العقد في تاجير", ar)}>
+          <div className="p-6 flex flex-col gap-4">
+            <div>
+              <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Suspension reason", "سبب التعليق", ar)}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {(suspendReasons.length ? suspendReasons : [
+                  { code: 1, label: T("Non-traffic accident", "حادث غير مروري", ar) },
+                  { code: 2, label: T("Financial claims", "مطالبات مالية", ar) },
+                ]).map((r) => (
+                  <Chip key={r.code} size="sm" active={suspendCode === r.code} onClick={() => setSuspendCode(r.code)}>
+                    {r.label}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" disabled={suspendBusy} onClick={() => setShowSuspend(false)}>
+                {T("Back", "رجوع", ar)}
+              </Button>
+              <Button variant="primary" className="flex-1" disabled={suspendBusy || suspendCode == null} onClick={handleSuspend}>
+                <PauseCircle size={14} />{suspendBusy ? T("Suspending…", "جارٍ التعليق…", ar) : T("Suspend", "تعليق", ar)}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Close on Tajeer */}
+      {showClose && (
+        <Modal open={true} onClose={() => { if (!closeBusy) setShowClose(false); }} variant="centered" size="md"
+          title={T("Close contract on Tajeer", "إغلاق العقد في تاجير", ar)}>
+          <div className="p-6 flex flex-col gap-4">
+            <div>
+              <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Closure reason", "سبب الإغلاق", ar)}</div>
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                {closeReasons.map((r) => (
+                  <Chip key={r.code} size="sm" active={closeCode === r.code} onClick={() => setCloseCode(r.code)}>
+                    {r.label}
+                  </Chip>
+                ))}
+                {closeReasons.length === 0 && (
+                  <input
+                    type="number" inputMode="numeric" dir="ltr"
+                    value={closeCode ?? ""} onChange={(e) => setCloseCode(e.target.value === "" ? null : Number(e.target.value))}
+                    placeholder={T("Closure code", "رمز الإغلاق", ar)}
+                    className="w-full px-3 py-2.5 rounded-lg mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500"
+                  />
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Odometer", "العداد", ar)}</div>
+                <input type="number" inputMode="numeric" dir="ltr" value={closeOdometer} onChange={(e) => setCloseOdometer(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500" />
+              </div>
+              <div>
+                <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Fuel", "الوقود", ar)}</div>
+                <Select value={closeFuel} onChange={(e) => setCloseFuel(e.target.value)} className="w-full">
+                  <option value="">—</option>
+                  {[0, 1, 2, 3, 4].map((v) => (
+                    <option key={v} value={v}>{[T("Empty","فارغ",ar),T("1/4","١/٤",ar),T("1/2","١/٢",ar),T("3/4","٣/٤",ar),T("Full","ممتلئ",ar)][v]}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Paid", "المدفوع", ar)}</div>
+                <input type="number" inputMode="decimal" dir="ltr" value={closePaid} onChange={(e) => setClosePaid(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500" />
+              </div>
+            </div>
+            {closeCalc && (
+              <p className="mk-label px-4 py-3 rounded-lg bg-mk-ink-50 text-mk-ink-700" dir="ltr">{closeCalc}</p>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" disabled={closeBusy} onClick={() => setShowClose(false)}>
+                {T("Back", "رجوع", ar)}
+              </Button>
+              <Button variant="outline" className="flex-1" disabled={closeCalcBusy || closeBusy} onClick={handleCloseCalc}>
+                <Calculator size={14} />{closeCalcBusy ? T("Calculating…", "جارٍ الحساب…", ar) : T("Calculate", "حساب", ar)}
+              </Button>
+              <Button variant="primary" className="flex-1" disabled={closeBusy || closeCode == null} onClick={handleCloseTajeer}>
+                {closeBusy ? T("Closing…", "جارٍ الإغلاق…", ar) : T("Close", "إغلاق", ar)}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Vehicle rent status on Tajeer */}
+      {showRentStatus && (
+        <Modal open={true} onClose={() => { if (!rsBusy) setShowRentStatus(false); }} variant="centered" size="md"
+          title={T("Vehicle rent status", "حالة المركبة عند التأجير", ar)}>
+          <div className="p-6 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Odometer", "قراءة العداد", ar)}</div>
+                <input type="number" inputMode="numeric" dir="ltr" value={rsOdometer} onChange={(e) => setRsOdometer(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500" />
+              </div>
+              <div>
+                <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Fuel level", "مستوى الوقود", ar)}</div>
+                <Select value={rsFuel} onChange={(e) => setRsFuel(e.target.value)} className="w-full">
+                  <option value="">—</option>
+                  {[0, 1, 2, 3, 4].map((v) => (
+                    <option key={v} value={v}>{[T("Empty","فارغ",ar),T("1/4","١/٤",ar),T("1/2","١/٢",ar),T("3/4","٣/٤",ar),T("Full","ممتلئ",ar)][v]}</option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+            <div>
+              <div className="mk-overline uppercase mb-2 text-mk-ink-400 mk-tracking-eyebrow">{T("Notes", "ملاحظات", ar)}</div>
+              <textarea
+                value={rsNotes} onChange={(e) => setRsNotes(e.target.value)} rows={3}
+                className="w-full px-3 py-2.5 rounded-lg mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500 resize-none"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" disabled={rsBusy} onClick={() => setShowRentStatus(false)}>
+                {T("Back", "رجوع", ar)}
+              </Button>
+              <Button variant="primary" className="flex-1" disabled={rsBusy} onClick={handleRentStatus}>
+                <Gauge size={14} />{rsBusy ? T("Saving…", "جارٍ الحفظ…", ar) : T("Save", "حفظ", ar)}
               </Button>
             </div>
           </div>

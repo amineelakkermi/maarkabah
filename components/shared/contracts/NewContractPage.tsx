@@ -16,6 +16,7 @@ import { computeRental, computePricing } from "./new-contract/pricing";
 import { buildCreateContractRequest, mapBackendCustomerToDriver } from "./new-contract/mappers";
 import { contractService, customerService, driverService } from "@/lib/api-services";
 import { ApiError } from "@/lib/api-client";
+import { describeApiError } from "@/lib/api-error-messages";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useContractLookups, isTajeerSyncedPolicy } from "./new-contract/useContractLookups";
 import { useCustomersPicker } from "./new-contract/useCustomersPicker";
@@ -349,8 +350,19 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
 
   const issueContract = async (contractId: number) => {
     if (tajeerDisabled) {
-      await contractService.activate(contractId);
-      return;
+      try {
+        await contractService.activate(contractId);
+        return;
+      } catch (err) {
+        // The cached tenant context may still report ElmTajeer as disabled
+        // while the backend already requires Tajeer for this tenant — in
+        // that case the only valid issuance path is submit-tajeer.
+        if (err instanceof Error && /requires tajeer/i.test(err.message)) {
+          await contractService.submitToTajeer(contractId);
+          return;
+        }
+        throw err;
+      }
     }
     try {
       await contractService.submitToTajeer(contractId);
@@ -450,7 +462,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
       setTajeerResponse({ contractNumber } as unknown as TajeerSaveContractResponse);
       setContractStep("issued");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "خطأ غير متوقع";
+      const msg = describeApiError(err, ar, "خطأ غير متوقع");
       setTajeerError(contractId
         ? T(
             `The contract was created as a draft but issuance failed: ${msg}`,
