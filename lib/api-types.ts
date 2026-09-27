@@ -49,20 +49,23 @@ export enum VerificationStatus {
 
 export interface NationalIdentityInfo {
   beneficiaryIdNumber?: string;
-  birthDate: string;
+  birthDate?: string;
+  hijriBirthDate?: number;
   email?: string;
   isHijriBirthDate: boolean;
 }
 
 export interface ResidenceIdentityInfo {
   beneficiaryIdNumber?: string;
-  birthDate: string;
+  birthDate?: string;
+  hijriBirthDate?: number;
   email?: string;
   isHijriBirthDate: boolean;
 }
 
 export interface VisitorIdentityInfo {
   email?: string;
+  birthDate: string;
   borderNumber?: string;
   passportNumber?: string;
   licenseNumber?: string;
@@ -74,10 +77,22 @@ export interface VisitorIdentityInfo {
 }
 
 export interface GulfIdentityInfo {
-  beneficiaryIdNumber?: string;
-  birthDate: string;
   email?: string;
-  isHijriBirthDate: boolean;
+  birthDate: string;
+  beneficiaryIdNumber?: string;
+  licenseNumber?: string;
+  licenseExpiryDate: string;
+  licenseIssuePlace?: string;
+  countryId: number;
+  identityCopyNumber?: string;
+  identityExpiryDate: string;
+}
+
+export interface CustomerDocumentInput {
+  /** 1 = IdentityDocument, 2 = DrivingLicense, 3 = Passport, 4 = Other */
+  documentType: number;
+  fileId: number;
+  sortOrder: number;
 }
 
 // ─── Customer ───────────────────────────────────────────────────
@@ -86,13 +101,13 @@ export interface CreateCustomerCommand {
   fullNameEn?: string;
   fullNameAr?: string;
   phoneNumber?: string;
-  email?: string;
   identityType?: IdentityType;
   address?: string;
   national?: NationalIdentityInfo;
   residence?: ResidenceIdentityInfo;
   visitor?: VisitorIdentityInfo;
   gulf?: GulfIdentityInfo;
+  documents?: CustomerDocumentInput[];
   isActive?: boolean;
 }
 
@@ -106,6 +121,8 @@ export interface UpdateCustomerRequest {
   residence?: ResidenceIdentityInfo;
   visitor?: VisitorIdentityInfo;
   gulf?: GulfIdentityInfo;
+  /** Fully replaces the customer's documents — omit to keep, send [] to clear. */
+  documents?: CustomerDocumentInput[];
   isActive?: boolean;
 }
 

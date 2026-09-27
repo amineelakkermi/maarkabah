@@ -9,6 +9,7 @@ import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
 import { hijriToGregorianStr, gregorianToHijriStr } from "@/lib/hijri-utils";
 import { ApiError } from "@/lib/api-client";
 import { describeApiError } from "@/lib/api-error-messages";
+import { IdentityType, type CreateCustomerCommand } from "@/lib/api-types";
 import { SaudiPhoneInput, isSaudiMobileLocal } from "@/components/shared/SaudiPhoneInput";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -334,18 +335,17 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
       setUploadingDocuments(false);
 
       // Map ID type to enum
-      const identityTypeMap: Record<string, number> = {
-        "Saudi ID": 1,
-        "Iqama": 2,
-        "Passport": 3,
-        "GCC ID": 4,
+      const identityTypeMap: Record<string, IdentityType> = {
+        "Saudi ID": IdentityType.Saudi,
+        "Iqama": IdentityType.Iqama,
+        "Passport": IdentityType.Visitor,
+        "GCC ID": IdentityType.GCC,
       };
 
-      const createRequest = {
+      const createRequest: CreateCustomerCommand = {
         fullNameEn: newName,
         fullNameAr: newNameAr,
         phoneNumber: `+966 ${newPhone}`,
-        email: newEmail || undefined,
         identityType: identityTypeMap[newIdType],
         address: newAddress || undefined,
         national: newIdType === "Saudi ID" ? {
@@ -364,31 +364,30 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
         visitor: newIdType === "Passport" ? {
           passportNumber: newId,
           borderNumber: newBorderNumber || undefined,
-          birthDate: newBirthDate || undefined,
+          birthDate: newBirthDate || "",
           email: newEmail || undefined,
           licenseNumber: newLicense || undefined,
-          licenseExpiryDate: newLicenseExpiry || undefined,
+          licenseExpiryDate: newLicenseExpiry || "",
           licenseIssuePlace: newLicenseIssuePlace || undefined,
-          countryId: newCountryId ? Number(newCountryId) : 1,
-          identityExpiryDate: newIdExpiry || undefined,
+          countryId: Number(newCountryId),
+          identityExpiryDate: newIdExpiry || "",
           identityCopyNumber: newIdCopyNumber || undefined,
         } : undefined,
         gulf: newIdType === "GCC ID" ? {
           beneficiaryIdNumber: newId,
           email: newEmail || undefined,
-          birthDate: newBirthDate || undefined,
+          birthDate: newBirthDate || "",
           licenseNumber: newLicense || undefined,
-          licenseExpiryDate: newLicenseExpiry || undefined,
+          licenseExpiryDate: newLicenseExpiry || "",
           licenseIssuePlace: newLicenseIssuePlace || undefined,
-          countryId: newCountryId ? Number(newCountryId) : 1,
+          countryId: Number(newCountryId),
           identityCopyNumber: newIdCopyNumber || undefined,
-          identityExpiryDate: newIdExpiry || undefined,
+          identityExpiryDate: newIdExpiry || "",
         } : undefined,
         documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const created = await customerService.create(createRequest as any);
+      const created = await customerService.create(createRequest);
       const createdId = Number(created?.id ?? created?.data?.id ?? 0);
       customerEvents.reload();
 
