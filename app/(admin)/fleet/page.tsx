@@ -17,6 +17,7 @@ import {
   mapStatusFromBackend,
 } from "@/lib/fleet";
 import { formatPlate } from "@/lib/formatting";
+import { describeApiError } from "@/lib/api-error-messages";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
 import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
 import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
@@ -194,8 +195,7 @@ export default function FleetPage() {
       const validationErrors = extractVehicleValidationErrors(error);
       setFieldErrors(validationErrors);
       if (Object.keys(validationErrors).length === 0) {
-        const msg = error?.message || error?.response?.message || "Failed to save vehicle";
-        showToast(T(msg, msg, ar), "error");
+        showToast(describeApiError(error, ar, T("Failed to save vehicle", "فشل حفظ السيارة", ar)), "error");
       }
     } finally {
       setSaving(false);

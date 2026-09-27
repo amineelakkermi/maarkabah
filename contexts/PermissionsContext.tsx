@@ -13,11 +13,19 @@ interface TenantContextData {
   branding?: Record<string, any>;
   features?: Array<{ featureCode: string; isEnabled: boolean }>;
   workflows?: Record<string, any>;
+  integrations?: {
+    tajeerFeatureEnabled?: boolean;
+    tajeerConfigured?: boolean;
+    tajeerVerified?: boolean;
+    tajeerEnabled?: boolean;
+  };
 }
 
 interface PermissionsContextValue {
   permissions: string[];
   tenantContext: TenantContextData | null;
+  /** ElmTajeer license AND verified credentials — gates all Tajeer UI. */
+  tajeerEnabled: boolean;
   isLoading: boolean;
   error: string | null;
   isSuperAdmin: boolean;
@@ -30,6 +38,7 @@ interface PermissionsContextValue {
 const PermissionsContext = createContext<PermissionsContextValue>({
   permissions: [],
   tenantContext: null,
+  tajeerEnabled: false,
   isLoading: true,
   error: null,
   isSuperAdmin: false,
@@ -95,9 +104,23 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     const hasPermission = (requirement: PermissionRequirement) =>
       isSuperAdmin || checkPermission(permissions, requirement);
 
+    // Tajeer issuance needs BOTH the ElmTajeer license AND verified
+    // credentials (integrations.tajeerVerified = IsActive). When the
+    // backend sends the composite flag we trust it; otherwise we combine
+    // license + verification. No integrations block → license only
+    // (matches the previous features-only behaviour).
+    const integrations = tenantContext?.integrations;
+    const elmTajeerLicensed = !tenantContext?.features?.some(
+      (f) => f.featureCode === "ElmTajeer" && f.isEnabled === false
+    );
+    const tajeerEnabled =
+      integrations?.tajeerEnabled ??
+      (elmTajeerLicensed && (integrations?.tajeerVerified ?? elmTajeerLicensed));
+
     return {
       permissions,
       tenantContext,
+      tajeerEnabled,
       isLoading,
       error,
       isSuperAdmin,

@@ -123,6 +123,8 @@ function SettingsContent() {
   const [otpLockout, setOtpLockout] = useState("15");
   const [otpValidity, setOtpValidity] = useState("5");
   const [smsEnabled, setSmsEnabled] = useState(true);
+  const [autoApproveCustomers, setAutoApproveCustomers] = useState(false);
+  const [autoApproveDrivers, setAutoApproveDrivers] = useState(false);
   const [senderIds, setSenderIds] = useState<SmsSenderId[]>([]);
   const [systemSaved, setSystemSaved] = useState(false);
   const [systemError, setSystemError] = useState("");
@@ -184,6 +186,8 @@ function SettingsContent() {
         if (s.otpLockoutMinutes != null) setOtpLockout(String(s.otpLockoutMinutes));
         if (s.otpValidityMinutes != null) setOtpValidity(String(s.otpValidityMinutes));
         if (s.smsEnabled != null) setSmsEnabled(Boolean(s.smsEnabled));
+        if (s.autoApproveCustomers != null) setAutoApproveCustomers(Boolean(s.autoApproveCustomers));
+        if (s.autoApproveDrivers != null) setAutoApproveDrivers(Boolean(s.autoApproveDrivers));
         if (Array.isArray(s.senderIds)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setSenderIds(s.senderIds.map((x: any) => ({ id: String(x.id ?? ""), enabled: Boolean(x.enabled) })));
@@ -263,6 +267,8 @@ function SettingsContent() {
         otpLockoutMinutes: Number(otpLockout) || 0,
         otpValidityMinutes: Number(otpValidity) || 0,
         smsEnabled,
+        autoApproveCustomers,
+        autoApproveDrivers,
         senderIds,
         gatewayUrl: tajeerGatewayUrl || undefined,
         gatewayKey: tajeerGatewayKey || undefined,
@@ -605,6 +611,25 @@ function SettingsContent() {
             <div className="flex items-center gap-2">
               <Input type="number" variant="muted" className="max-w-[140px] font-mono" value={lateFeeGrace} onChange={(e) => setLateFeeGrace(e.target.value)} />
               <span className="mk-caption text-mk-ink-400">{T("hour(s)", "ساعة", ar)}</span>
+            </div>
+          </SettingsRow>
+
+          <SettingsRow title={T("Verification & Approval", "التحقق والاعتماد", ar)} sub={T("Auto-approve new records or send them through the approval cycle (KYC queue).", "اعتماد السجلات الجديدة تلقائياً أو إرسالها عبر دورة الاعتماد (قائمة التحقق).", ar)}>
+            <div className="max-w-[520px] flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="mk-label text-mk-ink-900">{T("Auto-approve customers", "اعتماد العملاء تلقائياً", ar)}</div>
+                  <p className="mk-caption text-mk-ink-400 mt-1">{T("New customers (incl. warehouse import) are Verified immediately instead of Pending.", "العملاء الجدد (بما فيهم المستوردون) يصبحون موثّقين فوراً بدلاً من معلّق.", ar)}</p>
+                </div>
+                <Toggle checked={autoApproveCustomers} onChange={setAutoApproveCustomers} />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="mk-label text-mk-ink-900">{T("Auto-approve drivers", "اعتماد السائقين تلقائياً", ar)}</div>
+                  <p className="mk-caption text-mk-ink-400 mt-1">{T("New drivers are Verified immediately instead of waiting for manual approval.", "السائقون الجدد يصبحون موثّقين فوراً بدلاً من انتظار الاعتماد اليدوي.", ar)}</p>
+                </div>
+                <Toggle checked={autoApproveDrivers} onChange={setAutoApproveDrivers} />
+              </div>
             </div>
           </SettingsRow>
 

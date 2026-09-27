@@ -502,6 +502,59 @@ export const vehicleService = {
       method: 'DELETE',
     });
   },
+
+  /**
+   * Update fleet status (office statuses only)
+   * PUT /api/vehicles/{id}/status
+   */
+  async updateStatus(id: number | string, request: Types.VehicleStatusUpdateRequest): Promise<any> {
+    return apiClient.request(`/vehicles/${id}/status`, {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Activate vehicle (status → Available, listing on)
+   * POST /api/vehicles/{id}/activate
+   */
+  async activate(id: number | string): Promise<any> {
+    return apiClient.request(`/vehicles/${id}/activate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Deactivate vehicle (status → Inactive, listing off)
+   * POST /api/vehicles/{id}/deactivate
+   */
+  async deactivate(id: number | string): Promise<any> {
+    return apiClient.request(`/vehicles/${id}/deactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Transfer vehicle to another branch
+   * POST /api/vehicles/{id}/transfer
+   */
+  async transfer(id: number | string, request: Types.VehicleTransferRequest): Promise<any> {
+    return apiClient.request(`/vehicles/${id}/transfer`, {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Vehicle transfer history
+   * POST /api/vehicles/{id}/transfers/search
+   */
+  async searchTransfers(id: number | string, request: Types.VehicleTransfersSearchRequest = {}): Promise<any> {
+    return apiClient.request(`/vehicles/${id}/transfers/search`, {
+      method: 'POST',
+      body: request,
+    });
+  },
 };
 
 // ─── Attachment Service ────────────────────────────────────────
@@ -1963,6 +2016,72 @@ export const tajeerApiLogsService = {
   async getById(id: number | string): Promise<any> {
     return apiClient.request(`/tajeer-api-logs/${id}`, {
       method: 'GET',
+    });
+  },
+};
+
+// ─── Notifications Service ────────────────────────────────────
+// Per-user inbox. Rows are undismissed notifications, localized by the
+// backend. Categories: 1 Fleet, 2 Contracts, 3 PickupReturn, 4 Disputes,
+// 5 People, 6 System. Types: 1-27. There is no mark-read endpoint — the
+// only lifecycle verb is dismiss (removes the row from the inbox).
+
+export const notificationService = {
+  /**
+   * Search the current user's undismissed inbox
+   * POST /api/notifications/search
+   */
+  async search(request: {
+    unreadOnly?: boolean;
+    category?: number | null;
+    type?: number | null;
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<any> {
+    return apiClient.request('/notifications/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Unread undismissed count for the current user (branch-scoped)
+   * GET /api/notifications/unread-count
+   */
+  async getUnreadCount(): Promise<any> {
+    return apiClient.request('/notifications/unread-count', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Dismiss one inbox row owned by the current user
+   * POST /api/notifications/{id}/dismiss
+   */
+  async dismiss(id: number | string): Promise<any> {
+    return apiClient.request(`/notifications/${id}/dismiss`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Dismiss all visible inbox rows for the current user
+   * POST /api/notifications/dismiss-all
+   */
+  async dismissAll(): Promise<any> {
+    return apiClient.request('/notifications/dismiss-all', {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Create today's expiry/due alerts (registration, inspection, insurance,
+   * oil, pickup/return, identity). Requires Permissions.Settings.Edit.
+   * POST /api/notifications/scan
+   */
+  async scan(): Promise<any> {
+    return apiClient.request('/notifications/scan', {
+      method: 'POST',
     });
   },
 };

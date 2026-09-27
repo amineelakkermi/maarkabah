@@ -50,7 +50,7 @@ export interface NewContractPageProps {
 export default function NewContractPage({ contractsListPath = "/employee/contracts" }: NewContractPageProps) {
   const { dir, isDark, currentUser } = useAdmin();
   const ar = dir === "rtl";
-  const { tenantContext } = usePermissions();
+  const { tajeerEnabled } = usePermissions();
   const searchParams = useSearchParams();
   const clientId = searchParams.get("clientId");
 
@@ -341,12 +341,11 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   }, [contractStep, otpDigits]);
 
   // ── Backend contract creation + issuance ──────────────────────
-  // Elm Tajeer enabled → submit-tajeer; disabled → local /activate.
-  // The tenant context may not be loaded yet, so we also fall back to
-  // /activate when submit-tajeer answers Contract.TajeerNotConfigured.
-  const tajeerDisabled = tenantContext?.features?.some(
-    (f) => f.featureCode === "ElmTajeer" && !f.isEnabled
-  ) ?? false;
+  // Tajeer enabled (license + verified credentials) → submit-tajeer;
+  // otherwise → local /activate. The tenant context may not be loaded
+  // yet, so we also fall back to /activate when submit-tajeer answers
+  // Contract.TajeerNotConfigured.
+  const tajeerDisabled = !tajeerEnabled;
 
   const issueContract = async (contractId: number) => {
     if (tajeerDisabled) {
@@ -871,7 +870,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             setExtraDriverEnabled={setExtraDriverEnabled}
             rentPolicies={rentPolicies}
             rentPolicyId={rentPolicyId} setRentPolicyId={setRentPolicyId}
-            tajeerEnabled={!tajeerDisabled}
+            tajeerEnabled={tajeerEnabled}
             cancellationPolicies={cancellationPolicies}
             cancellationPolicyId={cancellationPolicyId} setCancellationPolicyId={setCancellationPolicyId}
             extensionPolicy={extensionPolicy} setExtensionPolicy={setExtensionPolicy}

@@ -73,6 +73,10 @@
       "value": "1"
     },
     {
+      "key": "notificationId",
+      "value": "1"
+    },
+    {
       "key": "vehicleId",
       "value": "1"
     },
@@ -377,7 +381,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/tenant/context",
-            "description": "Requires a tenant user Bearer token. Returns tenant settings, branding, features, workflow configs, and current user permission codes."
+            "description": "Requires a tenant user Bearer token. features[] is the licensed module list (ElmTajeer). integrations.tajeerConfigured / tajeerVerified is the saved Tajeer connection, not the feature flag."
           }
         }
       ]
@@ -391,7 +395,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/tenant/settings",
-            "description": "Requires Permissions.Settings.View. Returns office profile, system settings, masked Tajeer status, current user snapshot, and timezone options."
+            "description": "Requires Permissions.Settings.View. system.autoApproveCustomers / autoApproveDrivers control whether create sets VerificationStatus to Verified or Pending. tajeer.featureEnabled is the SuperAdmin license (ElmTajeer). tajeer.isConfigured / isActive is whether credentials are saved and verified. Saving credentials does not turn the feature on."
           }
         },
         {
@@ -424,10 +428,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionTimeoutMinutes\": 30,\n  \"contractAutoCancelHours\": 12,\n  \"lateFeeGraceHours\": 1,\n  \"otpResendLimit\": 3,\n  \"otpLockoutMinutes\": 15,\n  \"otpValidityMinutes\": 5,\n  \"smsEnabled\": false,\n  \"senderIds\": [{ \"id\": \"MAARKBH\", \"enabled\": true }],\n  \"gatewayUrl\": \"http://8.213.81.159:81\",\n  \"gatewayKey\": \"C91547D8-070F-45BA-9C77-DDB0B16E28D1\",\n  \"appId\": \"c49fda9f\",\n  \"appKey\": \"0a0ecdd133cbda8414c36b1d9f8f8f51\",\n  \"authorization\": \"Basic YXBpVXNlcjgyOTgzNzpBYUAxMjM0NTY=\"\n}"
+              "raw": "{\n  \"sessionTimeoutMinutes\": 30,\n  \"contractAutoCancelHours\": 12,\n  \"lateFeeGraceHours\": 1,\n  \"otpResendLimit\": 3,\n  \"otpLockoutMinutes\": 15,\n  \"otpValidityMinutes\": 5,\n  \"smsEnabled\": false,\n  \"autoApproveCustomers\": false,\n  \"autoApproveDrivers\": false,\n  \"senderIds\": [{ \"id\": \"MAARKBH\", \"enabled\": true }],\n  \"gatewayUrl\": \"http://8.213.81.159:81\",\n  \"gatewayKey\": \"C91547D8-070F-45BA-9C77-DDB0B16E28D1\",\n  \"appId\": \"c49fda9f\",\n  \"appKey\": \"0a0ecdd133cbda8414c36b1d9f8f8f51\",\n  \"authorization\": \"Basic YXBpVXNlcjgyOTgzNzpBYUAxMjM0NTY=\"\n}"
             },
             "url": "{{baseUrl}}/api/tenant/settings/system",
-            "description": "Requires Permissions.Settings.Edit. Omit or leave secret fields empty to keep stored values. Any Tajeer field present re-verifies via GET /rental-api/branch/all."
+            "description": "Requires Permissions.Settings.Edit. autoApproveCustomers / autoApproveDrivers: when true, new customers/drivers (including warehouse import) are Verified; when false they stay Pending until someone approves. Omit or leave secret fields empty to keep stored values. Saving Tajeer credentials requires the ElmTajeer feature to already be on; it does not enable the feature. Any Tajeer field present re-verifies via GET /rental-api/branch/all."
           }
         },
         {
@@ -445,7 +449,7 @@
               "raw": "{\n  \"gatewayUrl\": \"http://8.213.81.159:81\",\n  \"gatewayKey\": \"C91547D8-070F-45BA-9C77-DDB0B16E28D1\",\n  \"appId\": \"c49fda9f\",\n  \"appKey\": \"0a0ecdd133cbda8414c36b1d9f8f8f51\",\n  \"authorization\": \"Basic YXBpVXNlcjgyOTgzNzpBYUAxMjM0NTY=\"\n}"
             },
             "url": "{{baseUrl}}/api/tenant/settings/tajeer/verify",
-            "description": "Requires Permissions.Settings.Edit. Empty body uses stored credentials. Sends X-Gateway-Key, app-id, app-key, and Basic Authorization to the tenant Gateway URL."
+            "description": "Requires Permissions.Settings.Edit and ElmTajeer feature enabled. Empty body uses stored credentials. Sets integration IsActive only; does not change TenantFeature.ElmTajeer."
           }
         }
       ]
@@ -563,7 +567,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/branches/{{branchId}}",
-            "description": "Requires Permissions.Branches.Delete. Soft-deletes and deactivates the branch."
+            "description": "Requires Permissions.Branches.Delete. Soft-deletes and deactivates the branch. 400 Branch.InUse if vehicles, contracts, staff, additional-service links, or transfer logs still reference it."
           }
         }
       ]
@@ -672,7 +676,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/customers/{{customerId}}",
-            "description": "Requires Permissions.Customers.Delete. Soft-deletes and deactivates the customer."
+            "description": "Requires Permissions.Customers.Delete. Soft-deletes and deactivates the customer. 400 Customer.InUse if contracts or drivers still reference it."
           }
         },
         {
@@ -862,7 +866,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/drivers/{{driverId}}",
-            "description": "Requires Permissions.Drivers.Delete. Soft-deletes and deactivates the driver."
+            "description": "Requires Permissions.Drivers.Delete. Soft-deletes and deactivates the driver. 400 Driver.InUse if contracts still reference it as authorized or extra driver."
           }
         },
         {
@@ -1147,7 +1151,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/additional-services/{{additionalServiceId}}",
-            "description": "Requires Permissions.AdditionalServices.Delete. Soft-deletes custom rows. 400 if the row is a seeded system service."
+            "description": "Requires Permissions.AdditionalServices.Delete. Soft-deletes custom rows. 400 if the row is a seeded system service, or AdditionalService.InUse if contracts still reference it."
           }
         }
       ]
@@ -1281,7 +1285,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/rent-policies/{{rentPolicyId}}",
-            "description": "Requires Permissions.RentPolicies.Delete. Soft-deletes custom rows. 400 if the row is Tajeer-synced."
+            "description": "Requires Permissions.RentPolicies.Delete. Soft-deletes custom rows. 400 if the row is Tajeer-synced, or RentPolicy.InUse if contracts still reference it."
           }
         }
       ]
@@ -1454,7 +1458,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/cancellation-policies/{{cancellationPolicyId}}",
-            "description": "400 if IsSystem (DEFAULT seed)."
+            "description": "400 if IsSystem (DEFAULT seed), or CancellationPolicy.InUse if contracts still reference it."
           }
         }
       ]
@@ -1904,6 +1908,50 @@
       ]
     },
     {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Overview (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": null,\n  \"revenuePeriod\": \"week\"\n}"
+            },
+            "url": "{{baseUrl}}/api/dashboard/overview",
+            "description": "Admin dashboard bootstrap: overdue banner, 5 KPIs, today's pickups/returns, revenue sparkline, fleet status, oil reminders, KYC counts, action flags. Pass branchId to scope (null = all accessible). revenuePeriod: week | month. Requires Permissions.Dashboard.ViewOverview. Branch-scoped."
+          }
+        },
+        {
+          "name": "Overview month (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": {{branchId}},\n  \"revenuePeriod\": \"month\"\n}"
+            },
+            "url": "{{baseUrl}}/api/dashboard/overview",
+            "description": "Same as Overview with a 30-day revenue sparkline and a specific branch filter. Requires Permissions.Dashboard.ViewOverview."
+          }
+        },
+        {
+          "name": "Today (employee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/dashboard/today",
+            "description": "Employee today bootstrap: briefing counts, pickup/return/overdue KPIs, merged queue, live fleet alerts, cars at branch, action flags. Requires Permissions.Dashboard.View. Branch-scoped."
+          }
+        }
+      ]
+    },
+    {
       "name": "Late Returns",
       "item": [
         {
@@ -2199,7 +2247,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/countries/{{countryId}}",
-            "description": "Requires Permissions.Countries.Delete. Soft-deletes and deactivates the country."
+            "description": "Requires Permissions.Countries.Delete. Soft-deletes and deactivates the country. 400 Country.InUse if customers or drivers still reference it."
           }
         }
       ]
@@ -2222,7 +2270,7 @@
               "raw": "{}"
             },
             "url": "{{baseUrl}}/api/lookups/context",
-            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections: makes, models, plateTypes, insuranceCompanies, insuranceTypes, features, vehicleEnums, countries, branches, personEnums, additionalServiceEnums (billingUnits), rentPolicyEnums, contractEnums (types/statuses only), paymentTypes (FULL/ADVANCE), paymentMethods (1=Cash, 2=POS)."
+            "description": "Requires authenticated user only. Empty body (or sections:[]) returns all sections plus integrations: tajeerFeatureEnabled (license), tajeerConfigured (credentials saved), tajeerVerified (IsActive), tajeerEnabled (license AND verified)."
           }
         },
         {
@@ -2372,7 +2420,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/vehicle-makes/{{vehicleLookupId}}",
-            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup."
+            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup. 400 Lookup.InUse if models or vehicles still reference it."
           }
         },
         {
@@ -2435,7 +2483,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/vehicle-models/{{vehicleLookupId}}",
-            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup."
+            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup. 400 Lookup.InUse if vehicles still reference it."
           }
         },
         {
@@ -2513,7 +2561,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/plate-types/{{vehicleLookupId}}",
-            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup."
+            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup. 400 Lookup.InUse if vehicles still reference it."
           }
         },
         {
@@ -2591,7 +2639,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/insurance-companies/{{vehicleLookupId}}",
-            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup."
+            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup. 400 Lookup.InUse if vehicles still reference it."
           }
         },
         {
@@ -2669,7 +2717,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/insurance-types/{{vehicleLookupId}}",
-            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup."
+            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup. 400 Lookup.InUse if vehicles still reference it."
           }
         },
         {
@@ -2747,7 +2795,7 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/vehicle-feature-types/{{vehicleLookupId}}",
-            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup."
+            "description": "Requires Permissions.VehicleCatalogs.Delete. Soft-deletes the lookup. 400 Lookup.InUse if vehicle features still reference it."
           }
         }
       ]
@@ -2826,6 +2874,65 @@
             "header": [],
             "url": "{{baseUrl}}/api/attachments/{{attachmentId}}/download",
             "description": "Requires authenticated tenant user. Streams file bytes through the API (no static file access)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Search inbox",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unreadOnly\": true,\n  \"category\": null,\n  \"type\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/notifications/search",
+            "description": "Authenticated inbox. Returns the current user's undismissed notifications, localized, paged. Optional filters: unreadOnly, category (1 Fleet, 2 Contracts, 3 PickupReturn, 4 Disputes, 5 People, 6 System), type (1-27)."
+          }
+        },
+        {
+          "name": "Unread count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications/unread-count",
+            "description": "Authenticated. Unread undismissed count for the current user (branch-scoped)."
+          }
+        },
+        {
+          "name": "Dismiss one",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}/dismiss",
+            "description": "Authenticated. Dismisses one inbox row owned by the current user."
+          }
+        },
+        {
+          "name": "Dismiss all",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications/dismiss-all",
+            "description": "Authenticated. Dismisses all visible inbox rows for the current user."
+          }
+        },
+        {
+          "name": "Scan date-based alerts",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications/scan",
+            "description": "Requires Permissions.Settings.Edit. Creates today's expiry/due alerts (registration, inspection, insurance, oil, pickup/return, identity)."
           }
         }
       ]
@@ -2929,12 +3036,84 @@
           }
         },
         {
+          "name": "Update vehicle status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": 2,\n  \"notes\": \"Ready for rent\",\n  \"isListingActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/status",
+            "description": "Requires Permissions.Vehicles.Save. Office statuses only: 1 Draft, 2 Available, 5 Maintenance, 6 Reserved, 7 Inactive. Rented (3) and Overdue (4) are contract-owned. Inactive always unlists. Returns { id, status, notes, isListingActive }."
+          }
+        },
+        {
+          "name": "Activate vehicle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/activate",
+            "description": "Requires Permissions.Vehicles.Save. Sets status Available and isListingActive true. 400 Vehicle.StatusLockedByContract when the vehicle is Rented or Overdue."
+          }
+        },
+        {
+          "name": "Deactivate vehicle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/deactivate",
+            "description": "Requires Permissions.Vehicles.Save. Sets status Inactive and isListingActive false. 400 Vehicle.StatusLockedByContract when the vehicle is Rented or Overdue."
+          }
+        },
+        {
+          "name": "Transfer vehicle to branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetBranchId\": {{branchId}},\n  \"notes\": \"Moved for weekend coverage\"\n}"
+            },
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/transfer",
+            "description": "Requires Permissions.Vehicles.Save. Moves Vehicle.BranchId. Blocked when Rented/Overdue or Active/PendingIssuance contract. Source and destination must be in the user's branch scope. Does not change fleet status. Changing branch via Save vehicle returns Vehicle.BranchChangeRequiresTransfer."
+          }
+        },
+        {
+          "name": "Search vehicle transfers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/transfers/search",
+            "description": "Requires Permissions.Vehicles.View. Paged transfer history for the vehicle: from/to branch names, actor, notes, occurredAtUtc."
+          }
+        },
+        {
           "name": "Delete vehicle",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
-            "description": "Requires Permissions.Vehicles.Delete. Soft-deletes and marks the vehicle inactive."
+            "description": "Requires Permissions.Vehicles.Delete. Soft-deletes and marks the vehicle inactive. 400 Vehicle.InUse if contracts still reference it."
           }
         }
       ]
@@ -3222,10 +3401,32 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"مكتب النور للتأجير\",\n  \"subdomain\": \"alnoor\",\n  \"commercialRegistrationNumber\": \"7012345678\",\n  \"taxNumber\": \"310123456700003\",\n  \"mobile\": \"966512345678\",\n  \"email\": \"admin@alnoor.maarkbh.com\",\n  \"adminFullName\": \"Office Admin\",\n  \"adminUserName\": \"alnoor.admin\",\n  \"adminPassword\": \"Admin@1234\"\n}"
+              "raw": "{\n  \"name\": \"مكتب النور للتأجير\",\n  \"subdomain\": \"alnoor\",\n  \"commercialRegistrationNumber\": \"7012345678\",\n  \"taxNumber\": \"310123456700003\",\n  \"mobile\": \"966512345678\",\n  \"email\": \"admin@alnoor.maarkbh.com\",\n  \"adminFullName\": \"Office Admin\",\n  \"adminUserName\": \"alnoor.admin\",\n  \"adminPassword\": \"Admin@1234\",\n  \"enabledFeatures\": [\"ElmTajeer\"]\n}"
             },
             "url": "{{baseUrl}}/api/admin/tenants",
-            "description": "Requires SuperAdmin. Creates an isolated tenant database, saves the office profile on Master (CR/tax unique), and creates a TenantAdmin user. 201 { tenantId, userId }. No partial record on failure."
+            "description": "Requires SuperAdmin. Creates an isolated tenant database and TenantAdmin user. Optional enabledFeatures ([\"ElmTajeer\"]) turns Tajeer on; omitted = feature off. Saving Tajeer credentials is a separate tenant-settings step."
+          }
+        },
+        {
+          "name": "Get tenant features",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/features",
+            "description": "Requires SuperAdmin. Licensed modules only (ElmTajeer). Does not reflect whether Tajeer credentials are saved."
+          }
+        },
+        {
+          "name": "Update tenant features",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  { \"featureCode\": \"ElmTajeer\", \"isEnabled\": true }\n]"
+            },
+            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/features",
+            "description": "Requires SuperAdmin. Enables or disables licensed modules. Tajeer credentials stay on tenant settings."
           }
         },
         {

@@ -1,7 +1,9 @@
 "use client";
 
-import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
+import { Search, Sun, Moon, Menu, Languages } from "lucide-react";
 import { IconButton, Input } from "@/components/ui";
+import { NotificationsDropdown } from "@/components/shared/NotificationsDropdown";
+import { useAdmin } from "@/contexts/AdminContext";
 import type { ReactNode } from "react";
 
 interface TopbarShellProps {
@@ -15,16 +17,24 @@ interface TopbarShellProps {
 }
 
 /** Shared topbar chrome (hamburger + title slot + search pill + bell +
- * dark-mode toggle) used by both the admin and employee topbars. */
+ * language toggle + dark-mode toggle) used by both the admin and employee topbars. */
 export function TopbarShell({ onOpenSidebar, titleBlock, searchPlaceholder, isDark, onToggleDark, trailing }: TopbarShellProps) {
+  const { dir, toggleDir } = useAdmin();
+  const ar = dir === "rtl";
   return (
-    <div className="flex items-center gap-3 mb-6 mt-4 lg:mt-0 px-4 py-3 rounded-2xl">
+    <div className="flex items-center gap-3 mb-6 pt-4 lg:pt-0">
       <IconButton size="md" className="lg:hidden" onClick={onOpenSidebar} aria-label="Open menu">
         <Menu size={18} />
       </IconButton>
 
-      <div className="flex-1 min-w-0 py-1">{titleBlock}</div>
+      <div className="min-w-0">{titleBlock}</div>
 
+      <div className="flex-1" />
+
+      {/* Global search collapses to nothing on mobile rather than a dead
+          icon trigger — pages with their own search (e.g. the contracts
+          list) already surface a working mobile trigger for that field,
+          and a second non-functional search icon here was redundant. */}
       <div className="hidden md:block w-[260px] xl:w-[320px] shrink-0">
         <Input
           variant="search"
@@ -38,13 +48,15 @@ export function TopbarShell({ onOpenSidebar, titleBlock, searchPlaceholder, isDa
         />
       </div>
 
-      <IconButton size="md" className="md:hidden">
-        <Search size={18} />
-      </IconButton>
+      <NotificationsDropdown />
 
-      <IconButton size="md" className="relative">
-        <Bell size={18} />
-        <span className="absolute top-3 end-[11px] w-2 h-2 rounded-full border-2 border-white bg-mk-danger" />
+      <IconButton
+        size="md"
+        onClick={toggleDir}
+        title={ar ? "English" : "العربية"}
+        aria-label={ar ? "Switch to English" : "التبديل إلى العربية"}
+      >
+        <Languages size={18} />
       </IconButton>
 
       <IconButton size="md" onClick={onToggleDark} title={isDark ? "Light mode" : "Dark mode"}>

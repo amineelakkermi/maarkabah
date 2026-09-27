@@ -378,6 +378,26 @@ export interface VehicleSearchRequest {
   pageSize?: number;
 }
 
+/** PUT /api/vehicles/{id}/status — office statuses only: Draft, Available,
+ * Maintenance, Reserved, Inactive. Rented/Overdue are contract-owned. */
+export interface VehicleStatusUpdateRequest {
+  status: VehicleFleetStatus;
+  notes?: string;
+  isListingActive?: boolean;
+}
+
+/** POST /api/vehicles/{id}/transfer — moves the vehicle to another branch. */
+export interface VehicleTransferRequest {
+  targetBranchId: number;
+  notes?: string;
+}
+
+/** POST /api/vehicles/{id}/transfers/search */
+export interface VehicleTransfersSearchRequest {
+  pageNumber?: number;
+  pageSize?: number;
+}
+
 // ─── Admin Tenant ───────────────────────────────────────────────
 
 export interface CreateTenantUserRequest {
@@ -760,6 +780,8 @@ export interface TenantSystemSettingsRequest {
   otpLockoutMinutes?: number;
   otpValidityMinutes?: number;
   smsEnabled?: boolean;
+  autoApproveCustomers?: boolean;
+  autoApproveDrivers?: boolean;
   senderIds?: SmsSenderId[];
   gatewayUrl?: string;
   gatewayKey?: string;

@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import {
   ArrowLeft, ArrowRight, Car, ShieldCheck, ClockAlert, ChevronDown,
   Camera, X, Loader2, AlertCircle, CheckCircle2, Info, Zap,
+  ArrowLeftRight, Power, History,
 } from "lucide-react";
 import * as Types from "@/lib/api-types";
-import { Button, Input, Select, SearchableSelect, Toggle, Tabs } from "@/components/ui";
+import { Button, Input, Select, SearchableSelect, Toggle, Tabs, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { vehicleService } from "@/lib/api-services";
+import { describeApiError } from "@/lib/api-error-messages";
 import { SketchComponent } from "@/components/employee/SketchComponent";
 import type { SketchItem } from "@/lib/tajeer";
 import {
@@ -166,6 +168,7 @@ export function VehicleDetailsPage({
 }: VehicleDetailsPageProps) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
+  const { showToast } = useToast();
 
   const [openPanels, setOpenPanels] = useState<Record<VehicleFieldPanel, boolean>>({
     basic: true,
@@ -179,6 +182,87 @@ export function VehicleDetailsPage({
 
   const [featureTypes, setFeatureTypes] = useState<{ id: number; name?: string; nameAr?: string; nameEn?: string }[]>([]);
   const [featureTypesLoading, setFeatureTypesLoading] = useState(false);
+
+  // ── Vehicle lifecycle (transfer / activate / deactivate) ──────
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferBranchId, setTransferBranchId] = useState("");
+  const [transferNotes, setTransferNotes] = useState("");
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [transferError, setTransferError] = useState("");
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [transfers, setTransfers] = useState<any[] | null>(null);
+
+  const statusNum = Number(form.status);
+  // Rented (3) / Overdue (4) are contract-owned — the backend rejects
+  // lifecycle changes for them (Vehicle.StatusLockedByContract).
+  const statusLockedByContract = statusNum === 3 || statusNum === 4;
+
+  const refreshTransfers = async () => {
+    if (!editingVehicleId) return;
+    try {
+      const res = await vehicleService.searchTransfers(editingVehicleId, { pageNumber: 1, pageSize: 20 });
+      const items = res?.items ?? res?.data?.items ?? res?.data ?? [];
+      setTransfers(Array.isArray(items) ? items : []);
+    } catch {
+      setTransfers([]);
+    }
+  };
+
+  useEffect(() => {
+    if (editingVehicleId) refreshTransfers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingVehicleId]);
+
+  const handleLifecycle = async (action: "activate" | "deactivate") => {
+    if (!editingVehicleId) return;
+    setLifecycleBusy(true);
+    try {
+      if (action === "activate") {
+        await vehicleService.activate(editingVehicleId);
+        setForm((f: any) => ({ ...f, status: String(Types.VehicleFleetStatus.Available), isListingActive: true }));
+      } else {
+        await vehicleService.deactivate(editingVehicleId);
+        setForm((f: any) => ({ ...f, status: String(Types.VehicleFleetStatus.Inactive), isListingActive: false }));
+      }
+      showToast(action === "activate"
+        ? T("✅ Vehicle activated — it's now available for rent", "✅ تم تفعيل المركبة — أصبحت متاحة للإيجار", ar)
+        : T("⛔ Vehicle deactivated — it's now inactive", "⛔ تم إيقاف المركبة — أصبحت غير نشطة", ar));
+    } catch (err) {
+      showToast(
+        describeApiError(err, ar, action === "activate"
+          ? T("Failed to activate vehicle", "فشل تفعيل المركبة", ar)
+          : T("Failed to deactivate vehicle", "فشل إيقاف المركبة", ar)),
+        "error",
+      );
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const handleTransfer = async () => {
+    const target = Number(transferBranchId);
+    if (!editingVehicleId || !target) return;
+    setTransferBusy(true);
+    setTransferError("");
+    try {
+      await vehicleService.transfer(editingVehicleId, { targetBranchId: target, notes: transferNotes.trim() || undefined });
+      const branchName = branches.find((b) => String(b.id) === transferBranchId);
+      const label = branchName ? (ar ? branchName.nameAr || branchName.name : branchName.nameEn || branchName.name) : "";
+      setForm((f: any) => ({ ...f, branchId: String(target) }));
+      setShowTransfer(false);
+      setTransferBranchId("");
+      setTransferNotes("");
+      showToast(T(` Vehicle transferred${label ? ` to ${label}` : ""}`, ` تم نقل المركبة${label ? ` إلى ${label}` : ""}`, ar));
+      refreshTransfers();
+    } catch (err) {
+      const msg = describeApiError(err, ar, T("Failed to transfer vehicle", "فشل نقل المركبة", ar));
+      setTransferError(msg);
+      showToast(msg, "error");
+    } finally {
+      setTransferBusy(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -483,18 +567,39 @@ export function VehicleDetailsPage({
                 <div>
                   <SectionBadge>{T("Insurance", "التأمين", ar)}</SectionBadge>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Select
-                      label={T("Branch *", "الفرع *", ar)}
-                      value={form.branchId}
-                      onChange={(e) => setForm((f: any) => ({ ...f, branchId: e.target.value }))}
-                    >
-                      <option value="">{T("Select branch", "اختر الفرع", ar)}</option>
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {ar ? b.nameAr || b.name : b.nameEn || b.name}
-                        </option>
-                      ))}
-                    </Select>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1 min-w-0">
+                        <Select
+                          label={T("Branch *", "الفرع *", ar)}
+                          value={form.branchId}
+                          onChange={(e) => setForm((f: any) => ({ ...f, branchId: e.target.value }))}
+                          disabled={!!editingVehicleId}
+                        >
+                          <option value="">{T("Select branch", "اختر الفرع", ar)}</option>
+                          {branches.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {ar ? b.nameAr || b.name : b.nameEn || b.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                      {editingVehicleId && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="shrink-0"
+                          disabled={statusLockedByContract || lifecycleBusy}
+                          onClick={() => { setTransferError(""); setShowTransfer(true); }}
+                        >
+                          <ArrowLeftRight size={14} />{T("Transfer", "نقل", ar)}
+                        </Button>
+                      )}
+                    </div>
+                    {editingVehicleId && (
+                      <p className="mk-caption text-mk-ink-400 mt-1">
+                        {T("Branch changes go through Transfer", "تغيير الفرع يتم عبر عملية النقل", ar)}
+                      </p>
+                    )}
                     <Select
                       label={T("Insurance company *", "شركة التأمين *", ar)}
                       value={form.insuranceCompanyId}
@@ -611,6 +716,55 @@ export function VehicleDetailsPage({
                       onChange={(v) => setForm((f: any) => ({ ...f, isListingActive: v }))}
                     />
                   </div>
+
+                  {editingVehicleId && (
+                    <div className="mt-2">
+                      {statusLockedByContract ? (
+                        <p className="mk-caption flex items-center gap-1.5 text-mk-ink-500">
+                          <Info size={13} className="shrink-0" />
+                          {T("Status is managed by the active contract", "الحالة مرتبطة بالعقد النشط", ar)}
+                        </p>
+                      ) : (
+                        <div className="flex gap-2">
+                          {statusNum !== Types.VehicleFleetStatus.Available && (
+                            <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
+                              onClick={() => handleLifecycle("activate")}>
+                              <Power size={13} />{T("Activate", "تفعيل", ar)}
+                            </Button>
+                          )}
+                          {statusNum !== Types.VehicleFleetStatus.Inactive && (
+                            <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
+                              onClick={() => handleLifecycle("deactivate")}>
+                              <Power size={13} />{T("Deactivate", "إيقاف", ar)}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {editingVehicleId && transfers && transfers.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-mk-ink-100">
+                      <div className="mk-overline uppercase mb-2 text-mk-ink-400 tracking-wider flex items-center gap-1.5">
+                        <History size={12} />{T("Transfer history", "سجل النقل", ar)}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {transfers.slice(0, 5).map((t: any, i: number) => (
+                          <div key={t.id ?? i} className="flex items-center gap-2 mk-caption text-mk-ink-600">
+                            <span className="flex-1 truncate">
+                              {(ar ? t.fromBranchNameAr : t.fromBranchNameEn) ?? t.fromBranchName ?? "—"}
+                              {" → "}
+                              {(ar ? t.toBranchNameAr : t.toBranchNameEn) ?? t.toBranchName ?? "—"}
+                            </span>
+                            <span className="text-mk-ink-400 font-mono shrink-0">
+                              {String(t.occurredAtUtc ?? t.createdAtUtc ?? "").slice(0, 10)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
 
                 <div className="pt-4 border-t border-mk-ink-100">
@@ -893,6 +1047,57 @@ export function VehicleDetailsPage({
           </div>
         </div>
       </form>
+
+      {/* Transfer vehicle to another branch */}
+      {showTransfer && (
+        <Modal
+          open={true}
+          onClose={() => { if (!transferBusy) { setShowTransfer(false); setTransferError(""); } }}
+          variant="centered"
+          size="md"
+          title={T("Transfer vehicle to branch", "نقل المركبة إلى فرع", ar)}
+        >
+          <div className="p-6 flex flex-col gap-4">
+            <Select
+              label={T("Target branch *", "الفرع المستهدف *", ar)}
+              value={transferBranchId}
+              onChange={(e) => setTransferBranchId(e.target.value)}
+            >
+              <option value="">{T("Select branch", "اختر الفرع", ar)}</option>
+              {branches
+                .filter((b) => String(b.id) !== String(form.branchId))
+                .map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {ar ? b.nameAr || b.name : b.nameEn || b.name}
+                  </option>
+                ))}
+            </Select>
+            <div className="flex flex-col gap-2">
+              <label className="mk-overline text-mk-ink-500 uppercase tracking-wider">
+                {T("Notes", "ملاحظات", ar)}
+              </label>
+              <textarea
+                value={transferNotes}
+                onChange={(e) => setTransferNotes(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2.5 rounded-lg mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500 resize-none"
+              />
+            </div>
+            {transferError && (
+              <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100">{transferError}</p>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" disabled={transferBusy}
+                onClick={() => { setShowTransfer(false); setTransferError(""); }}>
+                {T("Back", "رجوع", ar)}
+              </Button>
+              <Button variant="primary" className="flex-1" disabled={transferBusy || !transferBranchId} onClick={handleTransfer}>
+                <ArrowLeftRight size={14} />{transferBusy ? T("Transferring…", "جارٍ النقل…", ar) : T("Transfer", "نقل", ar)}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

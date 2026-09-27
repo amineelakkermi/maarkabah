@@ -14,6 +14,7 @@ import {
 import { Avatar, Badge, Modal, Button, Chip, IconButton, Select } from "@/components/ui";
 import type { Booking } from "@/lib/data";
 import { contractService, vehicleService } from "@/lib/api-services";
+import { ApiError } from "@/lib/api-client";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import * as Types from "@/lib/api-types";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -649,7 +650,7 @@ export default function ContractDetailPage({
   const id = params.id as string;
   const { dir } = useAdmin();
   const ar = dir === "rtl";
-  const { hasPermission } = usePermissions();
+  const { hasPermission, tajeerEnabled } = usePermissions();
 
   const [showPreview, setShowPreview] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -830,7 +831,22 @@ export default function ContractDetailPage({
       await contractService.activate(id);
       await refetchContract();
     } catch (err) {
-      setActivateError(err instanceof Error ? err.message : "Unexpected error");
+      // Tajeer tenants must go through submit-tajeer — the backend rejects
+      // local activation with Contract.TajeerRequired.
+      const code = err instanceof ApiError
+        ? (err.response?.code ?? err.response?.details?.code)
+        : undefined;
+      if (code === "Contract.TajeerRequired" ||
+          (err instanceof Error && /requires tajeer/i.test(err.message))) {
+        try {
+          await contractService.submitToTajeer(id);
+          await refetchContract();
+        } catch (subErr) {
+          setActivateError(subErr instanceof Error ? subErr.message : "Unexpected error");
+        }
+      } else {
+        setActivateError(err instanceof Error ? err.message : "Unexpected error");
+      }
     } finally {
       setActivating(false);
     }
@@ -1120,16 +1136,19 @@ export default function ContractDetailPage({
                 <Printer size={14} />{T("Print", "طباعة", ar)}
               </button>
 
-              {/* Tajeer actions */}
-              <div className="my-1 border-t border-mk-ink-100" />
-              <button
-                onClick={handleValidateTajeer}
-                disabled={tajeerBusy}
-                className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
-              >
-                <ShieldCheck size={14} />{T("Validate with Tajeer", "التحقق عبر تاجير", ar)}
-              </button>
-              {tajeerInfo.linked && (
+              {/* Tajeer actions — only for Tajeer-enabled tenants or
+                  contracts already issued through Tajeer */}
+              {(tajeerEnabled || tajeerInfo.linked) && (
+                <>
+                  <div className="my-1 border-t border-mk-ink-100" />
+                  <button
+                    onClick={handleValidateTajeer}
+                    disabled={tajeerBusy}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
+                  >
+                    <ShieldCheck size={14} />{T("Validate with Tajeer", "التحقق عبر تاجير", ar)}
+                  </button>
+                  {tajeerInfo.linked && (
                 <>
                   <button
                     onClick={handleTajeerStatus}
@@ -1175,15 +1194,17 @@ export default function ContractDetailPage({
                   >
                     <XCircle size={14} />{T("Close on Tajeer", "إغلاق في تاجير", ar)}
                   </button>
+                    </>
+                  )}
+                  <button
+                    onClick={handleTajeerLogs}
+                    disabled={tajeerBusy}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
+                  >
+                    <FileText size={14} />{T("Tajeer logs", "سجلات تاجير", ar)}
+                  </button>
                 </>
               )}
-              <button
-                onClick={handleTajeerLogs}
-                disabled={tajeerBusy}
-                className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50 disabled:opacity-50"
-              >
-                <FileText size={14} />{T("Tajeer logs", "سجلات تاجير", ar)}
-              </button>
               {canCancel ? (
                 <>
                   <div className="my-1 border-t border-mk-ink-100" />

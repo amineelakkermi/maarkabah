@@ -89,6 +89,30 @@ const RULES: { pattern: RegExp; message: (ar: boolean) => string }[] = [
       ar,
     ),
   },
+  {
+    pattern: /BranchChangeRequiresTransfer|branch.*requires.*transfer/i,
+    message: (ar) => T(
+      "Branch changes go through the Transfer action — use the نقل button on the vehicle page.",
+      "تغيير الفرع يتم عبر عملية النقل — استخدم زر «نقل» في صفحة المركبة.",
+      ar,
+    ),
+  },
+  {
+    pattern: /StatusLockedByContract|status.*locked.*contract/i,
+    message: (ar) => T(
+      "Vehicle status is locked by an active contract — it can't be changed until the contract ends.",
+      "حالة المركبة مرتبطة بعقد نشط — لا يمكن تغييرها حتى انتهاء العقد.",
+      ar,
+    ),
+  },
+  {
+    pattern: /Vehicle\.InUse|vehicle.*in.?use/i,
+    message: (ar) => T(
+      "The vehicle is still referenced by contracts — it can't be deleted or transferred.",
+      "المركبة مرتبطة بعقود — لا يمكن حذفها أو نقلها.",
+      ar,
+    ),
+  },
 ];
 
 /**
@@ -129,9 +153,10 @@ export function describeApiError(err: unknown, ar: boolean, fallback?: string): 
     }
   }
 
-  // 2) Known message patterns on the flat backend text
+  // 2) Known message patterns on the flat backend text or the error code
+  const code = String(response?.code ?? response?.details?.code ?? "");
   for (const rule of RULES) {
-    if (rule.pattern.test(raw)) return rule.message(ar);
+    if (rule.pattern.test(raw) || (code && rule.pattern.test(code))) return rule.message(ar);
   }
 
   // 3) "The X field is required" — translate the field name
