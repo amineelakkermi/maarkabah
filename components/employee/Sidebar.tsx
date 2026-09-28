@@ -3,15 +3,24 @@
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shared/SidebarShell";
 import { EMPLOYEE_NAV_SECTIONS, filterNavSections } from "@/lib/navigation-config";
 
 export function EmployeeSidebar() {
   const path = usePathname();
-  const { dir, toggleDir, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout } = useAdmin();
+  const { dir, toggleDir, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout, currentUser } = useAdmin();
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const { decodedToken } = useAuth();
   const ar = dir === "rtl";
+
+  // Identity from the JWT session — never mock data.
+  const displayName = currentUser?.name ?? decodedToken?.full_name ?? decodedToken?.name ?? "—";
+  const initials = currentUser?.initials
+    ?? displayName.split(" ").map((w) => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()
+    ?? "?";
+  const accountLine = decodedToken?.email ?? decodedToken?.name ?? "";
 
   const visibleSections = useMemo(
     () =>
@@ -44,12 +53,12 @@ export function EmployeeSidebar() {
         <div className="rounded-lg p-4 flex flex-col gap-3 bg-mk-blue-50">
           <SidebarUserCard
             ar={ar}
-            initials={{ ar: "خم", en: "KM" }}
+            initials={{ ar: initials, en: initials }}
             gradient="linear-gradient(135deg, var(--color-mk-blue-500), var(--color-mk-mint-600))"
-            name="Khalid Al-Mansour"
-            nameAr="خالد المنصور"
-            sub="Front desk · Olaya · عر/EN"
-            subAr="موظف استقبال · العليا · عر/EN"
+            name={displayName}
+            nameAr={displayName}
+            sub={accountLine}
+            subAr={accountLine}
             onToggleDir={toggleDir}
             onLogout={logout}
             collapsed={sidebarCollapsed}

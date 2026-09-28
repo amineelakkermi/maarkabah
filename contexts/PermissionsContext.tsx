@@ -1,9 +1,9 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
-import { tenantContextService } from "@/lib/api-services";
+import { tenantContextService, tenantSettingsService } from "@/lib/api-services";
 import { useAuth } from "./AuthContext";
-import { checkPermission, type PermissionRequirement } from "@/lib/permissions";
+import { checkPermission, Permission, type PermissionRequirement } from "@/lib/permissions";
 
 interface TenantContextData {
   tenantId?: number;
@@ -24,6 +24,10 @@ interface TenantContextData {
 interface PermissionsContextValue {
   permissions: string[];
   tenantContext: TenantContextData | null;
+  /** Tenant system settings — when true, new records skip the KYC queue
+   * entirely, so review-queue links should be hidden. */
+  autoApproveCustomers: boolean;
+  autoApproveDrivers: boolean;
   /** ElmTajeer license AND verified credentials — gates all Tajeer UI. */
   tajeerEnabled: boolean;
   isLoading: boolean;
@@ -38,6 +42,8 @@ interface PermissionsContextValue {
 const PermissionsContext = createContext<PermissionsContextValue>({
   permissions: [],
   tenantContext: null,
+  autoApproveCustomers: false,
+  autoApproveDrivers: false,
   tajeerEnabled: false,
   isLoading: true,
   error: null,
@@ -52,6 +58,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const { isLoggedIn, decodedToken } = useAuth();
   const [permissions, setPermissions] = useState<string[]>([]);
   const [tenantContext, setTenantContext] = useState<TenantContextData | null>(null);
+  const [autoApproveCustomers, setAutoApproveCustomers] = useState(false);
+  const [autoApproveDrivers, setAutoApproveDrivers] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,12 +75,35 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       setError(null);
       const data = await tenantContextService.getContext();
       setTenantContext(data ?? null);
-      setPermissions(Array.isArray(data?.permissions) ? data.permissions : []);
+      const perms = Array.isArray(data?.permissions) ? data.permissions : [];
+      setPermissions(perms);
+
+      // Auto-approve flags: prefer the tenant-context settings blob; fall
+      // back to GET /tenant/settings only when the user may read it.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sys: any = data?.settings?.system ?? data?.settings ?? data?.system ?? null;
+      let ac = sys?.autoApproveCustomers;
+      let ad = sys?.autoApproveDrivers;
+      if ((ac == null || ad == null) && checkPermission(perms, Permission.Settings.View)) {
+        try {
+          const res = await tenantSettingsService.getSettings();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const s: any = res?.data?.system ?? res?.system ?? res?.data ?? res ?? {};
+          ac = ac ?? s.autoApproveCustomers;
+          ad = ad ?? s.autoApproveDrivers;
+        } catch {
+          // Non-fatal: defaults keep the KYC links visible.
+        }
+      }
+      setAutoApproveCustomers(Boolean(ac));
+      setAutoApproveDrivers(Boolean(ad));
     } catch (err) {
       console.error("Failed to load tenant context / permissions:", err);
       setError(err instanceof Error ? err.message : "Failed to load permissions");
       setPermissions([]);
       setTenantContext(null);
+      setAutoApproveCustomers(false);
+      setAutoApproveDrivers(false);
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +113,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     if (!isLoggedIn) {
       setPermissions([]);
       setTenantContext(null);
+      setAutoApproveCustomers(false);
+      setAutoApproveDrivers(false);
       setIsLoading(false);
       setError(null);
       return;
@@ -92,6 +125,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     if (isSuperAdmin) {
       setPermissions([]);
       setTenantContext(null);
+      setAutoApproveCustomers(false);
+      setAutoApproveDrivers(false);
       setIsLoading(false);
       setError(null);
       return;
@@ -120,6 +155,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     return {
       permissions,
       tenantContext,
+      autoApproveCustomers,
+      autoApproveDrivers,
       tajeerEnabled,
       isLoading,
       error,
@@ -131,7 +168,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         requirements.every((r) => hasPermission(r)),
       reload: load,
     };
-  }, [permissions, tenantContext, isLoading, error, isSuperAdmin]);
+  }, [permissions, tenantContext, autoApproveCustomers, autoApproveDrivers, isLoading, error, isSuperAdmin]);
 
   return (
     <PermissionsContext.Provider value={value}>

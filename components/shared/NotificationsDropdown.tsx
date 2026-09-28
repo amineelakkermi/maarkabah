@@ -69,14 +69,31 @@ function normalizeCategory(v: unknown): NotificationCategoryKey {
 // portal prefix so links stay inside admin vs employee routes.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function resolveHref(item: any, category: NotificationCategoryKey, base: string): string {
-  const direct = item.href ?? item.url ?? item.link ?? item.actionUrl ?? item.deepLink;
-  if (typeof direct === "string" && direct.startsWith("/")) return direct;
+  const direct = item.href ?? item.url ?? item.link ?? item.actionUrl ?? item.actionPath ?? item.deepLink;
+  if (typeof direct === "string" && direct.startsWith("/")) {
+    // Backend paths are admin-rooted (e.g. /contracts/38) — re-root them
+    // for the employee portal where the route layout differs.
+    if (base === "/employee") {
+      const m = direct.match(/^\/customers\/(\d+)/);
+      if (m) return `/employee/customer/${m[1]}`;
+      if (direct === "/customers") return "/employee/customers";
+      if (direct === "/fleet") return "/employee/cars";
+      if (direct === "/contracts") return "/employee/contracts";
+      if (direct.startsWith("/contracts/")) return "/employee/contracts";
+      if (direct.startsWith("/drivers/")) return "/employee/drivers";
+      if (direct === "/late-returns") return "/employee/return";
+    }
+    return direct;
+  }
   if (base === "/superadmin") return "/superadmin";
 
-  const contractId = item.contractId ?? item.contract?.id;
-  const customerId = item.customerId ?? item.customer?.id;
-  const driverId = item.driverId ?? item.driver?.id;
-  const vehicleId = item.vehicleId ?? item.vehicle?.id;
+  // Generic entity link: { entityType: "Contract", entityId: 38 }
+  const entityId = item.entityId ?? item.entity?.id;
+  const entityType = String(item.entityType ?? "").toLowerCase();
+  const contractId = item.contractId ?? item.contract?.id ?? (entityType === "contract" ? entityId : null);
+  const customerId = item.customerId ?? item.customer?.id ?? (entityType === "customer" ? entityId : null);
+  const driverId = item.driverId ?? item.driver?.id ?? (entityType === "driver" ? entityId : null);
+  const vehicleId = item.vehicleId ?? item.vehicle?.id ?? (entityType === "vehicle" || entityType === "car" ? entityId : null);
 
   if (contractId != null) return `${base}/contracts/${contractId}`;
   if (customerId != null) return base === "/employee" ? `/employee/customer/${customerId}` : `/customers/${customerId}`;
@@ -146,6 +163,9 @@ export function NotificationsDropdown() {
   const ar = dir === "rtl";
   const pathname = usePathname() ?? "";
   const base = pathname.startsWith("/employee") ? "/employee" : pathname.startsWith("/superadmin") ? "/superadmin" : "";
+  // The notifications API is tenant-scoped — it 500s for superadmin accounts,
+  // so the bell is hidden entirely on the superadmin portal.
+  const isSuperAdmin = base === "/superadmin";
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [notifications, setNotifications] = useState<TopbarNotification[]>([]);
@@ -158,16 +178,17 @@ export function NotificationsDropdown() {
   // Badge count — fetched once on mount so the dot shows without opening,
   // then refreshed every time the dropdown opens.
   useEffect(() => {
+    if (isSuperAdmin) return;
     let cancelled = false;
     notificationService
       .getUnreadCount()
       .then((res) => { if (!cancelled) setUnreadCount(extractCount(res)); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || isSuperAdmin) return;
     let cancelled = false;
     notificationService
       .getUnreadCount()
@@ -185,7 +206,7 @@ export function NotificationsDropdown() {
       .catch(() => { if (!cancelled) setNotifications([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [open, filter, base]);
+  }, [open, filter, base, isSuperAdmin]);
 
   useEffect(() => {
     if (!open) return;
@@ -231,6 +252,8 @@ export function NotificationsDropdown() {
     setUnreadCount(0);
     notificationService.dismissAll().catch(() => {});
   };
+
+  if (isSuperAdmin) return null;
 
   return (
     <div className="relative" ref={containerRef}>

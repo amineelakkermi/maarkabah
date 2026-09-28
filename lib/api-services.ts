@@ -637,10 +637,32 @@ export const adminTenantService = {
     adminFullName: string;
     adminUserName: string;
     adminPassword: string;
+    enabledFeatures?: string[];
   }): Promise<any> {
     return apiClient.request('/admin/tenants', {
       method: 'POST',
       body: request,
+    });
+  },
+
+  /**
+   * Get licensed features for a tenant
+   * GET /admin/tenants/{tenantId}/features
+   */
+  async getFeatures(tenantId: number): Promise<any> {
+    return apiClient.request(`/admin/tenants/${tenantId}/features`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Update licensed features for a tenant
+   * PUT /admin/tenants/{tenantId}/features
+   */
+  async updateFeatures(tenantId: number, features: Types.TenantFeature[]): Promise<void> {
+    await apiClient.request(`/admin/tenants/${tenantId}/features`, {
+      method: 'PUT',
+      body: features,
     });
   },
 
@@ -2031,13 +2053,7 @@ export const notificationService = {
    * Search the current user's undismissed inbox
    * POST /api/notifications/search
    */
-  async search(request: {
-    unreadOnly?: boolean;
-    category?: number | null;
-    type?: number | null;
-    pageNumber?: number;
-    pageSize?: number;
-  }): Promise<any> {
+  async search(request: Types.NotificationSearchRequest): Promise<any> {
     return apiClient.request('/notifications/search', {
       method: 'POST',
       body: request,
@@ -2082,6 +2098,36 @@ export const notificationService = {
   async scan(): Promise<any> {
     return apiClient.request('/notifications/scan', {
       method: 'POST',
+    });
+  },
+};
+
+// ─── Dashboard Service ─────────────────────────────────────────
+// Bootstrap endpoints: overview feeds the admin dashboard (KPIs,
+// overdue banner, pickups/returns, revenue sparkline, fleet status,
+// oil reminders, KYC counts, action flags); today feeds the employee
+// shift view. Both are branch-scoped (branchId null = all accessible).
+
+export const dashboardService = {
+  /**
+   * Admin dashboard bootstrap
+   * POST /api/dashboard/overview
+   */
+  async overview(request: Types.DashboardOverviewRequest): Promise<any> {
+    return apiClient.request('/dashboard/overview', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Employee today bootstrap
+   * POST /api/dashboard/today
+   */
+  async today(request: Types.DashboardTodayRequest): Promise<any> {
+    return apiClient.request('/dashboard/today', {
+      method: 'POST',
+      body: request,
     });
   },
 };

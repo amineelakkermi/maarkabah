@@ -20,6 +20,7 @@ export function SuperAdminSidebar() {
 
   const displayName = currentUser?.name ?? decodedToken?.full_name ?? "SuperAdmin";
   const initials = currentUser?.initials ?? displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() ?? "SA";
+  const accountLine = decodedToken?.email ?? decodedToken?.name ?? "SuperAdmin";
 
   const handleNavClick = () => setSidebarOpen(false);
 
@@ -38,8 +39,8 @@ export function SuperAdminSidebar() {
             gradient="linear-gradient(135deg, var(--color-mk-violet-500), var(--color-mk-blue-500))"
             name={displayName}
             nameAr={displayName}
-            sub="SuperAdmin · عر/EN"
-            subAr="مشرف عام · عر/EN"
+            sub={accountLine}
+            subAr={accountLine}
             onToggleDir={toggleDir}
             onLogout={logout}
             collapsed={sidebarCollapsed}

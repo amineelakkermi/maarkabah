@@ -53,7 +53,7 @@ function SettingsRow({ title, sub, hint, children }: { title: string; sub?: stri
 function SettingsContent() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
-  const { hasPermission } = usePermissions();
+  const { hasPermission, reload: reloadPermissions } = usePermissions();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -115,6 +115,10 @@ function SettingsContent() {
     hasGatewayKey?: boolean; hasAppKey?: boolean; hasAuthorization?: boolean;
     isActive?: boolean; tajeerOfficeId?: number | null; lastVerifiedAt?: string | null;
   }>({});
+  // Non-secret fields (gatewayUrl, appId) ARE returned by GET /tenant/settings
+  // and pre-fill the inputs — remember what was loaded so "unchanged" values
+  // don't trigger a Tajeer re-verification on every unrelated save.
+  const [tajeerLoaded, setTajeerLoaded] = useState<{ gatewayUrl: string; appId: string }>({ gatewayUrl: "", appId: "" });
   const [timezoneOptions, setTimezoneOptions] = useState(TIMEZONE_OPTIONS);
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [contractAutoCancel, setContractAutoCancel] = useState("12");
@@ -170,6 +174,10 @@ function SettingsContent() {
         const tj: any = d.tajeer ?? {};
         if (tj.gatewayUrl != null) setTajeerGatewayUrl(String(tj.gatewayUrl));
         if (tj.appId != null) setTajeerAppId(String(tj.appId));
+        setTajeerLoaded({
+          gatewayUrl: tj.gatewayUrl != null ? String(tj.gatewayUrl) : "",
+          appId: tj.appId != null ? String(tj.appId) : "",
+        });
         setTajeerMeta({
           hasGatewayKey: Boolean(tj.hasGatewayKey),
           hasAppKey: Boolean(tj.hasAppKey),
@@ -241,22 +249,52 @@ function SettingsContent() {
         setTajeerVerifyStatus("verified");
       } else {
         setTajeerVerifyStatus("error");
-        setTajeerVerifyError(d?.message ?? d?.error ?? null);
+        setTajeerVerifyError(friendlyTajeerError(d?.message ?? d?.error ?? null));
       }
     } catch (err) {
       setTajeerVerifyStatus("error");
-      setTajeerVerifyError(err instanceof Error ? err.message : "Unexpected error");
+      setTajeerVerifyError(friendlyTajeerError(err instanceof Error ? err.message : null));
     }
+  }
+
+  // The backend relays the upstream Tajeer status ("HTTP 401") — translate it
+  // into something actionable instead of showing a raw status code.
+  function friendlyTajeerError(raw: string | null): string {
+    if (!raw) return T("Unexpected error", "خطأ غير متوقع", ar);
+    if (raw.includes("401")) return T(
+      "Tajeer rejected the credentials (401 Unauthorized). Check the app key / authorization, or re-issue them from the Tajeer portal.",
+      "رفضت منصة تاجير بيانات الاعتماد (401). تحقق من مفتاح التطبيق / التفويض أو أعد إصدارها من بوابة تاجير.",
+      ar,
+    );
+    if (raw.includes("403")) return T(
+      "Tajeer denied access (403). The account may lack permissions on the Tajeer side.",
+      "رفضت تاجير الوصول (403). قد يفتقر الحساب إلى الصلاحيات لدى تاجير.",
+      ar,
+    );
+    if (raw.includes("404") || /timeout|timed out|ECONN|ENOTFOUND|network/i.test(raw)) return T(
+      "Could not reach the Tajeer gateway. Check the gateway URL and that the server is online.",
+      "تعذّر الوصول إلى بوابة تاجير. تحقق من الرابط ومن أن الخادم يعمل.",
+      ar,
+    );
+    return raw;
   }
 
   async function handleSaveSystem() {
     setSystemSaving(true);
     setSystemError("");
     try {
-      // Any Tajeer credential filled in → re-verify with the backend as part
-      // of saving, so a stale/never-checked connection can't silently sit
-      // there looking fine.
-      if (tajeerAppId || tajeerAppKey || tajeerAuthorization || tajeerGatewayUrl || tajeerGatewayKey) {
+      // Tajeer fields are only sent when the user actually changed them —
+      // gatewayUrl/appId come back pre-filled from GET /tenant/settings, so
+      // sending them unconditionally makes the backend re-verify against the
+      // Tajeer API on every save (an upstream 401 would then fail the whole
+      // settings update, even for an unrelated toggle like autoApprove).
+      // Secrets are never pre-filled, so any non-empty secret input counts
+      // as a change.
+      const tajeerDirty =
+        tajeerGatewayUrl !== tajeerLoaded.gatewayUrl ||
+        tajeerAppId !== tajeerLoaded.appId ||
+        Boolean(tajeerAppKey || tajeerAuthorization || tajeerGatewayKey);
+      if (tajeerDirty) {
         await handleVerifyTajeer();
       }
       await tenantSettingsService.updateSystem({
@@ -270,12 +308,23 @@ function SettingsContent() {
         autoApproveCustomers,
         autoApproveDrivers,
         senderIds,
-        gatewayUrl: tajeerGatewayUrl || undefined,
-        gatewayKey: tajeerGatewayKey || undefined,
-        appId: tajeerAppId || undefined,
-        appKey: tajeerAppKey || undefined,
-        authorization: tajeerAuthorization || undefined,
+        gatewayUrl: tajeerDirty && tajeerGatewayUrl ? tajeerGatewayUrl : undefined,
+        gatewayKey: tajeerDirty && tajeerGatewayKey ? tajeerGatewayKey : undefined,
+        appId: tajeerDirty && tajeerAppId ? tajeerAppId : undefined,
+        appKey: tajeerDirty && tajeerAppKey ? tajeerAppKey : undefined,
+        authorization: tajeerDirty && tajeerAuthorization ? tajeerAuthorization : undefined,
       });
+      // Credentials are now stored server-side — clear the secret inputs and
+      // re-anchor the dirty check so a later save doesn't resend them.
+      if (tajeerDirty) {
+        setTajeerGatewayKey("");
+        setTajeerAppKey("");
+        setTajeerAuthorization("");
+        setTajeerLoaded({ gatewayUrl: tajeerGatewayUrl, appId: tajeerAppId });
+      }
+      // Refresh the shared permission/settings context so flags like
+      // autoApprove* propagate instantly (e.g. KYC queue links in the nav).
+      reloadPermissions().catch(() => {});
       setSystemSaved(true);
       setTimeout(() => setSystemSaved(false), 1800);
     } catch (err) {

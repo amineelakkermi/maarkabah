@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Users, Shield, ArrowRight } from "lucide-react";
+import { Building2, Users, Shield, Puzzle } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { adminTenantService } from "@/lib/api-services";
-import { Button, Input, Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, useToast } from "@/components/ui";
+import { Button, Input, Checkbox, Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, useToast } from "@/components/ui";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -26,6 +26,7 @@ export default function SuperAdminTenantsPage() {
     adminUserName: "",
     adminPassword: "",
   });
+  const [enableTajeer, setEnableTajeer] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createdTenantId, setCreatedTenantId] = useState<number | null>(null);
   const [manageId, setManageId] = useState("");
@@ -38,7 +39,10 @@ export default function SuperAdminTenantsPage() {
     e.preventDefault();
     setCreating(true);
     try {
-      const result = await adminTenantService.createTenant(form);
+      const result = await adminTenantService.createTenant({
+        ...form,
+        enabledFeatures: enableTajeer ? ["ElmTajeer"] : undefined,
+      });
       const tenantId = result?.tenantId ?? result?.data?.tenantId;
       if (tenantId) {
         setCreatedTenantId(tenantId);
@@ -54,6 +58,7 @@ export default function SuperAdminTenantsPage() {
           adminUserName: "",
           adminPassword: "",
         });
+        setEnableTajeer(false);
       } else {
         showToast(T("Tenant created.", "تم إنشاء المستأجر.", ar));
       }
@@ -74,6 +79,12 @@ export default function SuperAdminTenantsPage() {
     const id = manageId.trim() || (createdTenantId ? String(createdTenantId) : "");
     if (!id) return;
     router.push(`/superadmin/tenants/${id}/roles`);
+  }
+
+  function goToFeatures() {
+    const id = manageId.trim() || (createdTenantId ? String(createdTenantId) : "");
+    if (!id) return;
+    router.push(`/superadmin/tenants/${id}/features`);
   }
 
   const field = (key: keyof typeof form, label: [string, string], type = "text") => (
@@ -117,6 +128,18 @@ export default function SuperAdminTenantsPage() {
             {field("adminUserName", ["Admin username", "اسم مستخدم المشرف"])}
             {field("adminPassword", ["Admin password", "كلمة مرور المشرف"], "password")}
             <div className="md:col-span-2">
+              <Checkbox
+                label={T("Enable ElmTajeer", "تفعيل تاجير (علم)", ar)}
+                description={T(
+                  "License the Tajeer integration module for this tenant.",
+                  "ترخيص وحدة تكامل تاجير لهذا المستأجر.",
+                  ar
+                )}
+                checked={enableTajeer}
+                onChange={setEnableTajeer}
+              />
+            </div>
+            <div className="md:col-span-2">
               <Button type="submit" variant="primary" disabled={creating} className="w-full md:w-auto">
                 {creating ? T("Creating...", "جاري الإنشاء...", ar) : T("Create tenant", "إنشاء مستأجر", ar)}
               </Button>
@@ -158,6 +181,10 @@ export default function SuperAdminTenantsPage() {
               <Button variant="secondary" onClick={goToRoles}>
                 <Shield size={16} />
                 {T("Roles", "الأدوار", ar)}
+              </Button>
+              <Button variant="secondary" onClick={goToFeatures}>
+                <Puzzle size={16} />
+                {T("Features", "الميزات", ar)}
               </Button>
             </div>
           </div>

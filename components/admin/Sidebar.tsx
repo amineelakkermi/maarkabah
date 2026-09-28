@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shared/SidebarShell";
 import { customerService, customerEvents, driverService, driverEvents } from "@/lib/api-services";
@@ -12,9 +13,18 @@ import { Permission } from "@/lib/permissions";
 
 export function Sidebar() {
   const path = usePathname();
-  const { dir, toggleDir, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout } = useAdmin();
-  const { permissions, hasPermission, isSuperAdmin } = usePermissions();
+  const { dir, toggleDir, sidebarOpen, setSidebarOpen, sidebarCollapsed, logout, currentUser } = useAdmin();
+  const { permissions, hasPermission, isSuperAdmin, autoApproveCustomers, autoApproveDrivers } = usePermissions();
+  const { decodedToken } = useAuth();
   const ar = dir === "rtl";
+
+  // Identity from the JWT session — never mock data, so the signed-in
+  // account is always visible in the sidebar footer.
+  const displayName = currentUser?.name ?? decodedToken?.full_name ?? decodedToken?.name ?? "—";
+  const initials = currentUser?.initials
+    ?? displayName.split(" ").map((w) => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()
+    ?? "?";
+  const accountLine = decodedToken?.email ?? decodedToken?.name ?? "";
 
   const [kycCount, setKycCount] = useState(0);
   const [driverKycCount, setDriverKycCount] = useState(0);
@@ -22,6 +32,10 @@ export function Sidebar() {
   const visibleSections = useMemo(() => {
     const sections = filterNavSections(ADMIN_NAV_SECTIONS, (item) => {
       if (item.requiresSuperAdmin) return isSuperAdmin;
+      // Auto-approve means new records never enter the KYC queues, so the
+      // review links are pointless — hide them entirely.
+      if (item.href === "/kyc-queue" && autoApproveCustomers) return false;
+      if (item.href === "/drivers-kyc-queue" && autoApproveDrivers) return false;
       return hasPermission(item.requiredPermission);
     });
 
@@ -34,10 +48,10 @@ export function Sidebar() {
         return item;
       }),
     }));
-  }, [permissions, kycCount, driverKycCount, hasPermission, isSuperAdmin]);
+  }, [permissions, kycCount, driverKycCount, hasPermission, isSuperAdmin, autoApproveCustomers, autoApproveDrivers]);
 
   useEffect(() => {
-    if (isSuperAdmin || !hasPermission(Permission.Customers.View)) {
+    if (isSuperAdmin || autoApproveCustomers || !hasPermission(Permission.Customers.View)) {
       setKycCount(0);
       return;
     }
@@ -64,10 +78,10 @@ export function Sidebar() {
     loadKycCount();
     const unsubscribe = customerEvents.onReload(loadKycCount);
     return () => unsubscribe();
-  }, [hasPermission, isSuperAdmin]);
+  }, [hasPermission, isSuperAdmin, autoApproveCustomers]);
 
   useEffect(() => {
-    if (isSuperAdmin || !hasPermission(Permission.Drivers.View)) {
+    if (isSuperAdmin || autoApproveDrivers || !hasPermission(Permission.Drivers.View)) {
       setDriverKycCount(0);
       return;
     }
@@ -94,7 +108,7 @@ export function Sidebar() {
     loadDriverKycCount();
     const unsubscribe = driverEvents.onReload(loadDriverKycCount);
     return () => unsubscribe();
-  }, [hasPermission, isSuperAdmin]);
+  }, [hasPermission, isSuperAdmin, autoApproveDrivers]);
 
   const handleNavClick = () => setSidebarOpen(false);
 
@@ -109,12 +123,12 @@ export function Sidebar() {
         <div className="rounded-lg p-4 flex flex-col gap-3 bg-mk-blue-50">
           <SidebarUserCard
             ar={ar}
-            initials={{ ar: "عم", en: "AO" }}
+            initials={{ ar: initials, en: initials }}
             gradient="linear-gradient(135deg, var(--color-mk-violet-500), var(--color-mk-blue-500))"
-            name="Abdullah Al-Otaibi"
-            nameAr="عبدالله العتيبي"
-            sub="Olaya Branch · عر/EN"
-            subAr="Olaya Branch · عر/EN"
+            name={displayName}
+            nameAr={displayName}
+            sub={accountLine}
+            subAr={accountLine}
             onToggleDir={toggleDir}
             onLogout={logout}
             collapsed={sidebarCollapsed}

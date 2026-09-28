@@ -24,7 +24,7 @@ export interface RoutePermissionRule {
  */
 export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   // ─── Admin / Owner portal ─────────────────────────────────────────────
-  { pattern: "/dashboard", permission: null },
+  { pattern: "/dashboard", permission: Permission.Dashboard.ViewOverview },
   { pattern: "/fleet", permission: Permission.Vehicles.View },
 
   { pattern: "/customers", permission: Permission.Customers.View },
@@ -64,7 +64,7 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
 
   // ─── Employee portal ────────────────────────────────────────────────
   { pattern: "/employee", permission: null },
-  { pattern: "/employee/today", permission: null },
+  { pattern: "/employee/today", permission: Permission.Dashboard.View },
   // TODO: replace `null` with Permission.Contracts.* once the backend ships
   // the contracts permission. `null` keeps these workflow pages reachable
   // during UI development. See lib/dev-flags.ts for the temporary bypass.

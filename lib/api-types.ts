@@ -445,6 +445,12 @@ export interface UpdateTenantUserRequest {
   branchIds?: number[];
 }
 
+/** GET/PUT /api/admin/tenants/{tenantId}/features */
+export interface TenantFeature {
+  featureCode: string;
+  isEnabled: boolean;
+}
+
 // ─── Lookup ─────────────────────────────────────────────────────
 
 export type LookupSectionName =
@@ -660,7 +666,7 @@ export interface ExtendedCoverageSearchRequest {
   pageSize?: number;
 }
 
-export interface ExtendedCoveragePickerRequest {}
+export type ExtendedCoveragePickerRequest = Record<string, never>;
 
 export interface UpdateExtendedCoverageRequest {
   cost: number;
@@ -1015,6 +1021,31 @@ export interface TajeerApiLogSearchRequest {
   operation?: string | null;
   contractId?: number | null;
   isSuccess?: boolean | null;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// Dashboard — request shapes come from the live swagger; response
+// payloads are undocumented there, so pages normalize them defensively.
+
+export type DashboardRevenuePeriod = 'week' | 'month';
+
+export interface DashboardOverviewRequest {
+  branchId?: number | null;
+  revenuePeriod?: DashboardRevenuePeriod;
+}
+
+export interface DashboardTodayRequest {
+  branchId?: number | null;
+}
+
+// Notifications — categories: 1 Fleet, 2 Contracts, 3 PickupReturn,
+// 4 Disputes, 5 People, 6 System. Types: 1-27.
+
+export interface NotificationSearchRequest {
+  unreadOnly?: boolean | null;
+  category?: number | null;
+  type?: number | null;
   pageNumber?: number;
   pageSize?: number;
 }
