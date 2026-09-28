@@ -123,6 +123,14 @@ class ApiClient {
       ...options.headers,
     };
 
+    // The app's own language toggle (LocaleContext → sessionStorage mk_dir)
+    // drives Accept-Language so localized backend responses (notifications,
+    // lookups, error messages) match the UI language — not the browser's.
+    if (!headers['Accept-Language'] && typeof window !== 'undefined') {
+      const dir = sessionStorage.getItem('mk_dir') ?? document.documentElement.dir;
+      headers['Accept-Language'] = dir === 'rtl' ? 'ar' : 'en';
+    }
+
     return headers;
   }
 

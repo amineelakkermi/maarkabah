@@ -13,6 +13,10 @@ export async function forwardRequest(
     const headers: Record<string, string> = {
       Authorization: `Bearer ${getAccessTokenFromRequest(request) || ''}`,
     };
+    // Forward the app's language choice so the backend can localize
+    // responses (notifications, lookup labels, error messages…).
+    const acceptLanguage = request.headers.get('accept-language');
+    if (acceptLanguage) headers['Accept-Language'] = acceptLanguage;
     const init: RequestInit = { method, headers };
 
     if (includeBody) {
