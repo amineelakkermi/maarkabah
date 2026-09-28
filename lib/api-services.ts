@@ -637,6 +637,10 @@ export const adminTenantService = {
     adminFullName: string;
     adminUserName: string;
     adminPassword: string;
+    adminIdentityType?: number;
+    adminNationalId?: string;
+    adminIdentityExpiryDate?: string;
+    adminBirthDate?: string;
     enabledFeatures?: string[];
   }): Promise<any> {
     return apiClient.request('/admin/tenants', {

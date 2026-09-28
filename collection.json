@@ -3401,10 +3401,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"مكتب النور للتأجير\",\n  \"subdomain\": \"alnoor\",\n  \"commercialRegistrationNumber\": \"7012345678\",\n  \"taxNumber\": \"310123456700003\",\n  \"mobile\": \"966512345678\",\n  \"email\": \"admin@alnoor.maarkbh.com\",\n  \"adminFullName\": \"Office Admin\",\n  \"adminUserName\": \"alnoor.admin\",\n  \"adminPassword\": \"Admin@1234\",\n  \"enabledFeatures\": [\"ElmTajeer\"]\n}"
+              "raw": "{\n  \"name\": \"مكتب النور للتأجير\",\n  \"subdomain\": \"alnoor\",\n  \"commercialRegistrationNumber\": \"7012345678\",\n  \"taxNumber\": \"310123456700003\",\n  \"mobile\": \"966512345678\",\n  \"email\": \"admin@alnoor.maarkbh.com\",\n  \"adminFullName\": \"Office Admin\",\n  \"adminUserName\": \"alnoor.admin\",\n  \"adminPassword\": \"Admin@1234\",\n  \"adminIdentityType\": 1,\n  \"adminNationalId\": \"1099887766\",\n  \"adminIdentityExpiryDate\": \"2030-12-31\",\n  \"adminBirthDate\": \"1990-01-15\",\n  \"enabledFeatures\": [\"ElmTajeer\"]\n}"
             },
             "url": "{{baseUrl}}/api/admin/tenants",
-            "description": "Requires SuperAdmin. Creates an isolated tenant database and TenantAdmin user. Optional enabledFeatures ([\"ElmTajeer\"]) turns Tajeer on; omitted = feature off. Saving Tajeer credentials is a separate tenant-settings step."
+            "description": "Requires SuperAdmin. Creates an isolated tenant database and TenantAdmin user with the same identity fields as staff (adminIdentityType, adminNationalId, adminIdentityExpiryDate, adminBirthDate). Those fields are required when enabledFeatures includes ElmTajeer or when any identity field is sent. Phone/email on the admin user come from office mobile/email. Optional enabledFeatures ([\"ElmTajeer\"]) turns Tajeer on; omitted = feature off. Saving Tajeer credentials is a separate tenant-settings step."
           }
         },
         {

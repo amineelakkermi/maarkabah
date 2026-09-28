@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Building2, Users, Shield, Puzzle } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { adminTenantService } from "@/lib/api-services";
-import { Button, Input, Checkbox, Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, useToast } from "@/components/ui";
+import { Button, Input, Select, Checkbox, Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, useToast } from "@/components/ui";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -25,6 +25,10 @@ export default function SuperAdminTenantsPage() {
     adminFullName: "",
     adminUserName: "",
     adminPassword: "",
+    adminIdentityType: "",
+    adminNationalId: "",
+    adminIdentityExpiryDate: "",
+    adminBirthDate: "",
   });
   const [enableTajeer, setEnableTajeer] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -37,10 +41,31 @@ export default function SuperAdminTenantsPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+
+    // Backend rule: admin identity fields are required as a group whenever
+    // ElmTajeer is licensed or any single identity field is provided.
+    const identityFilled =
+      !!form.adminIdentityType || !!form.adminNationalId || !!form.adminIdentityExpiryDate || !!form.adminBirthDate;
+    if ((enableTajeer || identityFilled) && !(form.adminIdentityType && form.adminNationalId && form.adminIdentityExpiryDate && form.adminBirthDate)) {
+      showToast(
+        T(
+          "Admin identity fields (type, number, expiry, birth date) are all required when ElmTajeer is enabled.",
+          "حقول هوية المشرف (النوع، الرقم، الانتهاء، تاريخ الميلاد) كلها إلزامية عند تفعيل تاجير.",
+          ar
+        ),
+        "error"
+      );
+      return;
+    }
+
     setCreating(true);
     try {
       const result = await adminTenantService.createTenant({
         ...form,
+        adminIdentityType: form.adminIdentityType ? Number(form.adminIdentityType) : undefined,
+        adminNationalId: form.adminNationalId.trim() || undefined,
+        adminIdentityExpiryDate: form.adminIdentityExpiryDate || undefined,
+        adminBirthDate: form.adminBirthDate || undefined,
         enabledFeatures: enableTajeer ? ["ElmTajeer"] : undefined,
       });
       const tenantId = result?.tenantId ?? result?.data?.tenantId;
@@ -57,6 +82,10 @@ export default function SuperAdminTenantsPage() {
           adminFullName: "",
           adminUserName: "",
           adminPassword: "",
+          adminIdentityType: "",
+          adminNationalId: "",
+          adminIdentityExpiryDate: "",
+          adminBirthDate: "",
         });
         setEnableTajeer(false);
       } else {
@@ -127,12 +156,39 @@ export default function SuperAdminTenantsPage() {
             {field("adminFullName", ["Admin full name", "اسم المشرف الكامل"])}
             {field("adminUserName", ["Admin username", "اسم مستخدم المشرف"])}
             {field("adminPassword", ["Admin password", "كلمة مرور المشرف"], "password")}
+
+            <div className="md:col-span-2 border-t border-mk-ink-100 pt-4">
+              <div className="mk-label text-mk-ink-700 mb-3">
+                {T("Admin identity", "هوية المشرف", ar)}
+                <span className="mk-caption text-mk-ink-400 ms-2">
+                  {T("required when ElmTajeer is enabled", "إلزامية عند تفعيل تاجير", ar)}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  variant="muted"
+                  label={T("Identity type", "نوع الهوية", ar)}
+                  value={form.adminIdentityType}
+                  onChange={(e) => update("adminIdentityType", e.target.value)}
+                >
+                  <option value="">{T("Select type", "اختر النوع", ar)}</option>
+                  <option value="1">{T("Saudi ID", "هوية وطنية", ar)}</option>
+                  <option value="2">{T("Iqama", "إقامة", ar)}</option>
+                  <option value="3">{T("Passport", "جواز سفر", ar)}</option>
+                  <option value="4">{T("GCC ID", "هوية خليجية", ar)}</option>
+                </Select>
+                {field("adminNationalId", ["Identity number", "رقم الهوية"])}
+                {field("adminIdentityExpiryDate", ["Identity expiry", "انتهاء الهوية"], "date")}
+                {field("adminBirthDate", ["Birth date", "تاريخ الميلاد"], "date")}
+              </div>
+            </div>
+
             <div className="md:col-span-2">
               <Checkbox
                 label={T("Enable ElmTajeer", "تفعيل تاجير (علم)", ar)}
                 description={T(
-                  "License the Tajeer integration module for this tenant.",
-                  "ترخيص وحدة تكامل تاجير لهذا المستأجر.",
+                  "License the Tajeer integration module for this tenant. Requires the admin identity fields above.",
+                  "ترخيص وحدة تكامل تاجير لهذا المستأجر. يتطلب حقول هوية المشرف أعلاه.",
                   ar
                 )}
                 checked={enableTajeer}

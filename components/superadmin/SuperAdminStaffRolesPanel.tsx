@@ -49,6 +49,13 @@ const ROLE_AR: Record<string, string> = {
   "Accountant": "محاسب",
 };
 
+const IDENTITY_TYPE_LABELS: Record<number, [string, string]> = {
+  1: ["Saudi ID", "هوية وطنية"],
+  2: ["Iqama", "إقامة"],
+  3: ["Passport", "جواز سفر"],
+  4: ["GCC ID", "هوية خليجية"],
+};
+
 export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
@@ -80,6 +87,11 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
   const [roleName, setRoleName] = useState("");
   const [branchIds, setBranchIds] = useState<number[]>([]);
   const [isActive, setIsActive] = useState(true);
+  // Identity fields — required by Tajeer for users who issue contracts.
+  const [identityType, setIdentityType] = useState("");
+  const [nationalId, setNationalId] = useState("");
+  const [identityExpiryDate, setIdentityExpiryDate] = useState("");
+  const [birthDate, setBirthDate] = useState("");
 
   // Load users from API
   useEffect(() => {
@@ -200,6 +212,10 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
     setRoleName("");
     setBranchIds([]);
     setIsActive(true);
+    setIdentityType("");
+    setNationalId("");
+    setIdentityExpiryDate("");
+    setBirthDate("");
   };
 
   const toggleBranch = (id: number) => {
@@ -231,6 +247,10 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
       setPhoneNumber(details.phoneNumber || user.phoneNumber || "");
       setBranchIds(extractBranchIds(details));
       setIsActive(details.isActive !== false);
+      setIdentityType(details.identityType != null ? String(details.identityType) : "");
+      setNationalId(details.nationalId || "");
+      setIdentityExpiryDate(details.identityExpiryDate ? String(details.identityExpiryDate).slice(0, 10) : "");
+      setBirthDate(details.birthDate ? String(details.birthDate).slice(0, 10) : "");
       setEditingUser((prev: any) => ({ ...prev, ...details }));
     } catch (error) {
       console.error('Error loading user details:', error);
@@ -271,6 +291,10 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
         email,
         phoneNumber: normalizedPhone || undefined,
         password,
+        identityType: identityType ? Number(identityType) : undefined,
+        nationalId: nationalId.trim() || undefined,
+        identityExpiryDate: identityExpiryDate || undefined,
+        birthDate: birthDate || undefined,
         roleName,
         branchIds,
       });
@@ -305,6 +329,10 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
         email,
         phoneNumber: normalizedPhone || undefined,
         fullName,
+        identityType: identityType ? Number(identityType) : undefined,
+        nationalId: nationalId.trim() || undefined,
+        identityExpiryDate: identityExpiryDate || undefined,
+        birthDate: birthDate || undefined,
         isActive,
         roleName,
         branchIds,
@@ -414,6 +442,46 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
       ].some((value) => String(value ?? "").toLocaleLowerCase().includes(query))
     );
   }, [users, searchQuery, ar]);
+
+  const identityFields = (
+    <div className="grid grid-cols-2 gap-3">
+      <Select
+        variant="muted"
+        label={T("Identity type", "نوع الهوية", ar)}
+        value={identityType}
+        onChange={(e) => setIdentityType(e.target.value)}
+      >
+        <option value="">{T("Select type", "اختر النوع", ar)}</option>
+        <option value="1">{T("Saudi ID", "هوية وطنية", ar)}</option>
+        <option value="2">{T("Iqama", "إقامة", ar)}</option>
+        <option value="3">{T("Passport", "جواز سفر", ar)}</option>
+        <option value="4">{T("GCC ID", "هوية خليجية", ar)}</option>
+      </Select>
+      <Input
+        variant="muted"
+        className="font-mono"
+        dir="ltr"
+        label={T("Identity number", "رقم الهوية", ar)}
+        placeholder="1xxxxxxxxx"
+        value={nationalId}
+        onChange={(e) => setNationalId(e.target.value)}
+      />
+      <Input
+        variant="muted"
+        type="date"
+        label={T("Identity expiry", "انتهاء الهوية", ar)}
+        value={identityExpiryDate}
+        onChange={(e) => setIdentityExpiryDate(e.target.value)}
+      />
+      <Input
+        variant="muted"
+        type="date"
+        label={T("Birth date", "تاريخ الميلاد", ar)}
+        value={birthDate}
+        onChange={(e) => setBirthDate(e.target.value)}
+      />
+    </div>
+  );
 
   return (
     <div>
@@ -625,6 +693,19 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
                     <div className="mk-label text-mk-ink-900">{viewingUser.phoneNumber}</div>
                   </div>
                 )}
+
+                {viewingUser.nationalId && (
+                  <div className="p-3 rounded-md bg-mk-ink-50">
+                    <div className="mk-caption text-mk-ink-500 mb-1">{T("Identity", "الهوية", ar)}</div>
+                    <div className="mk-label text-mk-ink-900">
+                      {IDENTITY_TYPE_LABELS[viewingUser.identityType]
+                        ? T(IDENTITY_TYPE_LABELS[viewingUser.identityType][0], IDENTITY_TYPE_LABELS[viewingUser.identityType][1], ar)
+                        : viewingUser.identityType ?? "—"}
+                      {" · "}
+                      <span dir="ltr" className="font-mono">{viewingUser.nationalId}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -785,6 +866,8 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
                 ))}
               </Select>
 
+              {identityFields}
+
               <div>
                 <div className="mk-body-sm text-mk-fg-1 mb-2">{T("Branches", "الفروع", ar)}</div>
                 <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto border border-mk-ink-100 rounded-md p-3">
@@ -863,6 +946,8 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
                   </option>
                 ))}
               </Select>
+
+              {identityFields}
 
               <div>
                 <div className="mk-body-sm text-mk-fg-1 mb-2">{T("Branches", "الفروع", ar)}</div>
