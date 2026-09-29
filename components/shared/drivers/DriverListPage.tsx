@@ -127,8 +127,8 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="flex-1 max-w-[400px]">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3 mb-6 sm:mb-5">
+        <div className="w-full sm:w-auto sm:flex-1 sm:max-w-[400px]">
           <Input
             variant="search"
             icon={<Search size={14} />}
@@ -144,8 +144,7 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
             }
           />
         </div>
-        <div className="flex-1" />
-        <Button variant="primary" onClick={() => setShowAdd(true)} className="shadow-[var(--shadow-glow-blue)]">
+        <Button variant="primary" onClick={() => setShowAdd(true)} className="shadow-[var(--shadow-glow-blue)] sm:ms-auto">
           <UserPlus size={15} />
           {T("Add driver", "إضافة سائق جديد", ar)}
         </Button>
@@ -167,10 +166,10 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
       </div>
 
       {/* Drivers list */}
-      <div className="rounded-xl overflow-hidden mk-surface">
+      <div className="rounded-xl overflow-x-auto mk-surface">
         {/* Header */}
         <div
-          className="grid px-5 py-3 mk-overline uppercase text-mk-ink-400 tracking-wider border-b border-mk-ink-100 bg-mk-ink-50 grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_36px]"
+          className="grid px-5 py-3 mk-overline uppercase text-mk-ink-400 tracking-wider border-b border-mk-ink-100 bg-mk-ink-50 grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_36px] min-w-[700px]"
         >
           <span>{T("Driver", "السائق", ar)}</span>
           <span>{T("Phone", "الهاتف", ar)}</span>
@@ -205,7 +204,7 @@ export default function DriverListPage({ driverDetailPath }: DriverListPageProps
             <Link
               key={d.id}
               href={driverDetailPath(d.id)}
-              className="grid items-center px-5 py-4 cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 no-underline grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_36px]"
+              className="grid items-center px-5 py-4 cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 no-underline grid-cols-[2.2fr_1.2fr_1.4fr_0.7fr_0.7fr_36px] min-w-[700px]"
               style={{
                 borderBottom: idx < filtered.length - 1 ? "1px solid var(--color-mk-border)" : "none",
                 borderInlineStart: d.blacklisted ? "3px solid var(--color-mk-danger)" : "none",

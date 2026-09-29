@@ -416,7 +416,7 @@ export default function CustomerInquiryPage({ customerProfilePath }: CustomerInq
                     tabIndex={0}
                     onClick={() => setSelectedKey(key)}
                     onKeyDown={(e) => { if (e.key === "Enter") setSelectedKey(key); }}
-                    className="w-full flex items-center gap-3 px-5 py-4 text-start cursor-pointer transition-colors duration-150"
+                    className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-start cursor-pointer transition-colors duration-150"
                     style={{
                       background: active ? "var(--color-mk-blue-50)" : "transparent",
                       borderBottom: idx < matches.length - 1 ? "1px solid var(--color-mk-border)" : "none",
@@ -501,10 +501,10 @@ export default function CustomerInquiryPage({ customerProfilePath }: CustomerInq
               <span className="mk-label">{T("Loading details…", "جاري تحميل التفاصيل…", ar)}</span>
             </div>
           ) : (
-            <div className="rounded-xl p-6 mk-surface flex flex-col gap-4">
-              <div className="flex items-center gap-3">
+            <div className="rounded-xl p-4 sm:p-6 mk-surface flex flex-col gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
                 <Avatar name={ar ? view.nameAr : view.name} size="lg" className={view.blacklisted ? "grayscale opacity-50" : ""} />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="mk-body leading-tight text-mk-ink-900">{ar ? view.nameAr : view.name}</div>
                   <p className="mk-caption font-mono mt-1 text-mk-ink-400">{view.isLocal ? view.localId : T("Not registered with Maarkbh", "غير مسجل لدى مركبة", ar)}</p>
                   <div className="flex gap-2 mt-2 flex-wrap">

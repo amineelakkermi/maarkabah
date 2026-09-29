@@ -175,7 +175,7 @@ export default function BlacklistPage() {
   return (
     <div>
       {/* Network card */}
-      <div className="flex items-center gap-4 rounded-xl px-6 py-5 mb-5 mk-surface">
+      <div className="flex items-center gap-4 rounded-xl px-4 sm:px-6 py-5 mb-5 mk-surface">
         <div className="w-11 h-11 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50 text-mk-blue-500">
           <UsersRound size={22} />
         </div>
@@ -205,8 +205,8 @@ export default function BlacklistPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl overflow-hidden mk-surface">
-        <Table>
+      <div className="rounded-xl overflow-x-auto mk-surface">
+        <Table className="min-w-[700px]">
           <thead>
             <tr>
               {[
@@ -281,7 +281,7 @@ export default function BlacklistPage() {
       </div>
 
       {/* How it works */}
-      <div className="rounded-xl p-6 mt-4 mk-surface">
+      <div className="rounded-xl p-4 sm:p-6 mt-4 mk-surface">
         <div className="mk-h4 mb-4 text-mk-ink-900">
           {T("Shared blacklist — how it works", "القائمة السوداء المشتركة — كيف تعمل", ar)}
         </div>
