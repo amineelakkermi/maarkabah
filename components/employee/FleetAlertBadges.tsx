@@ -35,14 +35,37 @@ export function fleetAlertSeverity(car: Car, ar: boolean): "warning" | "danger" 
   return null;
 }
 
+const EXPIRY_WARNING_DAYS = 30;
+
+function expiryAlert(
+  kind: "license" | "inspection",
+  expiry: string | undefined,
+  ar: boolean,
+): FleetAlert | null {
+  const empty = !expiry || /^0{4}-01-01/.test(expiry);
+  // These fields are optional in the backend — no date means no alert.
+  if (empty) return null;
+  const labels = {
+    license:   { expired: T("License Expired", "الاستمارة منتهية", ar),
+                 dueSoon: T("License Renewal", "تجديد الاستمارة", ar) },
+    inspection:{ expired: T("Inspection Expired", "الفحص منتهي", ar),
+                 dueSoon: T("Inspection due soon", "الفحص يقترب من الانتهاء", ar) },
+  }[kind];
+  const days = Math.ceil((new Date(`${expiry}T00:00:00`).getTime() - Date.now()) / 86_400_000);
+  if (days < 0) return { kind, tone: "danger", label: labels.expired };
+  if (days <= EXPIRY_WARNING_DAYS) return { kind, tone: "warning", label: labels.dueSoon };
+  return null;
+}
+
 /** Every fleet-condition alert that applies to a car — license renewal,
  * expired inspection, oil-change due/overdue — as one flat list, so the
  * grid image overlay and the list "Alerts" column render the exact same
  * set instead of each re-deriving it. */
 export function fleetAlerts(car: Car, ar: boolean): FleetAlert[] {
-  const alerts: FleetAlert[] = [];
-  if (car.id === 4) alerts.push({ kind: "license", tone: "warning", label: T("License Renewal", "تجديد الاستمارة", ar) });
-  if (car.id === 6) alerts.push({ kind: "inspection", tone: "danger", label: T("Inspection Expired", "الفحص منتهي", ar) });
+  const alerts: FleetAlert[] = [
+    expiryAlert("license", car.istamaraExpiry, ar),
+    expiryAlert("inspection", car.periodicInspectionExpiry, ar),
+  ].filter((a): a is FleetAlert => a !== null);
   const oilLabel = oilChangeLabel(car, ar);
   if (oilLabel) alerts.push({ kind: "oil", tone: getOilChangeStatus(car).status === "overdue" ? "danger" : "warning", label: oilLabel });
   return alerts;

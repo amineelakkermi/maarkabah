@@ -4,10 +4,13 @@ import { useState, useEffect } from "react";
 import {
   ArrowLeft, ArrowRight, Car, ShieldCheck, ClockAlert, ChevronDown,
   Camera, X, Loader2, AlertCircle, CheckCircle2, Info, Zap,
-  ArrowLeftRight, Power, History,
+  ArrowLeftRight, Power, History, Gauge, MapPin,
 } from "lucide-react";
 import * as Types from "@/lib/api-types";
-import { Button, Input, Select, SearchableSelect, Toggle, Tabs, Modal, useToast } from "@/components/ui";
+import {
+  Button, Input, Select, SearchableSelect, Toggle, Tabs, Modal,
+  Badge, RiyalSymbol, DatePicker, useToast,
+} from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { vehicleService } from "@/lib/api-services";
 import { describeApiError } from "@/lib/api-error-messages";
@@ -17,6 +20,9 @@ import {
   T,
   AR_LABELS,
   enumOptions,
+  formatEnumName,
+  mapStatusFromBackend,
+  STATUS_BADGE_VARIANT,
   calcVehicleCompletion,
   VEHICLE_FIELD_PANEL_MAP,
   type VehicleFieldPanel,
@@ -47,8 +53,8 @@ interface VehicleDetailsPageProps {
 /* ── Shared field primitives ──────────────────────────────────── */
 function FL({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2">
-      <label className="mk-overline text-mk-ink-500 uppercase flex items-center gap-1 tracking-wider">
+    <div className="flex flex-col gap-1">
+      <label className="mk-label-muted uppercase flex items-center gap-1 tracking-wider mk-field-label">
         {label}
         {required && <span className="text-mk-danger mk-overline">*</span>}
       </label>
@@ -57,26 +63,76 @@ function FL({ label, required, children }: { label: string; required?: boolean; 
   );
 }
 
+function FI({ value, onChange, placeholder, type = "text", required, disabled, ar, error, ...rest }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
+  required?: boolean; disabled?: boolean; ar?: boolean; error?: string;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type" | "required">) {
+  if (type === "date") {
+    return (
+      <div className="flex flex-col gap-1">
+        <DatePicker value={value} onChange={onChange} ar={!!ar} placeholder={placeholder} variant="muted" />
+        {error && <p className="mk-caption text-mk-danger">{error}</p>}
+      </div>
+    );
+  }
+  return (
+    <Input
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      required={required}
+      disabled={disabled}
+      variant="muted"
+      error={error}
+      className="disabled:opacity-50 disabled:cursor-not-allowed"
+      onChange={(e) => onChange(e.target.value)}
+      {...rest}
+    />
+  );
+}
+
+function FS({ value, onChange, children, required, disabled, error, ...rest }: {
+  value: string; onChange: (v: string) => void; children: React.ReactNode;
+  required?: boolean; disabled?: boolean; error?: string;
+} & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "value" | "onChange" | "required" | "size">) {
+  return (
+    <Select
+      variant="muted"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      required={required}
+      disabled={disabled}
+      error={error}
+      className="disabled:opacity-50 disabled:cursor-not-allowed"
+      {...rest}
+    >
+      {children}
+    </Select>
+  );
+}
+
+/* Small pill label marking the start of a sub-section within a panel body. */
 function SectionBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-block mk-overline uppercase tracking-wider text-mk-blue-600 bg-mk-blue-50 px-2.5 py-1 rounded-full mb-3">
+    <span className="inline-block mk-overline uppercase tracking-wider text-mk-blue-700 bg-mk-blue-50 px-2.5 py-1 rounded-pill mb-3">
       {children}
     </span>
   );
 }
 
-/* ── Collapsible panel ────────────────────────────────────────── */
+/* ── Collapsible form panel — all sections stack in the same column
+   so nothing is hidden behind a tab. ──────────────────────────── */
 function Panel({
   icon: Icon, title, count, open, onToggle, children,
 }: {
   icon: React.ElementType; title: string; count: number; open: boolean; onToggle: () => void; children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg mk-surface mk-shadow-8 overflow-hidden border border-mk-ink-100">
+    <div className="rounded-xl mk-surface mk-shadow-10 overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 sm:px-5 py-4 border-0 bg-transparent cursor-pointer text-start"
+        className="w-full flex items-center gap-2 px-5 py-4 border-0 bg-transparent cursor-pointer text-start"
       >
         <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
           <Icon size={16} className="text-mk-blue-500" />
@@ -89,7 +145,7 @@ function Panel({
         )}
         <ChevronDown size={14} className={`text-mk-ink-400 transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && <div className="px-4 sm:px-5 pb-5 pt-1 border-t border-mk-ink-100">{children}</div>}
+      {open && <div className="px-5 pb-5 pt-5 border-t border-mk-ink-100">{children}</div>}
     </div>
   );
 }
@@ -100,7 +156,7 @@ function CompletionBar({ pct, missing, ar }: { pct: number; missing: { labelEn: 
   const col =
     pct === 100 ? "var(--color-mk-mint-600)" : pct >= 70 ? "var(--color-mk-blue-500)" : pct >= 40 ? "var(--color-mk-warning)" : "var(--color-mk-danger)";
   return (
-    <div className="rounded-md p-3 mk-surface mk-shadow-8 border border-mk-ink-100">
+    <div className="rounded-md p-3 mk-surface mk-shadow-8">
       <div className="flex items-center gap-3 mb-2">
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
@@ -143,6 +199,24 @@ function CompletionBar({ pct, missing, ar }: { pct: number; missing: { labelEn: 
     </div>
   );
 }
+
+/* Fleet status pill picker — same fill colors as the status Badge. */
+const STATUS_PILL_ACTIVE: Record<string, string> = {
+  success: "bg-mk-success-100 text-mk-success-700",
+  info: "bg-mk-blue-50 text-mk-blue-700",
+  warning: "bg-mk-warning-100 text-mk-warning-700",
+  danger: "bg-mk-danger-100 text-mk-danger-700",
+  violet: "bg-mk-violet-100 text-mk-violet-700",
+  neutral: "bg-mk-ink-100 text-mk-ink-700",
+};
+
+const FLEET_STATUSES = (Object.entries(Types.VehicleFleetStatus)
+  .filter(([, v]) => typeof v === "number") as [string, number][])
+  .map(([name, value]) => ({
+    name,
+    value,
+    variant: STATUS_BADGE_VARIANT[mapStatusFromBackend(value)] ?? "neutral",
+  }));
 
 /* ── Main details page ────────────────────────────────────────── */
 export function VehicleDetailsPage({
@@ -303,71 +377,112 @@ export function VehicleDetailsPage({
   const missingByPanel = (panel: VehicleFieldPanel) =>
     missing.filter((f) => VEHICLE_FIELD_PANEL_MAP[f.key] === panel).length;
 
+  /* ── Header identity — resolved from the lookup lists ──────── */
+  const lookupName = (list: any[], id: any) => {
+    const item = list.find((x) => String(x.id) === String(id));
+    return item ? (ar ? item.nameAr || item.name : item.nameEn || item.name) : "";
+  };
+  const makeName = lookupName(makes, form.makeId);
+  const modelName = lookupName(models, form.modelId);
+  const vehicleName = [makeName, modelName].filter(Boolean).join(" ");
+  const title = editingVehicleId
+    ? (vehicleName ? `${vehicleName}${form.year ? ` · ${form.year}` : ""}` : T("Edit Vehicle", "تعديل السيارة", ar))
+    : T("Add Vehicle", "إضافة سيارة", ar);
+
+  const statusKey = Types.VehicleFleetStatus[statusNum] as string | undefined;
+  const statusVariant = STATUS_BADGE_VARIANT[mapStatusFromBackend(statusNum)] ?? "neutral";
+  const plateText = [
+    [form.plateFirstLetter, form.plateSecondLetter, form.plateThirdLetter].filter(Boolean).join(" "),
+    form.plateNumber,
+  ].filter(Boolean).join(" ");
+  const categoryKey = Types.VehicleCategory[Number(form.category)] as string | undefined;
+  const subtitle = [
+    plateText,
+    categoryKey ? T(formatEnumName(categoryKey), AR_LABELS[categoryKey] ?? categoryKey, ar) : "",
+  ].filter(Boolean).join(" · ");
+
+  const branchName = lookupName(branches, form.branchId);
+
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="w-9 h-9 rounded-full flex items-center justify-center border border-mk-ink-200 bg-white cursor-pointer text-mk-ink-600 hover:bg-mk-ink-50 transition-colors shrink-0"
-        >
-          {ar ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
-        </button>
-        <div className="flex-1 min-w-0">
-          <h2 className="mk-h4 text-mk-ink-900">
-            {editingVehicleId ? T("Edit Vehicle", "تعديل السيارة", ar) : T("Add Vehicle", "إضافة سيارة", ar)}
-          </h2>
+      {/* ── Header + Actions (top) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-9 h-9 rounded-full flex items-center justify-center border border-mk-ink-200 bg-white cursor-pointer text-mk-ink-600 hover:bg-mk-ink-50 transition-colors shrink-0"
+          >
+            {ar ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="mk-h4 text-mk-ink-900">{title}</h2>
+              {editingVehicleId && statusKey && (
+                <Badge variant={statusVariant} dot>
+                  {T(formatEnumName(statusKey), AR_LABELS[statusKey] ?? statusKey, ar)}
+                </Badge>
+              )}
+            </div>
+            {subtitle && <p className="mk-caption text-mk-ink-500">{subtitle}</p>}
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" onClick={onBack}>
-            {T("Cancel", "إلغاء", ar)}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+          <Button variant="outline" onClick={onBack} className="flex-1 sm:flex-initial">
+            <X size={14} />{T("Cancel", "إلغاء", ar)}
           </Button>
           <Button
             variant="primary"
             type="submit"
             form="vehicle-details-form"
             disabled={saving}
-            className="shadow-[var(--shadow-glow-blue)]"
+            className="flex-1 sm:flex-initial shadow-[var(--shadow-glow-blue)]"
           >
             {saving ? (
               <Loader2 className="animate-spin" size={14} />
             ) : editingVehicleId ? (
-              T("✓ Update", "✓ تحديث", ar)
+              T("Save changes", "حفظ التغييرات", ar)
             ) : (
-              T("✓ Add", "✓ إضافة", ar)
+              T("Add vehicle", "إضافة مركبة", ar)
             )}
           </Button>
         </div>
       </div>
 
-      {/* Completion */}
+      {/* ── Completion bar ── */}
       <div className="mb-4">
         <CompletionBar pct={pct} missing={missing} ar={ar} />
       </div>
 
-      {/* Fleet status — quick access at the top of the page */}
-      <div className="rounded-lg p-4 sm:px-5 mb-4 mk-surface mk-shadow-8 border border-mk-ink-100">
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-          <div className="flex-1 min-w-0 sm:max-w-[280px]">
-            <FL label={T("Fleet status", "حالة الأسطول", ar)}>
-              <Select
-                value={form.status}
-                onChange={(e) => setForm((f: any) => ({ ...f, status: e.target.value }))}
+      {/* ── Fleet status — quick access at the top of the page ── */}
+      <div className="rounded-xl p-4 sm:px-5 mb-4 mk-surface mk-shadow-10">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mk-label-muted uppercase tracking-wider mk-field-label me-2">
+            {T("Fleet status", "حالة الأسطول", ar)}
+          </span>
+          {FLEET_STATUSES.map(({ name, value, variant }) => {
+            const isActive = statusNum === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setForm((f: any) => ({ ...f, status: String(value) }))}
+                className={`flex items-center gap-2 px-3 py-2 rounded-pill mk-caption border cursor-pointer transition-all duration-150 ${
+                  isActive
+                    ? `${STATUS_PILL_ACTIVE[variant]} border-transparent`
+                    : "bg-transparent text-mk-ink-400 border-mk-ink-100"
+                }`}
               >
-                {enumOptions(Types.VehicleFleetStatus, AR_LABELS)}
-              </Select>
-            </FL>
-          </div>
-          <div className="flex items-center justify-between sm:justify-start gap-2">
-            <span className="mk-caption text-mk-ink-700">{T("Listing active", "الإدراج نشط", ar)}</span>
-            <Toggle
-              checked={!!form.isListingActive}
-              onChange={(v) => setForm((f: any) => ({ ...f, isListingActive: v }))}
-            />
-          </div>
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: isActive ? "currentColor" : "var(--color-mk-ink-300)" }}
+                />
+                {T(formatEnumName(name), AR_LABELS[name] ?? name, ar)}
+              </button>
+            );
+          })}
           {editingVehicleId && (
-            <div className="flex items-center gap-2 sm:ms-auto">
+            <div className="flex items-center gap-2 ms-auto">
               {statusLockedByContract ? (
                 <p className="mk-caption flex items-center gap-1.5 text-mk-ink-500">
                   <Info size={13} className="shrink-0" />
@@ -376,14 +491,24 @@ export function VehicleDetailsPage({
               ) : (
                 <>
                   {statusNum !== Types.VehicleFleetStatus.Available && (
-                    <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
-                      onClick={() => handleLifecycle("activate")}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={lifecycleBusy}
+                      onClick={() => handleLifecycle("activate")}
+                    >
                       <Power size={13} />{T("Activate", "تفعيل", ar)}
                     </Button>
                   )}
                   {statusNum !== Types.VehicleFleetStatus.Inactive && (
-                    <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
-                      onClick={() => handleLifecycle("deactivate")}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={lifecycleBusy}
+                      onClick={() => handleLifecycle("deactivate")}
+                    >
                       <Power size={13} />{T("Deactivate", "إيقاف", ar)}
                     </Button>
                   )}
@@ -395,10 +520,13 @@ export function VehicleDetailsPage({
       </div>
 
       <form id="vehicle-details-form" onSubmit={onSubmit}>
+        {/* ── Responsive grid: 1 col on mobile/tablet, 2 cols on large screens ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* ── LEFT: info panels ─────────────────────────────── */}
+
+          {/* ══ LEFT (right column in RTL): stacked info panels ═════ */}
           <div className="flex flex-col gap-4">
-            {/* Basic Vehicle Information */}
+
+            {/* Panel 1 — plate + docs + vehicle info */}
             <Panel
               icon={Car}
               title={T("Basic Vehicle Information", "معلومات المركبة الأساسية", ar)}
@@ -410,39 +538,43 @@ export function VehicleDetailsPage({
                 {/* Plate */}
                 <div>
                   <SectionBadge>{T("License Plate", "اللوحة", ar)}</SectionBadge>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Select
-                      label={T("Plate type *", "نوع اللوحة *", ar)}
-                      error={fieldErrors.plateTypeId}
-                      value={form.plateTypeId}
-                      onChange={(e) => setForm((f: any) => ({ ...f, plateTypeId: e.target.value }))}
-                    >
-                      <option value="">{T("Select plate type", "اختر نوع اللوحة", ar)}</option>
-                      {plateTypes.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {ar ? p.nameAr || p.name : p.nameEn || p.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Input
-                      label={T("Plate number *", "رقم اللوحة *", ar)}
-                      error={fieldErrors.plateNumber}
-                      value={form.plateNumber}
-                      maxLength={4}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                        setForm((f: any) => ({ ...f, plateNumber: v }));
-                      }}
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FL label={T("Plate type", "نوع اللوحة", ar)} required>
+                      <FS
+                        value={form.plateTypeId}
+                        onChange={(v) => setForm((f: any) => ({ ...f, plateTypeId: v }))}
+                        error={fieldErrors.plateTypeId}
+                        required
+                      >
+                        <option value="">{T("Select plate type", "اختر نوع اللوحة", ar)}</option>
+                        {plateTypes.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {ar ? p.nameAr || p.name : p.nameEn || p.name}
+                          </option>
+                        ))}
+                      </FS>
+                    </FL>
+                    <FL label={T("Plate number", "رقم اللوحة", ar)} required>
+                      <FI
+                        value={form.plateNumber}
+                        onChange={(v) => {
+                          const digits = v.replace(/\D/g, "").slice(0, 4);
+                          setForm((f: any) => ({ ...f, plateNumber: digits }));
+                        }}
+                        placeholder="1234"
+                        error={fieldErrors.plateNumber}
+                        required
+                      />
+                    </FL>
                   </div>
-                  <div className="mt-3">
-                    <label className="mk-overline text-mk-ink-500 uppercase tracking-wider mb-2 block">
-                      {T("Plate letters *", "حروف اللوحة *", ar)}
-                    </label>
-                    <div className="flex items-center gap-2" dir="ltr">
-                      {(["plateFirstLetter", "plateSecondLetter", "plateThirdLetter"] as const).map((field) => (
+                  <div className="grid grid-cols-3 gap-4 mt-3">
+                    {([
+                      { field: "plateFirstLetter", en: "1st Char", ar2: "الحرف الأول" },
+                      { field: "plateSecondLetter", en: "2nd Char", ar2: "الحرف الثاني" },
+                      { field: "plateThirdLetter", en: "3rd Char", ar2: "الحرف الثالث" },
+                    ] as const).map(({ field, en, ar2 }) => (
+                      <FL key={field} label={T(en, ar2, ar)} required>
                         <input
-                          key={field}
                           type="text"
                           inputMode="text"
                           maxLength={1}
@@ -452,71 +584,86 @@ export function VehicleDetailsPage({
                             if (ch && /\d/.test(ch)) return;
                             setForm((f: any) => ({ ...f, [field]: ch }));
                           }}
-                          className="font-[family-name:var(--font-body)] mk-body-sm h-10 w-full min-w-0 px-0 text-center uppercase border border-mk-ink-200 bg-white rounded-md text-mk-fg-1 transition-[border-color,box-shadow] duration-base ease-standard focus:outline-none focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)]"
+                          className="font-[family-name:var(--font-body)] mk-body-sm h-10 w-full min-w-0 px-0 text-center uppercase border border-mk-ink-100 bg-mk-ink-50 rounded-md text-mk-fg-1 transition-[border-color,box-shadow] duration-base ease-standard focus:outline-none focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)]"
                         />
-                      ))}
-                    </div>
+                      </FL>
+                    ))}
                   </div>
                 </div>
 
                 {/* Docs */}
                 <div className="pt-4 border-t border-mk-ink-100">
                   <SectionBadge>{T("Registration Documents", "وثائق التسجيل", ar)}</SectionBadge>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      label={T("Registration number", "رقم الاستمارة", ar)}
-                      inputMode="numeric"
-                      dir="ltr"
-                      value={form.registrationNumber}
-                      onChange={(e) => setForm((f: any) => ({ ...f, registrationNumber: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Registration expiry", "انتهاء الاستمارة", ar)}
-                      type="date"
-                      value={form.registrationExpiryDate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, registrationExpiryDate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Serial number", "الرقم التسلسلي", ar)}
-                      inputMode="numeric"
-                      dir="ltr"
-                      value={form.serialNumber}
-                      onChange={(e) => setForm((f: any) => ({ ...f, serialNumber: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Inspection expiry", "انتهاء الفحص", ar)}
-                      type="date"
-                      value={form.inspectionExpiryDate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, inspectionExpiryDate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Operation card number", "رقم بطاقة التشغيل", ar)}
-                      inputMode="numeric"
-                      dir="ltr"
-                      value={form.operationCardNumber}
-                      onChange={(e) => setForm((f: any) => ({ ...f, operationCardNumber: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Operation card expiry", "انتهاء بطاقة التشغيل", ar)}
-                      type="date"
-                      value={form.operationCardExpiryDate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, operationCardExpiryDate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Customs number (optional)", "رقم الجمارك (اختياري)", ar)}
-                      inputMode="numeric"
-                      dir="ltr"
-                      value={form.customsNumber}
-                      onChange={(e) => setForm((f: any) => ({ ...f, customsNumber: e.target.value }))}
-                    />
-                    <div className="sm:col-span-2 flex flex-col gap-2">
-                      <label className="mk-overline text-mk-ink-500 uppercase tracking-wider">{T("Other notes", "أخرى", ar)}</label>
-                      <textarea
-                        value={form.otherNotes}
-                        onChange={(e) => setForm((f: any) => ({ ...f, otherNotes: e.target.value }))}
-                        rows={2}
-                        className="w-full px-3 py-3 rounded-md mk-body-sm text-mk-ink-900 bg-white border border-mk-ink-100 outline-none resize-none transition-all placeholder:text-mk-ink-300"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <FL label={T("Registration number", "رقم الاستمارة", ar)}>
+                        <FI
+                          value={form.registrationNumber}
+                          onChange={(v) => setForm((f: any) => ({ ...f, registrationNumber: v }))}
+                          inputMode="numeric"
+                          dir="ltr"
+                          placeholder="XXXXXXXXXX"
+                        />
+                      </FL>
+                    </div>
+                    <FL label={T("Registration expiry", "انتهاء الاستمارة", ar)}>
+                      <FI
+                        type="date"
+                        ar={ar}
+                        value={form.registrationExpiryDate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, registrationExpiryDate: v }))}
                       />
+                    </FL>
+                    <FL label={T("Inspection expiry", "انتهاء الفحص الدوري", ar)}>
+                      <FI
+                        type="date"
+                        ar={ar}
+                        value={form.inspectionExpiryDate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, inspectionExpiryDate: v }))}
+                      />
+                    </FL>
+                    <FL label={T("Serial number", "الرقم التسلسلي", ar)}>
+                      <FI
+                        value={form.serialNumber}
+                        onChange={(v) => setForm((f: any) => ({ ...f, serialNumber: v }))}
+                        inputMode="numeric"
+                        dir="ltr"
+                      />
+                    </FL>
+                    <FL label={T("Operation card number", "رقم بطاقة التشغيل", ar)}>
+                      <FI
+                        value={form.operationCardNumber}
+                        onChange={(v) => setForm((f: any) => ({ ...f, operationCardNumber: v }))}
+                        inputMode="numeric"
+                        dir="ltr"
+                      />
+                    </FL>
+                    <FL label={T("Operation card expiry", "تاريخ انتهاء بطاقة التشغيل", ar)}>
+                      <FI
+                        type="date"
+                        ar={ar}
+                        value={form.operationCardExpiryDate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, operationCardExpiryDate: v }))}
+                      />
+                    </FL>
+                    <FL label={T("Customs number (optional)", "رقم الجمارك (اختياري)", ar)}>
+                      <FI
+                        value={form.customsNumber}
+                        onChange={(v) => setForm((f: any) => ({ ...f, customsNumber: v }))}
+                        inputMode="numeric"
+                        dir="ltr"
+                        placeholder="—"
+                      />
+                    </FL>
+                    <div className="sm:col-span-2">
+                      <FL label={T("Other notes", "أخرى", ar)}>
+                        <textarea
+                          value={form.otherNotes}
+                          onChange={(e) => setForm((f: any) => ({ ...f, otherNotes: e.target.value }))}
+                          rows={2}
+                          className="w-full px-3 py-3 rounded-md mk-body-sm text-mk-ink-900 bg-mk-ink-50 border border-mk-ink-100 outline-none resize-none transition-all placeholder:text-mk-ink-300 focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)] [font-family:inherit]"
+                        />
+                      </FL>
                     </div>
                   </div>
                 </div>
@@ -524,94 +671,116 @@ export function VehicleDetailsPage({
                 {/* Vehicle details */}
                 <div className="pt-4 border-t border-mk-ink-100">
                   <SectionBadge>{T("Vehicle Details", "بيانات المركبة", ar)}</SectionBadge>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <SearchableSelect
-                      label={T("Make *", "الصانع *", ar)}
-                      error={fieldErrors.makeId}
-                      value={String(form.makeId ?? "")}
-                      onChange={(v) => setForm((f: any) => ({ ...f, makeId: v, modelId: "" }))}
-                      options={makes.map((m) => ({ value: String(m.id), label: ar ? m.nameAr || m.name : m.nameEn || m.name }))}
-                      placeholder={T("Select make", "اختر الصانع", ar)}
-                      searchPlaceholder={T("Search make…", "ابحث عن الصانع…", ar)}
-                      emptyText={T("No results found", "لا توجد نتائج", ar)}
-                    />
-                    <SearchableSelect
-                      label={T("Model *", "الموديل *", ar)}
-                      error={fieldErrors.modelId}
-                      value={String(form.modelId ?? "")}
-                      onChange={(v) => setForm((f: any) => ({ ...f, modelId: v }))}
-                      disabled={!form.makeId}
-                      options={models.map((m) => ({ value: String(m.id), label: ar ? m.nameAr || m.name : m.nameEn || m.name }))}
-                      placeholder={T("Select model", "اختر الموديل", ar)}
-                      searchPlaceholder={T("Search model…", "ابحث عن الموديل…", ar)}
-                      emptyText={T("No results found", "لا توجد نتائج", ar)}
-                    />
-                    <Input
-                      label={T("Year *", "سنة الصنع *", ar)}
-                      error={fieldErrors.year}
-                      type="number"
-                      value={form.year}
-                      onChange={(e) => setForm((f: any) => ({ ...f, year: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Color", "اللون", ar)}
-                      value={form.color}
-                      onChange={(e) => setForm((f: any) => ({ ...f, color: e.target.value }))}
-                    />
-                    <Input
-                      label={T("VIN", "رقم الهيكل", ar)}
-                      value={form.vin}
-                      onChange={(e) => setForm((f: any) => ({ ...f, vin: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Seats *", "عدد المقاعد *", ar)}
-                      error={fieldErrors.seats}
-                      type="number"
-                      value={form.seats}
-                      onChange={(e) => setForm((f: any) => ({ ...f, seats: e.target.value }))}
-                    />
-                    <Select
-                      label={T("Body type *", "نوع الهيكل *", ar)}
-                      error={fieldErrors.bodyType}
-                      value={form.bodyType}
-                      onChange={(e) => setForm((f: any) => ({ ...f, bodyType: e.target.value }))}
-                    >
-                      <option value="">{T("Select body type", "اختر نوع الهيكل", ar)}</option>
-                      {enumOptions(Types.VehicleBodyType, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Category *", "الفئة *", ar)}
-                      error={fieldErrors.category}
-                      value={form.category}
-                      onChange={(e) => setForm((f: any) => ({ ...f, category: e.target.value }))}
-                    >
-                      <option value="">{T("Select category", "اختر الفئة", ar)}</option>
-                      {enumOptions(Types.VehicleCategory, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Fuel type *", "نوع الوقود *", ar)}
-                      error={fieldErrors.fuelType}
-                      value={form.fuelType}
-                      onChange={(e) => setForm((f: any) => ({ ...f, fuelType: e.target.value }))}
-                    >
-                      <option value="">{T("Select fuel type", "اختر نوع الوقود", ar)}</option>
-                      {enumOptions(Types.VehicleFuelType, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Transmission *", "ناقل الحركة *", ar)}
-                      error={fieldErrors.transmissionType}
-                      value={form.transmissionType}
-                      onChange={(e) => setForm((f: any) => ({ ...f, transmissionType: e.target.value }))}
-                    >
-                      <option value="">{T("Select transmission", "اختر ناقل الحركة", ar)}</option>
-                      {enumOptions(Types.VehicleTransmissionType, AR_LABELS)}
-                    </Select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FL label={T("Make", "الصانع", ar)} required>
+                      <SearchableSelect
+                        variant="muted"
+                        error={fieldErrors.makeId}
+                        value={String(form.makeId ?? "")}
+                        onChange={(v) => setForm((f: any) => ({ ...f, makeId: v, modelId: "" }))}
+                        options={makes.map((m) => ({ value: String(m.id), label: ar ? m.nameAr || m.name : m.nameEn || m.name }))}
+                        placeholder={T("Select make", "اختر الصانع", ar)}
+                        searchPlaceholder={T("Search make…", "ابحث عن الصانع…", ar)}
+                        emptyText={T("No results found", "لا توجد نتائج", ar)}
+                      />
+                    </FL>
+                    <FL label={T("Model", "الموديل", ar)} required>
+                      <SearchableSelect
+                        variant="muted"
+                        error={fieldErrors.modelId}
+                        value={String(form.modelId ?? "")}
+                        onChange={(v) => setForm((f: any) => ({ ...f, modelId: v }))}
+                        disabled={!form.makeId}
+                        options={models.map((m) => ({ value: String(m.id), label: ar ? m.nameAr || m.name : m.nameEn || m.name }))}
+                        placeholder={T("Select model", "اختر الموديل", ar)}
+                        searchPlaceholder={T("Search model…", "ابحث عن الموديل…", ar)}
+                        emptyText={T("No results found", "لا توجد نتائج", ar)}
+                      />
+                    </FL>
+                    <FL label={T("Year", "سنة الصنع", ar)} required>
+                      <FI
+                        type="number"
+                        value={form.year}
+                        onChange={(v) => setForm((f: any) => ({ ...f, year: v }))}
+                        error={fieldErrors.year}
+                        required
+                      />
+                    </FL>
+                    <FL label={T("Color", "اللون", ar)}>
+                      <FI
+                        value={form.color}
+                        onChange={(v) => setForm((f: any) => ({ ...f, color: v }))}
+                        placeholder={T("White", "أبيض", ar)}
+                      />
+                    </FL>
+                    <div className="sm:col-span-2">
+                      <FL label={T("Chassis / VIN", "رقم الشاسيه (VIN)", ar)}>
+                        <FI
+                          value={form.vin}
+                          onChange={(v) => setForm((f: any) => ({ ...f, vin: v }))}
+                          dir="ltr"
+                        />
+                      </FL>
+                    </div>
+                    <FL label={T("Seats", "عدد المقاعد", ar)} required>
+                      <FI
+                        type="number"
+                        value={form.seats}
+                        onChange={(v) => setForm((f: any) => ({ ...f, seats: v }))}
+                        error={fieldErrors.seats}
+                        required
+                      />
+                    </FL>
+                    <FL label={T("Body type", "نوع الهيكل", ar)} required>
+                      <FS
+                        value={form.bodyType}
+                        onChange={(v) => setForm((f: any) => ({ ...f, bodyType: v }))}
+                        error={fieldErrors.bodyType}
+                        required
+                      >
+                        <option value="">{T("Select body type", "اختر نوع الهيكل", ar)}</option>
+                        {enumOptions(Types.VehicleBodyType, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Category", "الفئة", ar)} required>
+                      <FS
+                        value={form.category}
+                        onChange={(v) => setForm((f: any) => ({ ...f, category: v }))}
+                        error={fieldErrors.category}
+                        required
+                      >
+                        <option value="">{T("Select category", "اختر الفئة", ar)}</option>
+                        {enumOptions(Types.VehicleCategory, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Fuel type", "نوع الوقود", ar)} required>
+                      <FS
+                        value={form.fuelType}
+                        onChange={(v) => setForm((f: any) => ({ ...f, fuelType: v }))}
+                        error={fieldErrors.fuelType}
+                        required
+                      >
+                        <option value="">{T("Select fuel type", "اختر نوع الوقود", ar)}</option>
+                        {enumOptions(Types.VehicleFuelType, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Transmission", "ناقل الحركة", ar)} required>
+                      <FS
+                        value={form.transmissionType}
+                        onChange={(v) => setForm((f: any) => ({ ...f, transmissionType: v }))}
+                        error={fieldErrors.transmissionType}
+                        required
+                      >
+                        <option value="">{T("Select transmission", "اختر ناقل الحركة", ar)}</option>
+                        {enumOptions(Types.VehicleTransmissionType, AR_LABELS)}
+                      </FS>
+                    </FL>
                   </div>
                 </div>
               </div>
             </Panel>
 
-            {/* Insurance & Pricing */}
+            {/* Panel 2 — Insurance & Pricing */}
             <Panel
               icon={ShieldCheck}
               title={T("Insurance & Pricing", "التأمين والتسعير", ar)}
@@ -620,125 +789,127 @@ export function VehicleDetailsPage({
               onToggle={() => togglePanel("insurance")}
             >
               <div className="flex flex-col gap-5">
+                {/* Insurance */}
                 <div>
                   <SectionBadge>{T("Insurance", "التأمين", ar)}</SectionBadge>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-end gap-2">
-                      <div className="flex-1 min-w-0">
-                        <Select
-                          label={T("Branch *", "الفرع *", ar)}
-                          value={form.branchId}
-                          onChange={(e) => setForm((f: any) => ({ ...f, branchId: e.target.value }))}
-                          disabled={!!editingVehicleId}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <FL label={T("Insurance company", "شركة التأمين", ar)} required>
+                        <FS
+                          value={form.insuranceCompanyId}
+                          onChange={(v) => setForm((f: any) => ({ ...f, insuranceCompanyId: v }))}
+                          required
                         >
-                          <option value="">{T("Select branch", "اختر الفرع", ar)}</option>
-                          {branches.map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {ar ? b.nameAr || b.name : b.nameEn || b.name}
+                          <option value="">{T("Select company", "اختر الشركة", ar)}</option>
+                          {insuranceCompanies.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {ar ? c.nameAr || c.name : c.nameEn || c.name}
                             </option>
                           ))}
-                        </Select>
-                      </div>
-                      {editingVehicleId && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="shrink-0"
-                          disabled={statusLockedByContract || lifecycleBusy}
-                          onClick={() => { setTransferError(""); setShowTransfer(true); }}
-                        >
-                          <ArrowLeftRight size={14} />{T("Transfer", "نقل", ar)}
-                        </Button>
-                      )}
+                        </FS>
+                      </FL>
                     </div>
-                    {editingVehicleId && (
-                      <p className="mk-caption text-mk-ink-400 mt-1">
-                        {T("Branch changes go through Transfer", "تغيير الفرع يتم عبر عملية النقل", ar)}
-                      </p>
-                    )}
-                    <Select
-                      label={T("Insurance company *", "شركة التأمين *", ar)}
-                      value={form.insuranceCompanyId}
-                      onChange={(e) => setForm((f: any) => ({ ...f, insuranceCompanyId: e.target.value }))}
-                    >
-                      <option value="">{T("Select company", "اختر الشركة", ar)}</option>
-                      {insuranceCompanies.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {ar ? c.nameAr || c.name : c.nameEn || c.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
-                      label={T("Insurance type *", "نوع التأمين *", ar)}
-                      value={form.insuranceTypeId}
-                      onChange={(e) => setForm((f: any) => ({ ...f, insuranceTypeId: e.target.value }))}
-                    >
-                      <option value="">{T("Select type", "اختر النوع", ar)}</option>
-                      {insuranceTypes.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {ar ? t.nameAr || t.name : t.nameEn || t.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Input
-                      label={T("Policy number", "رقم الوثيقة", ar)}
-                      value={form.insurancePolicyNumber}
-                      onChange={(e) => setForm((f: any) => ({ ...f, insurancePolicyNumber: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Insurance expiry", "انتهاء التأمين", ar)}
-                      type="date"
-                      value={form.insuranceExpiryDate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, insuranceExpiryDate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Insurance amount *", "قيمة التأمين *", ar)}
-                      type="number"
-                      value={form.insuranceAmount}
-                      onChange={(e) => setForm((f: any) => ({ ...f, insuranceAmount: e.target.value }))}
-                    />
+                    <div className="sm:col-span-2">
+                      <FL label={T("Policy number", "رقم الوثيقة", ar)}>
+                        <FI
+                          value={form.insurancePolicyNumber}
+                          onChange={(v) => setForm((f: any) => ({ ...f, insurancePolicyNumber: v }))}
+                          placeholder="POL-XXXXXXXX"
+                          dir="ltr"
+                        />
+                      </FL>
+                    </div>
+                    <FL label={T("Expiry date", "تاريخ الانتهاء", ar)}>
+                      <FI
+                        type="date"
+                        ar={ar}
+                        value={form.insuranceExpiryDate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, insuranceExpiryDate: v }))}
+                      />
+                    </FL>
+                    <FL label={T("Insurance type", "نوع التأمين", ar)} required>
+                      <FS
+                        value={form.insuranceTypeId}
+                        onChange={(v) => setForm((f: any) => ({ ...f, insuranceTypeId: v }))}
+                        required
+                      >
+                        <option value="">{T("Select type", "اختر النوع", ar)}</option>
+                        {insuranceTypes.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {ar ? t.nameAr || t.name : t.nameEn || t.name}
+                          </option>
+                        ))}
+                      </FS>
+                    </FL>
+                    <FL label={T("Insurance amount (SAR)", "مبلغ التأمين (ريال)", ar)} required>
+                      <FI
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        dir="ltr"
+                        value={form.insuranceAmount}
+                        onChange={(v) => setForm((f: any) => ({ ...f, insuranceAmount: v }))}
+                        required
+                      />
+                    </FL>
                   </div>
                 </div>
 
+                {/* Pricing & Limits */}
                 <div className="pt-4 border-t border-mk-ink-100">
                   <SectionBadge>{T("Pricing & Limits", "التسعير والحدود", ar)}</SectionBadge>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      label={T("Daily rate *", "السعر اليومي *", ar)}
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      dir="ltr"
-                      value={form.dailyRate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, dailyRate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Late hour rate", "سعر ساعة التأخير", ar)}
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      dir="ltr"
-                      value={form.lateHourRate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, lateHourRate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Extra km rate", "سعر الكيلومتر الإضافي", ar)}
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      dir="ltr"
-                      value={form.extraKilometerRate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, extraKilometerRate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Full fuel rate", "سعر تعبئة الوقود", ar)}
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      dir="ltr"
-                      value={form.fullFuelRate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, fullFuelRate: e.target.value }))}
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FL label={T("Daily rate (SAR)", "السعر اليومي (ريال)", ar)} required>
+                      <FI
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        dir="ltr"
+                        value={form.dailyRate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, dailyRate: v }))}
+                        required
+                      />
+                    </FL>
+                    <FL label={T("Late fee / hour (SAR)", "سعر ساعة التأخير (ريال)", ar)}>
+                      <FI
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        dir="ltr"
+                        value={form.lateHourRate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, lateHourRate: v }))}
+                      />
+                    </FL>
+                    <FL label={T("Extra km (SAR)", "كيلومتر زائد (ريال)", ar)}>
+                      <FI
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        dir="ltr"
+                        value={form.extraKilometerRate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, extraKilometerRate: v }))}
+                      />
+                    </FL>
+                    <FL label={T("Full fuel (SAR)", "وقود كامل (ريال)", ar)}>
+                      <FI
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        dir="ltr"
+                        value={form.fullFuelRate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, fullFuelRate: v }))}
+                      />
+                    </FL>
+                    <FL label={T("Deductible (SAR)", "مبلغ التحمل (ريال)", ar)}>
+                      <FI
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        dir="ltr"
+                        value={form.enduranceAmount}
+                        onChange={(v) => setForm((f: any) => ({ ...f, enduranceAmount: v }))}
+                      />
+                    </FL>
                     <div className="sm:col-span-2 flex items-center justify-between py-2">
                       <span className="mk-caption text-mk-ink-700">{T("Enable daily km limit", "تفعيل حد الكيلومتر اليومي", ar)}</span>
                       <Toggle
@@ -747,22 +918,60 @@ export function VehicleDetailsPage({
                       />
                     </div>
                     {form.isKilometerLimitEnabled && (
-                      <Input
-                        label={T("Daily km limit", "حد الكيلومتر اليومي", ar)}
-                        type="number"
-                        inputMode="numeric"
-                        min="0"
-                        dir="ltr"
-                        value={form.dailyKilometerLimit}
-                        onChange={(e) => setForm((f: any) => ({ ...f, dailyKilometerLimit: e.target.value }))}
-                      />
+                      <FL label={T("Daily km limit", "حد الكيلومتر اليومي", ar)}>
+                        <FI
+                          type="number"
+                          inputMode="numeric"
+                          min="0"
+                          dir="ltr"
+                          value={form.dailyKilometerLimit}
+                          onChange={(v) => setForm((f: any) => ({ ...f, dailyKilometerLimit: v }))}
+                        />
+                      </FL>
                     )}
+                    {/* Branch — reassignment goes through the Transfer API when editing */}
+                    <div className="sm:col-span-2">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1 min-w-0">
+                          <FL label={T("Branch", "الفرع", ar)} required>
+                            <FS
+                              value={form.branchId}
+                              onChange={(v) => setForm((f: any) => ({ ...f, branchId: v }))}
+                              disabled={!!editingVehicleId}
+                            >
+                              <option value="">{T("Select branch", "اختر الفرع", ar)}</option>
+                              {branches.map((b) => (
+                                <option key={b.id} value={b.id}>
+                                  {ar ? b.nameAr || b.name : b.nameEn || b.name}
+                                </option>
+                              ))}
+                            </FS>
+                          </FL>
+                        </div>
+                        {editingVehicleId && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="shrink-0"
+                            disabled={statusLockedByContract || lifecycleBusy}
+                            onClick={() => { setTransferError(""); setShowTransfer(true); }}
+                          >
+                            <ArrowLeftRight size={14} />{T("Transfer", "نقل", ar)}
+                          </Button>
+                        )}
+                      </div>
+                      {editingVehicleId && (
+                        <p className="mk-caption text-mk-ink-400 mt-1">
+                          {T("Branch changes go through Transfer", "تغيير الفرع يتم عبر عملية النقل", ar)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </Panel>
 
-            {/* Status & Condition */}
+            {/* Panel 3 — Status & Condition */}
             <Panel
               icon={ClockAlert}
               title={T("Status & Condition", "الحالة والحالة الفنية", ar)}
@@ -771,6 +980,7 @@ export function VehicleDetailsPage({
               onToggle={() => togglePanel("status")}
             >
               <div className="flex flex-col gap-5">
+                {/* Transfer history */}
                 {editingVehicleId && transfers && transfers.length > 0 && (
                   <div>
                     <div className="mk-overline uppercase mb-2 text-mk-ink-400 tracking-wider flex items-center gap-1.5">
@@ -793,183 +1003,188 @@ export function VehicleDetailsPage({
                   </div>
                 )}
 
-                <div className={editingVehicleId && transfers && transfers.length > 0 ? "pt-4 border-t border-mk-ink-100" : ""}>
+                {/* Maintenance */}
+                <div className="pt-4 border-t border-mk-ink-100">
                   <SectionBadge>{T("Maintenance", "الصيانة", ar)}</SectionBadge>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      label={T("Odometer (km) *", "عداد المسافات (كم) *", ar)}
-                      type="number"
-                      value={form.odometerReading}
-                      onChange={(e) => setForm((f: any) => ({ ...f, odometerReading: e.target.value }))}
-                    />
-                    <Select
-                      label={T("Fuel level", "مستوى الوقود", ar)}
-                      value={form.fuelLevel}
-                      onChange={(e) => setForm((f: any) => ({ ...f, fuelLevel: e.target.value }))}
-                    >
-                      {enumOptions(Types.FuelLevel, AR_LABELS)}
-                    </Select>
-                    <Input
-                      label={T("Endurance amount", "مبلغ التحمل", ar)}
-                      type="number"
-                      value={form.enduranceAmount}
-                      onChange={(e) => setForm((f: any) => ({ ...f, enduranceAmount: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Oil type *", "نوع الزيت *", ar)}
-                      placeholder="5W-30"
-                      value={form.oilType ?? ""}
-                      onChange={(e) => setForm((f: any) => ({ ...f, oilType: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Last oil change *", "آخر تغيير زيت *", ar)}
-                      type="date"
-                      value={form.lastOilChangeDate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, lastOilChangeDate: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Oil change distance", "مسافة تغيير الزيت", ar)}
-                      type="number"
-                      value={form.oilChangeDistance}
-                      onChange={(e) => setForm((f: any) => ({ ...f, oilChangeDistance: e.target.value }))}
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FL label={T("Odometer (km)", "عداد المسافات (كم)", ar)} required>
+                      <FI
+                        type="number"
+                        value={form.odometerReading}
+                        onChange={(v) => setForm((f: any) => ({ ...f, odometerReading: v }))}
+                        required
+                      />
+                    </FL>
+                    <FL label={T("Fuel level", "مستوى الوقود", ar)}>
+                      <FS
+                        value={form.fuelLevel}
+                        onChange={(v) => setForm((f: any) => ({ ...f, fuelLevel: v }))}
+                      >
+                        {enumOptions(Types.FuelLevel, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Oil type", "نوع الزيت", ar)} required>
+                      <FI
+                        value={form.oilType ?? ""}
+                        onChange={(v) => setForm((f: any) => ({ ...f, oilType: v }))}
+                        placeholder="5W-30"
+                        required
+                      />
+                    </FL>
+                    <FL label={T("Last oil change", "آخر تغيير زيت", ar)} required>
+                      <FI
+                        type="date"
+                        ar={ar}
+                        value={form.lastOilChangeDate}
+                        onChange={(v) => setForm((f: any) => ({ ...f, lastOilChangeDate: v }))}
+                        required
+                      />
+                    </FL>
+                    <FL label={T("Oil change distance", "مسافة تغيير الزيت", ar)}>
+                      <FI
+                        type="number"
+                        value={form.oilChangeDistance}
+                        onChange={(v) => setForm((f: any) => ({ ...f, oilChangeDistance: v }))}
+                      />
+                    </FL>
                   </div>
                 </div>
 
+                {/* Condition checklist */}
                 <div className="pt-4 border-t border-mk-ink-100">
                   <SectionBadge>{T("Vehicle Condition", "فحص حالة المركبة", ar)}</SectionBadge>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Select
-                      label={T("A/C grade", "حالة التكييف", ar)}
-                      value={form.airConditionGrade}
-                      onChange={(e) => setForm((f: any) => ({ ...f, airConditionGrade: e.target.value }))}
-                    >
-                      {enumOptions(Types.ConditionGrade, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Radio", "الراديو", ar)}
-                      value={form.radioStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, radioStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.ConditionGrade, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Screen", "الشاشة", ar)}
-                      value={form.screenStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, screenStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.ConditionGrade, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Odometer", "العداد", ar)}
-                      value={form.odometerStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, odometerStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.WorkingStatus, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Seat cleanliness", "نظافة المقاعد", ar)}
-                      value={form.seatCleanliness}
-                      onChange={(e) => setForm((f: any) => ({ ...f, seatCleanliness: e.target.value }))}
-                    >
-                      {enumOptions(Types.CleanlinessStatus, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Key", "المفتاح", ar)}
-                      value={form.keyStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, keyStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.WorkingStatus, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Tire condition", "حالة الإطارات", ar)}
-                      value={form.tireCondition}
-                      onChange={(e) => setForm((f: any) => ({ ...f, tireCondition: e.target.value }))}
-                    >
-                      {enumOptions(Types.TireCondition, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Spare tire", "الإطار الاحتياطي", ar)}
-                      value={form.spareTireStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, spareTireStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.TireCondition, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Fire extinguisher", "طفاية الحريق", ar)}
-                      value={form.fireExtinguisherStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, fireExtinguisherStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.PresenceStatus, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("First aid kit", "علبة الإسعافات", ar)}
-                      value={form.firstAidKitStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, firstAidKitStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.PresenceStatus, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Safety triangle", "مثلث السلامة", ar)}
-                      value={form.safetyTriangleStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, safetyTriangleStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.PresenceStatus, AR_LABELS)}
-                    </Select>
-                    <Select
-                      label={T("Tire tools", "أدوات الإطار", ar)}
-                      value={form.tireToolsStatus}
-                      onChange={(e) => setForm((f: any) => ({ ...f, tireToolsStatus: e.target.value }))}
-                    >
-                      {enumOptions(Types.PresenceStatus, AR_LABELS)}
-                    </Select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FL label={T("A/C grade", "حالة التكييف", ar)}>
+                      <FS value={form.airConditionGrade} onChange={(v) => setForm((f: any) => ({ ...f, airConditionGrade: v }))}>
+                        {enumOptions(Types.ConditionGrade, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Radio", "الراديو", ar)}>
+                      <FS value={form.radioStatus} onChange={(v) => setForm((f: any) => ({ ...f, radioStatus: v }))}>
+                        {enumOptions(Types.ConditionGrade, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Screen", "الشاشة", ar)}>
+                      <FS value={form.screenStatus} onChange={(v) => setForm((f: any) => ({ ...f, screenStatus: v }))}>
+                        {enumOptions(Types.ConditionGrade, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Odometer", "العداد", ar)}>
+                      <FS value={form.odometerStatus} onChange={(v) => setForm((f: any) => ({ ...f, odometerStatus: v }))}>
+                        {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Seat cleanliness", "نظافة المقاعد", ar)}>
+                      <FS value={form.seatCleanliness} onChange={(v) => setForm((f: any) => ({ ...f, seatCleanliness: v }))}>
+                        {enumOptions(Types.CleanlinessStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Key", "المفتاح", ar)}>
+                      <FS value={form.keyStatus} onChange={(v) => setForm((f: any) => ({ ...f, keyStatus: v }))}>
+                        {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Tire condition", "حالة الإطارات", ar)}>
+                      <FS value={form.tireCondition} onChange={(v) => setForm((f: any) => ({ ...f, tireCondition: v }))}>
+                        {enumOptions(Types.TireCondition, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Spare tire", "الإطار الاحتياطي", ar)}>
+                      <FS value={form.spareTireStatus} onChange={(v) => setForm((f: any) => ({ ...f, spareTireStatus: v }))}>
+                        {enumOptions(Types.TireCondition, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Fire extinguisher", "طفاية الحريق", ar)}>
+                      <FS value={form.fireExtinguisherStatus} onChange={(v) => setForm((f: any) => ({ ...f, fireExtinguisherStatus: v }))}>
+                        {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("First aid kit", "علبة الإسعافات", ar)}>
+                      <FS value={form.firstAidKitStatus} onChange={(v) => setForm((f: any) => ({ ...f, firstAidKitStatus: v }))}>
+                        {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Safety triangle", "مثلث السلامة", ar)}>
+                      <FS value={form.safetyTriangleStatus} onChange={(v) => setForm((f: any) => ({ ...f, safetyTriangleStatus: v }))}>
+                        {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Tire tools", "أدوات الإطار", ar)}>
+                      <FS value={form.tireToolsStatus} onChange={(v) => setForm((f: any) => ({ ...f, tireToolsStatus: v }))}>
+                        {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
                   </div>
-                  <div className="mt-3 flex flex-col gap-2">
-                    <label className="mk-overline text-mk-ink-500 uppercase tracking-wider">{T("Notes", "ملاحظات", ar)}</label>
-                    <textarea
-                      value={form.tajeerNotes}
-                      onChange={(e) => setForm((f: any) => ({ ...f, tajeerNotes: e.target.value }))}
-                      className="w-full min-h-[80px] p-3 rounded-md border border-mk-ink-200 bg-white text-mk-fg-1 focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)] outline-none"
-                    />
+                  <div className="mt-3">
+                    <FL label={T("Notes", "ملاحظات", ar)}>
+                      <textarea
+                        value={form.tajeerNotes}
+                        onChange={(e) => setForm((f: any) => ({ ...f, tajeerNotes: e.target.value }))}
+                        rows={2}
+                        className="w-full px-3 py-3 rounded-md mk-body-sm text-mk-ink-900 bg-mk-ink-50 border border-mk-ink-100 outline-none resize-none transition-all placeholder:text-mk-ink-300 focus:border-mk-blue-500 focus:shadow-[var(--shadow-focus)] [font-family:inherit]"
+                      />
+                    </FL>
                   </div>
                 </div>
               </div>
             </Panel>
           </div>
 
-          {/* ── RIGHT: photos ──────────────────────────────────── */}
+          {/* ══ RIGHT: media + listing ═════════════════════════════ */}
           <div className="flex flex-col gap-4">
-            <div className="rounded-lg p-4 mk-surface mk-shadow-8 border border-mk-ink-100">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
-                  <Camera size={16} className="text-mk-blue-500" />
+
+            {/* Photos / Diagram card */}
+            <div className="rounded-xl p-4 mk-surface mk-shadow-10">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="mk-label text-mk-ink-900">{T("Vehicle Condition", "حالة المركبة", ar)}</div>
+                <div className="flex items-center gap-2">
+                  <Tabs
+                    variant="default"
+                    rounded="full"
+                    size="sm"
+                    className="shrink-0"
+                    value={photoView}
+                    onChange={(v) => setPhotoView(v as "photos" | "diagram")}
+                    items={[
+                      { value: "photos", label: T("Photos", "الصور", ar), icon: <Camera size={12} /> },
+                      {
+                        value: "diagram",
+                        label: T("Diagram", "المخطط", ar),
+                        icon: (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                          </svg>
+                        ),
+                      },
+                    ]}
+                  />
+                  {photoView === "photos" && (
+                    <span
+                      className="mk-overline"
+                      style={{ color: photoCount >= 4 ? "var(--color-mk-mint-600)" : "var(--color-mk-warning)" }}
+                    >
+                      {photoCount} {T("photos", "صور", ar)}
+                    </span>
+                  )}
+                  {photoView === "diagram" && sketchItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((f: any) => ({ ...f, sketchItems: [] }))}
+                      className="mk-overline text-mk-danger border-none bg-transparent cursor-pointer"
+                    >
+                      {T("Clear all", "مسح الكل", ar)}
+                    </button>
+                  )}
                 </div>
-                <div className="mk-h4 text-mk-ink-900 flex-1">{T("Vehicle Photos", "صور السيارة", ar)}</div>
-                {photoView === "photos" && (
-                  <span
-                    className="mk-overline"
-                    style={{ color: photoCount >= 4 ? "var(--color-mk-mint-600)" : "var(--color-mk-warning)" }}
-                  >
-                    {photoCount} {T("photos", "صور", ar)}
-                  </span>
-                )}
               </div>
 
-              <Tabs
-                variant="tonal"
-                size="xs"
-                value={photoView}
-                onChange={(v) => setPhotoView(v as "photos" | "diagram")}
-                items={[
-                  { value: "photos", label: T("Photos", "الصور", ar) },
-                  { value: "diagram", label: T("Diagram", "المخطط", ar) },
-                ]}
-                className="mb-4"
-              />
-
               {photoView === "diagram" ? (
-                <div className="flex flex-col gap-3">
-                  <div className="rounded-lg flex items-center justify-center w-full">
+                <div>
+                  <p className="mk-overline text-mk-ink-400 mb-2">
+                    {T("Click on car to add damage point", "اضغط على السيارة لإضافة نقطة ضرر", ar)}
+                  </p>
+                  <div className="rounded-md">
                     <SketchComponent
                       value={sketchItems}
                       onChange={(items) => setForm((f: any) => ({ ...f, sketchItems: items }))}
@@ -977,98 +1192,142 @@ export function VehicleDetailsPage({
                     />
                   </div>
                   {sketchItems.length > 0 && (
-                    <p className="mk-caption text-mk-ink-500">
-                      {T(`${sketchItems.length} damage mark(s) on diagram`, `${sketchItems.length} علامة ضرر على المخطط`, ar)}
+                    <p className="mt-1 mk-overline text-mk-ink-500">
+                      {sketchItems.length} {T("point(s) recorded", "نقطة مسجلة", ar)}
                     </p>
                   )}
                 </div>
               ) : (
-              <div className="flex flex-col gap-3">
-                {existingImageFileIds.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    <span className="mk-caption text-mk-ink-500">{T("Current photos", "الصور الحالية", ar)}</span>
+                <div className="flex flex-col gap-3">
+                  {existingImageFileIds.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <span className="mk-caption text-mk-ink-500">{T("Current photos", "الصور الحالية", ar)}</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {existingImageFileIds.map((fileId) => (
+                          <div key={fileId} className="relative group aspect-[4/3] rounded-md border border-mk-ink-100 overflow-hidden">
+                            <img src={`/api/attachments/${fileId}/download`} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => onRemoveExistingImage(fileId)}
+                              className="absolute top-1 end-1 w-5 h-5 flex items-center justify-center rounded-full bg-mk-danger text-white border-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <label className="flex flex-col items-center justify-center gap-2 py-8 rounded-md border-1.5 border-dashed border-mk-ink-200 bg-mk-ink-50 cursor-pointer hover:bg-mk-ink-100/60 transition-colors text-mk-ink-400">
+                    <Camera size={20} />
+                    <span className="mk-caption">{T("Click to upload photos", "اضغط لرفع الصور", ar)}</span>
+                    <input type="file" accept="image/*" multiple onChange={onImageChange} className="hidden" />
+                  </label>
+
+                  {vehicleImagePreviews.length > 0 && (
                     <div className="grid grid-cols-3 gap-2">
-                      {existingImageFileIds.map((fileId) => (
-                        <div key={fileId} className="relative aspect-square rounded-md border border-mk-ink-200 overflow-hidden">
-                          <img src={`/api/attachments/${fileId}/download`} alt="" className="w-full h-full object-cover" />
+                      {vehicleImagePreviews.map((preview, i) => (
+                        <div key={i} className="relative group aspect-[4/3] rounded-md border border-mk-ink-100 overflow-hidden">
+                          <img src={preview} alt="" className="w-full h-full object-cover" />
                           <button
                             type="button"
-                            onClick={() => onRemoveExistingImage(fileId)}
-                            className="absolute top-1 end-1 w-5 h-5 flex items-center justify-center rounded-full bg-mk-danger text-white border-0 cursor-pointer"
+                            onClick={() => onRemoveImage(i)}
+                            className="absolute top-1 end-1 w-5 h-5 flex items-center justify-center rounded-full bg-mk-danger text-white border-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <X size={10} />
                           </button>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <label className="flex flex-col items-center justify-center gap-2 py-8 rounded-md border-1.5 border-dashed border-mk-ink-200 bg-mk-ink-50 cursor-pointer hover:bg-mk-ink-100/60 transition-colors text-mk-ink-400">
-                  <Camera size={20} />
-                  <span className="mk-caption">{T("Click to upload photos", "اضغط لرفع الصور", ar)}</span>
-                  <input type="file" accept="image/*" multiple onChange={onImageChange} className="hidden" />
-                </label>
-
-                {vehicleImagePreviews.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {vehicleImagePreviews.map((preview, i) => (
-                      <div key={i} className="relative aspect-square rounded-md border border-mk-ink-200 overflow-hidden">
-                        <img src={preview} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => onRemoveImage(i)}
-                          className="absolute top-1 end-1 w-5 h-5 flex items-center justify-center rounded-full bg-mk-danger text-white border-0 cursor-pointer"
-                        >
-                          <X size={10} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {photoCount < 4 && (
-                  <p className="flex items-center gap-1 mk-caption text-mk-ink-400">
-                    <Info size={12} className="shrink-0" />
-                    {T("At least 4 photos recommended", "يُفضّل رفع ٤ صور على الأقل", ar)}
-                  </p>
-                )}
-              </div>
+                  {photoCount < 4 && (
+                    <p className="flex items-center gap-1 mk-caption text-mk-ink-400">
+                      <Info size={12} className="shrink-0" />
+                      {T("At least 4 photos recommended", "يُفضّل رفع ٤ صور على الأقل", ar)}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
-            {/* Features & Amenities */}
-            <div className="rounded-lg p-4 mk-surface mk-shadow-8 border border-mk-ink-100">
-              <div className="flex items-center gap-2 mb-4">
+            {/* Quick stats — real form data only */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                {
+                  icon: RiyalSymbol,
+                  label: T("Daily", "يومي", ar),
+                  value: form.dailyRate || "—",
+                  color: "var(--color-mk-blue-500)",
+                  bg: "var(--color-mk-blue-50)",
+                },
+                {
+                  icon: MapPin,
+                  label: T("Branch", "الفرع", ar),
+                  value: branchName || "—",
+                  color: "var(--color-mk-mint-600)",
+                  bg: "var(--color-mk-mint-100)",
+                },
+                {
+                  icon: Gauge,
+                  label: T("Odometer", "العداد", ar),
+                  value: form.odometerReading ? Number(form.odometerReading).toLocaleString("en-US") : "—",
+                  color: "var(--color-mk-danger)",
+                  bg: "var(--color-mk-danger-100)",
+                },
+              ].map(({ icon: Icon, label, value, color, bg }) => (
+                <div
+                  key={label}
+                  className="relative flex flex-col items-center gap-1 p-4 rounded-md"
+                  style={{ background: bg }}
+                >
+                  <Icon size={18} style={{ color }} />
+                  <span className="mk-h4 text-mk-ink-900 mt-1 max-w-full truncate">{value}</span>
+                  <span className="mk-overline text-mk-ink-500 text-center">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Listing & Features */}
+            <div className="rounded-xl p-4 mk-surface mk-shadow-10">
+              <div className="flex items-center gap-2 mb-6">
                 <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
-                  <Zap size={16} className="text-mk-blue-500" />
+                  <Zap size={16} className="text-mk-blue-700" />
                 </div>
-                <div className="mk-h4 text-mk-ink-900 flex-1">{T("Features & Amenities", "الإدراج والمميزات", ar)}</div>
+                <div className="mk-h4 text-mk-ink-900">{T("Listing & Features", "الإدراج والمميزات", ar)}</div>
               </div>
-              {featureTypesLoading ? (
-                <div className="flex items-center gap-2 text-mk-ink-500 mk-caption">
-                  <Loader2 size={14} className="animate-spin" />
-                  {T("Loading features...", "جاري تحميل المميزات...", ar)}
+              <div className="flex flex-col gap-0">
+                <div className="flex items-center justify-between py-2 border-b border-mk-ink-50">
+                  <span className="mk-caption text-mk-ink-700">{T("Listing active", "الإدراج نشط", ar)}</span>
+                  <Toggle
+                    checked={!!form.isListingActive}
+                    onChange={(v) => setForm((f: any) => ({ ...f, isListingActive: v }))}
+                  />
                 </div>
-              ) : featureTypes.length === 0 ? (
-                <div className="text-mk-ink-500 mk-caption">{T("No features available", "لا توجد مميزات متاحة", ar)}</div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {featureTypes.map((feature) => {
+                {featureTypesLoading ? (
+                  <div className="flex items-center gap-2 py-2 text-mk-ink-500 mk-caption">
+                    <Loader2 size={14} className="animate-spin" />
+                    {T("Loading features...", "جاري تحميل المميزات...", ar)}
+                  </div>
+                ) : featureTypes.length === 0 ? (
+                  <div className="py-2 text-mk-ink-500 mk-caption">{T("No features available", "لا توجد مميزات متاحة", ar)}</div>
+                ) : (
+                  featureTypes.map((feature) => {
                     const label = ar ? feature.nameAr || feature.name : feature.nameEn || feature.name || String(feature.id);
                     const checked = (form.featureTypeIds || []).includes(feature.id);
                     return (
-                      <div key={feature.id} className="flex items-center justify-between py-2 border-b border-mk-ink-100 last:border-0">
-                        <span className="mk-body-sm text-mk-ink-700">{label}</span>
+                      <div key={feature.id} className="flex items-center justify-between py-2 border-b border-mk-ink-50 last:border-0">
+                        <span className="mk-caption text-mk-ink-700">{label}</span>
                         <Toggle
                           checked={checked}
                           onChange={(checked) => handleFeatureToggle(feature.id, checked)}
                         />
                       </div>
                     );
-                  })}
-                </div>
-              )}
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>

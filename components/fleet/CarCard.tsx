@@ -6,6 +6,8 @@ import { ChevronRight, Edit, Gauge, MapPin, Trash2, Car as CarIcon } from "lucid
 import { Badge, Button, IconButton, RiyalSymbol, Td, Tr } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { T, STATUS_BADGE_VARIANT, STATUS_TABS } from "@/lib/fleet";
+import { FleetAlertImageOverlay, FleetAlertBadgeList } from "@/components/employee/FleetAlertBadges";
+import { CAR_TYPE_AR } from "@/components/shared/contracts/new-contract/mappers";
 
 interface CarCardProps {
   car: Car;
@@ -56,6 +58,7 @@ export function CarCard({ car, onEdit, onDelete }: CarCardProps) {
     <div onClick={() => onEdit(car)} className="rounded-lg overflow-hidden mk-surface cursor-pointer transition-colors duration-200 hover:bg-mk-ink-50 mk-shadow-10 group">
       <div className="h-[170px] mk-car-thumb-bg relative">
         <CarImage car={car} />
+        <FleetAlertImageOverlay car={car} ar={ar} corner="top-start" />
         <div className="absolute top-2 end-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <IconButton size="sm" variant="surface" aria-label={T("Edit", "تعديل", ar)} onClick={(event) => { event.stopPropagation(); onEdit(car); }}><Edit size={13} /></IconButton>
           <IconButton size="sm" variant="surface" aria-label={T("Delete", "حذف", ar)} onClick={(event) => { event.stopPropagation(); onDelete(car); }}><Trash2 size={13} className="text-mk-danger" /></IconButton>
@@ -65,7 +68,7 @@ export function CarCard({ car, onEdit, onDelete }: CarCardProps) {
         <div className="flex items-start gap-2 mb-2">
           <div className="flex-1 min-w-0">
             <div className="mk-body text-mk-ink-900 truncate">{car.make} {car.model}</div>
-            <div className="mk-overline text-mk-ink-500 mt-1 truncate">{car.plate} · {car.type} · {car.year}</div>
+            <div className="mk-overline text-mk-ink-500 mt-1 truncate">{car.plate} · {T(car.type, CAR_TYPE_AR[car.type] ?? car.type, ar)} · {car.year}</div>
           </div>
           <Badge variant={STATUS_BADGE_VARIANT[car.status]} dot>{statusLabel(car, ar)}</Badge>
         </div>
@@ -85,7 +88,7 @@ export function CarListRow({ car, onEdit, onDelete, onMapClick }: CarCardProps) 
 
   return (
     <Tr role="button" tabIndex={0} onClick={() => onEdit(car)} onKeyDown={(event) => { if (event.key === "Enter") onEdit(car); }} className="cursor-pointer hover:bg-mk-ink-50">
-      <Td><div className="flex items-center gap-3"><div className="w-16 h-12 rounded-sm overflow-hidden shrink-0 mk-car-thumb-bg-sm"><CarImage car={car} compact /></div><div className="min-w-0"><div className="mk-body text-mk-ink-900 truncate">{car.make} {car.model}</div><div className="mk-overline text-mk-ink-500 truncate">{car.plate} · {car.type} · {car.year}</div></div></div></Td>
+      <Td><div className="flex items-center gap-3"><div className="w-16 h-12 rounded-sm overflow-hidden shrink-0 mk-car-thumb-bg-sm"><CarImage car={car} compact /></div><div className="min-w-0"><div className="mk-body text-mk-ink-900 truncate">{car.make} {car.model}</div><div className="mk-overline text-mk-ink-500 truncate">{car.plate} · {T(car.type, CAR_TYPE_AR[car.type] ?? car.type, ar)} · {car.year}</div><FleetAlertBadgeList car={car} ar={ar} showEmpty={false} /></div></div></Td>
       <Td><div className="flex items-center gap-1"><RiyalSymbol size={16} /><span className="mk-body text-mk-ink-900">{car.dailyRate}</span></div><span className="mk-overline text-mk-ink-400">{T("/day", "/يوم", ar)}</span></Td>
       <Td><span className="mk-caption text-mk-ink-900">{car.utilization}%</span><div className="w-12 h-1 rounded-full bg-mk-ink-100 mt-1 overflow-hidden"><div className="h-full rounded-full bg-mk-blue-500" style={{ width: `${Math.min(car.utilization, 100)}%` }} /></div></Td>
       <Td onClick={(event) => event.stopPropagation()}>{onMapClick && <Button variant="outline" size="sm" className="rounded-full whitespace-nowrap" onClick={() => onMapClick(car)}><MapPin size={12} className="text-mk-blue-500" />{T("Show on map", "عرض على الخريطة", ar)}</Button>}</Td>

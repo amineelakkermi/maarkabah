@@ -14,9 +14,8 @@ import {
   buildVehiclePayload,
   validateStep,
   extractVehicleValidationErrors,
-  mapStatusFromBackend,
 } from "@/lib/fleet";
-import { formatPlate } from "@/lib/formatting";
+import { mapBackendVehicleToCar } from "@/components/shared/contracts/new-contract/mappers";
 import { describeApiError } from "@/lib/api-error-messages";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
 import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
@@ -256,63 +255,7 @@ export default function FleetPage() {
       );
 
       console.log("Vehicles detail responses:", detailedVehicles);
-      const transformedVehicles = detailedVehicles.map((item: any) => ({
-        id: item.id,
-        name: `${item.makeName || ""} ${item.modelName || ""} ${item.year || ""}`.trim(),
-        plate: formatPlate(item),
-        make: item.makeName || "",
-        model: item.modelName || "",
-        type: item.bodyType || "",
-        color: item.color || "",
-        year: item.year ,
-        status: mapStatusFromBackend(item.status),
-        customer: item.customerName,
-        returnTime: item.returnTime,
-        speed: item.speed,
-        location: item.location,
-        mapX: item.mapX,
-        mapY: item.mapY,
-        dailyRate: item.dailyRate || 0,
-        kmCap: item.kmCap,
-        utilization: item.utilization || 0,
-        plateNumber: item.plateNumber,
-        plateChar1: item.plateFirstLetter ?? item.plateChar1,
-        plateChar2: item.plateSecondLetter ?? item.plateChar2,
-        plateChar3: item.plateThirdLetter ?? item.plateChar3,
-        chassisNumber: item.chassisNumber === "UNKNOWN" ? "" : item.chassisNumber,
-        fuelTypeCode: item.fuelTypeCode,
-        extraKmCost: item.extraKmCost,
-        fullFuelCost: item.fullFuelCost,
-        lateFeePerHour: item.lateFeePerHour,
-        enduranceAmount: item.enduranceAmount,
-        bodyType: item.bodyType,
-        seats: item.seats,
-        transmission: item.transmission,
-        istamaraNumber: item.istamaraNumber,
-        istamaraExpiry: item.istamaraExpiry,
-        periodicInspectionExpiry: item.periodicInspectionExpiry,
-        insuranceCompany: item.insuranceCompany,
-        insurancePolicyNumber: item.insurancePolicyNumber,
-        insuranceExpiry: /^(0001|2001)-01-01/.test(String(item.insuranceExpiry ?? "")) ? "" : item.insuranceExpiry,
-        insuranceType: item.insuranceType,
-        registrationTypeCode: item.registrationTypeCode,
-        operationCardNumber: item.operationCardNumber,
-        operationCardExpiryDate: item.operationCardExpiryDate,
-        oilChangeDate: item.oilChangeDate,
-        insuranceAmount: item.insuranceAmount,
-        otherNotes: item.otherNotes,
-        imageUrls: item.images?.length
-          ? item.images
-              .filter((img: any) => {
-                const fileId = img.fileId ?? img.id ?? img.attachmentId;
-                const valid = typeof fileId === "number" && fileId > 0;
-                if (!valid) console.warn("Vehicle image without valid fileId:", img);
-                return valid;
-              })
-              .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-              .map((img: any) => `/api/attachments/${img.fileId ?? img.id ?? img.attachmentId}/download`)
-          : undefined,
-      }));
+      const transformedVehicles = detailedVehicles.map((item: any) => mapBackendVehicleToCar(item?.data ?? item));
       setVehicles(transformedVehicles);
     } catch (error) {
       console.error("Error loading vehicles:", error);
