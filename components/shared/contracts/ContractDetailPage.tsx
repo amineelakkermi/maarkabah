@@ -15,6 +15,7 @@ import { Avatar, Badge, Modal, Button, Chip, IconButton, Select } from "@/compon
 import type { Booking } from "@/lib/data";
 import { contractService, vehicleService } from "@/lib/api-services";
 import { ApiError } from "@/lib/api-client";
+import { describeApiError } from "@/lib/api-error-messages";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import * as Types from "@/lib/api-types";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -845,7 +846,7 @@ export default function ContractDetailPage({
           setActivateError(subErr instanceof Error ? subErr.message : "Unexpected error");
         }
       } else {
-        setActivateError(err instanceof Error ? err.message : "Unexpected error");
+        setActivateError(describeApiError(err, ar));
       }
     } finally {
       setActivating(false);
@@ -862,7 +863,7 @@ export default function ContractDetailPage({
       const ok = Boolean(d?.isValid ?? d?.valid ?? d?.success ?? true);
       setTajeerMsg({ ok, text: d?.message ?? d?.error ?? (ok ? T("Contract is valid for Tajeer", "العقد صالح لدى تاجير", ar) : T("Validation failed", "فشل التحقق", ar)) });
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar) });
     } finally {
       setTajeerBusy(false);
     }
@@ -878,7 +879,7 @@ export default function ContractDetailPage({
       const label = d?.statusText ?? d?.status ?? d?.executionStatus ?? d?.state ?? null;
       setTajeerMsg({ ok: true, text: label != null ? `${T("Tajeer status", "حالة تاجير", ar)}: ${label}` : JSON.stringify(d) });
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar) });
     } finally {
       setTajeerBusy(false);
     }
@@ -910,7 +911,7 @@ export default function ContractDetailPage({
       setTajeerLogs(Array.isArray(items) ? items : []);
       setTajeerLogsOpen(true);
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Failed to fetch Tajeer logs" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar, T("Failed to fetch Tajeer logs", "فشل جلب سجلات تاجير", ar)) });
     }
     setTajeerBusy(false);
   };
@@ -933,7 +934,7 @@ export default function ContractDetailPage({
       await refetchContract();
       setTajeerMsg({ ok: true, text: T("Contract synced from Tajeer", "تم تحديث العقد من تاجير", ar) });
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar) });
     } finally {
       setTajeerBusy(false);
     }
@@ -950,7 +951,7 @@ export default function ContractDetailPage({
       await refetchContract();
       setTajeerMsg({ ok: true, text: T("Payment recorded on Tajeer", "تم تسجيل الدفعة في تاجير", ar) });
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar) });
     } finally {
       setPaidBusy(false);
     }
@@ -975,7 +976,7 @@ export default function ContractDetailPage({
       await refetchContract();
       setTajeerMsg({ ok: true, text: T("Contract suspended on Tajeer", "تم تعليق العقد في تاجير", ar) });
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar) });
     } finally {
       setSuspendBusy(false);
     }
@@ -1006,7 +1007,7 @@ export default function ContractDetailPage({
         ? `${T("Calculated amount", "المبلغ المحسوب", ar)}: ${total} ${T("SAR", "ر.س", ar)}`
         : JSON.stringify(d));
     } catch (err) {
-      setCloseCalc(err instanceof Error ? err.message : "Calculation failed");
+      setCloseCalc(describeApiError(err, ar, T("Calculation failed", "فشل الحساب", ar)));
     } finally {
       setCloseCalcBusy(false);
     }
@@ -1027,7 +1028,7 @@ export default function ContractDetailPage({
       await refetchContract();
       setTajeerMsg({ ok: true, text: T("Contract closed on Tajeer", "تم إغلاق العقد في تاجير", ar) });
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar) });
     } finally {
       setCloseBusy(false);
     }
@@ -1044,7 +1045,7 @@ export default function ContractDetailPage({
       setShowRentStatus(false);
       setTajeerMsg({ ok: true, text: T("Vehicle rent status saved on Tajeer", "تم حفظ حالة المركبة في تاجير", ar) });
     } catch (err) {
-      setTajeerMsg({ ok: false, text: err instanceof Error ? err.message : "Unexpected error" });
+      setTajeerMsg({ ok: false, text: describeApiError(err, ar) });
     } finally {
       setRsBusy(false);
     }
@@ -1060,7 +1061,7 @@ export default function ContractDetailPage({
       setShowCancel(false);
       setCancelReason("");
     } catch (err) {
-      setCancelError(err instanceof Error ? err.message : "Unexpected error");
+      setCancelError(describeApiError(err, ar));
     } finally {
       setCancelling(false);
     }

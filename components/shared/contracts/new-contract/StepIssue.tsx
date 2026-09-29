@@ -507,8 +507,8 @@ export function StepIssue({
               </div>
             )}
             {fullFuelCost > 0 && (
-              <div className="flex justify-between text-mk-ink-600">
-                <span>+ {T("Full fuel cost", "تكلفة الوقود الممتلئ", ar)}</span>
+              <div className="flex justify-between text-mk-ink-400">
+                <span>{T("Full fuel rate (not charged)", "سعر الوقود الممتلئ (غير مفروض)", ar)}</span>
                 <span>{fullFuelCost.toLocaleString()} {T("SAR", "ريال", ar)}</span>
               </div>
             )}

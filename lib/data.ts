@@ -16,6 +16,7 @@ export interface Car {
   make: string;
   model: string;
   type: string;
+  categoryLabel?: string; // backend VehicleCategory label — also filterable by the type chips
   color: string;
   year: number;
   status: CarStatus;

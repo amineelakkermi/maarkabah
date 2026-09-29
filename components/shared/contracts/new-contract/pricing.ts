@@ -69,7 +69,10 @@ export function computePricing(p: PricingInput) {
   // real registered default is "no fee" until the employee enters one.
   const authorizationFare = p.internationalAuthorizationCost;
   const coverageFare = p.extendedCoverageId ? (p.additionalCoverageCost || SYSTEM_COVERAGE_BASE_COST) : 0;
-  const grossSubtotal = base + addonTotal + extraDriverFare + transferFare + authorizationFare + coverageFare + p.fullFuelCost;
+  // fullFuelCost is sent in the payload as the vehicle's fuel rate, but the
+  // backend doesn't bill it in the contract total — adding it here makes
+  // paidAmount exceed the backend total (Contract.PaidExceedsTotal).
+  const grossSubtotal = base + addonTotal + extraDriverFare + transferFare + authorizationFare + coverageFare;
   const discountAmount = p.discountType === "percent"
     ? Math.round(grossSubtotal * (p.discountPercent / 100))
     : Math.min(p.discountFlatAmount, grossSubtotal);

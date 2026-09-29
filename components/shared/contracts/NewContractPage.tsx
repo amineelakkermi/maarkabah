@@ -569,7 +569,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
 
   const availCars = backendCars.filter((c) => {
     const matchStatus = carStatusTab === "all" || c.status === carStatusTab;
-    const matchType = carFilter === "all" || c.type === carFilter;
+    const matchType = carFilter === "all" || c.type === carFilter || c.categoryLabel === carFilter;
     const q = carSearch.trim().toLowerCase();
     const matchSearch = !q ||
       c.name.toLowerCase().includes(q) ||

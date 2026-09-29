@@ -3,6 +3,22 @@ import { mapStatusFromBackend } from "@/lib/fleet";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import { ID_TYPE_CODES } from "./constants";
 
+// Backend sends bodyType/category as numeric enums (api-types.ts
+// VehicleBodyType / VehicleCategory). The filter chips on the picker use the
+// English canonical names, so map codes → labels here.
+const BODY_TYPE_LABELS: Record<number, string> = {
+  1: "Sedan", 2: "SUV", 3: "Coupe", 4: "Hatchback", 5: "Truck", 6: "Van", 7: "Motorcycle",
+};
+const CATEGORY_LABELS: Record<number, string> = {
+  1: "Economy", 2: "Compact", 3: "Midsize", 4: "Fullsize", 5: "Luxury", 6: "Sports", 7: "Commercial",
+};
+export const CAR_TYPE_AR: Record<string, string> = {
+  Sedan: "سيدان", SUV: "دفع رباعي", Coupe: "كوبيه", Hatchback: "هاتشباك",
+  Truck: "شاحنة", Van: "فان", Motorcycle: "دراجة",
+  Economy: "اقتصادية", Compact: "مدمجة", Midsize: "متوسطة", Fullsize: "كبيرة",
+  Luxury: "فاخرة", Sports: "رياضية", Commercial: "تجارية",
+};
+
 /* ── Backend → DriverProfile mapper (customer search/getById results) ──── */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapBackendCustomerToDriver(item: any): DriverProfile {
@@ -62,7 +78,8 @@ export function mapBackendVehicleToCar(item: any): Car {
     plate: formatPlate(item),
     make: item.makeName || "",
     model: item.modelName || "",
-    type: item.bodyType || "",
+    type: BODY_TYPE_LABELS[Number(item.bodyType)] || "",
+    categoryLabel: CATEGORY_LABELS[Number(item.category)] || "",
     color: item.color || "",
     year: item.year || 0,
     status: mapStatusFromBackend(item.status),

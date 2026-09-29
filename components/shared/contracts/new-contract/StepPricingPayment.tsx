@@ -114,7 +114,7 @@ export function StepPricingPayment({
           {/* Additional contract-specific costs — editable per contract nature */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-6">
             <PriceInput
-              label={T("Full fuel cost (SAR)", "تكلفة الوقود الممتلئ", ar)}
+              label={T("Full fuel rate (SAR) — not charged", "سعر الوقود الممتلئ — غير مفروض", ar)}
               value={fullFuelCost}
               defaultValue={car?.fullFuelCost || 0}
               onChange={setFullFuelCost}
@@ -326,8 +326,8 @@ export function StepPricingPayment({
               </div>
             )}
             {fullFuelCost > 0 && (
-              <div className="flex justify-between text-mk-ink-600">
-                <span>+ {T("Full fuel cost", "تكلفة الوقود الممتلئ", ar)}</span>
+              <div className="flex justify-between text-mk-ink-400">
+                <span>{T("Full fuel rate (not charged)", "سعر الوقود الممتلئ (غير مفروض)", ar)}</span>
                 <span>{fullFuelCost.toLocaleString()} {T("SAR", "ريال", ar)}</span>
               </div>
             )}

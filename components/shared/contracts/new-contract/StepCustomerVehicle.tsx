@@ -9,6 +9,7 @@ import { FleetAlertBadgeList, FleetAlertImageOverlay } from "@/components/employ
 import { VehicleTypeIcon } from "@/components/employee/VehicleTypeIcon";
 import { getAvailabilityText } from "@/lib/maps";
 import { T, getCustomerStatusTag, CUSTOMER_STATUS_META, NEIGHBORING_COUNTRIES } from "./constants";
+import { CAR_TYPE_AR } from "./mappers";
 import { PersonPicker } from "./PersonPicker";
 import { CarCardCarousel } from "./CarCardCarousel";
 import { VehicleConditionDrawer } from "./VehicleConditionDrawer";
@@ -656,7 +657,7 @@ export function StepCustomerVehicle({
                               {c.make} {c.model}
                             </div>
                             <div className="mk-overline mt-1 text-mk-ink-500">
-                              {c.plate} · {T(c.type, c.type === "Sedan" ? "سيدان" : c.type === "SUV" ? "دفع رباعي" : c.type === "Luxury" ? "فاخرة" : "اقتصادية", ar)} · {c.year}
+                              {c.plate} · {T(c.type, CAR_TYPE_AR[c.type] ?? c.type, ar)} · {c.year}
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0">
@@ -769,7 +770,7 @@ export function StepCustomerVehicle({
                         </div>
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <span className="mk-caption text-mk-ink-500">{c.plate}</span>
-                          <span className="mk-caption text-mk-ink-500">{T(c.type, c.type === "Sedan" ? "سيدان" : c.type === "SUV" ? "دفع رباعي" : c.type === "Luxury" ? "فاخرة" : "اقتصادية", ar)}</span>
+                          <span className="mk-caption text-mk-ink-500">{T(c.type, CAR_TYPE_AR[c.type] ?? c.type, ar)}</span>
                           <span className="flex items-center gap-1 mk-caption text-mk-ink-500">
                             <Gauge size={11} />{odometer.toLocaleString()} {T("km", "كم", ar)}
                           </span>

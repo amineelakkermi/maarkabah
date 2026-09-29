@@ -121,6 +121,86 @@ const RULES: { pattern: RegExp; message: (ar: boolean) => string }[] = [
       ar,
     ),
   },
+  {
+    pattern: /TajeerNotConfigured|tajeer.*(not configured|inactive)/i,
+    message: (ar) => T(
+      "The Tajeer integration isn't configured for this tenant.",
+      "تكامل تاجير غير مفعّل لهذا الحساب.",
+      ar,
+    ),
+  },
+  {
+    pattern: /general tajeer error|Tajeer\.General|Tajeer\.Error/i,
+    message: (ar) => T(
+      "Tajeer rejected the request — check the vehicle/contract data on the Tajeer portal, then retry.",
+      "رفض تاجير الطلب — تحقق من بيانات المركبة/العقد على بوابة تاجير ثم أعد المحاولة.",
+      ar,
+    ),
+  },
+  {
+    pattern: /TajeerRequired|requires tajeer/i,
+    message: (ar) => T(
+      "This tenant issues contracts through Tajeer — the contract must be submitted to Tajeer.",
+      "هذا الحساب يصدر العقود عبر تاجير — يجب إرسال العقد إلى تاجير.",
+      ar,
+    ),
+  },
+  {
+    pattern: /branches must have a tajeer external id/i,
+    message: (ar) => T(
+      "The selected branches aren't synced with Tajeer — run the branch sync in Settings → Tajeer.",
+      "الفروع المحددة غير مزامنة مع تاجير — قم بمزامنة الفروع من الإعدادات ← تاجير.",
+      ar,
+    ),
+  },
+  {
+    pattern: /operator.*national identity|contract operator/i,
+    message: (ar) => T(
+      "The contract operator's staff profile is missing a national identity number.",
+      "فشل الإرسال — ملف الموظف المنشئ للعقد لا يحتوي على رقم هوية وطنية.",
+      ar,
+    ),
+  },
+  {
+    pattern: /saved tajeer contract already exists/i,
+    message: (ar) => T(
+      "This vehicle already has an unsigned saved contract on Tajeer — issue or delete it there first.",
+      "لدى هذه المركبة عقد محفوظ غير موقّع على تاجير — أصدره أو احذفه من بوابة تاجير أولاً.",
+      ar,
+    ),
+  },
+  {
+    pattern: /tenant administrator cannot be modified/i,
+    message: (ar) => T(
+      "The tenant administrator account can't be modified.",
+      "لا يمكن تعديل حساب مدير الحساب الرئيسي.",
+      ar,
+    ),
+  },
+  {
+    pattern: /tajeer.?synced rent policy|rent policy.*tajeer/i,
+    message: (ar) => T(
+      "The selected rent policy isn't synced with Tajeer — pick a synced policy or sync policies from the Pricing page.",
+      "سياسة التأجير المحددة غير مزامنة مع تاجير — اختر سياسة متزامنة أو زامن السياسات من صفحة الأسعار.",
+      ar,
+    ),
+  },
+  {
+    pattern: /PaidExceedsTotal|paid amount cannot exceed/i,
+    message: (ar) => T(
+      "The paid amount cannot exceed the contract total — lower the payment or check the totals.",
+      "المبلغ المدفوع لا يمكن أن يتجاوز إجمالي العقد — خفّض الدفعة أو تحقق من الإجماليات.",
+      ar,
+    ),
+  },
+  {
+    pattern: /active or pending contract/i,
+    message: (ar) => T(
+      "The vehicle already has an active or pending contract.",
+      "لدى المركبة عقد نشط أو معلّق بالفعل.",
+      ar,
+    ),
+  },
 ];
 
 /**
