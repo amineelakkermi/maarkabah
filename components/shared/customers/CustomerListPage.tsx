@@ -201,7 +201,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3 mb-6 sm:mb-5">
         <div className="w-full sm:w-auto sm:flex-1 sm:max-w-[400px]">
           <Input
             variant="search"

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { tenantContextService, tenantSettingsService } from "@/lib/api-services";
 import { useAuth } from "./AuthContext";
-import { checkPermission, Permission, type PermissionRequirement } from "@/lib/permissions";
+import { checkPermission, type PermissionRequirement } from "@/lib/permissions";
 
 interface TenantContextData {
   tenantId?: number;
@@ -79,12 +79,14 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       setPermissions(perms);
 
       // Auto-approve flags: prefer the tenant-context settings blob; fall
-      // back to GET /tenant/settings only when the user may read it.
+      // back to GET /tenant/settings. The settings endpoint requires
+      // Settings.View, so employees without it get a 403 — swallowed, flags
+      // stay false and the KYC links remain visible (safe default).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sys: any = data?.settings?.system ?? data?.settings ?? data?.system ?? null;
       let ac = sys?.autoApproveCustomers;
       let ad = sys?.autoApproveDrivers;
-      if ((ac == null || ad == null) && checkPermission(perms, Permission.Settings.View)) {
+      if (ac == null || ad == null) {
         try {
           const res = await tenantSettingsService.getSettings();
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

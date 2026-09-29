@@ -76,7 +76,7 @@ function Panel({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-5 py-4 border-0 bg-transparent cursor-pointer text-start"
+        className="w-full flex items-center gap-2 px-4 sm:px-5 py-4 border-0 bg-transparent cursor-pointer text-start"
       >
         <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
           <Icon size={16} className="text-mk-blue-500" />
@@ -89,7 +89,7 @@ function Panel({
         )}
         <ChevronDown size={14} className={`text-mk-ink-400 transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && <div className="px-5 pb-5 pt-1 border-t border-mk-ink-100">{children}</div>}
+      {open && <div className="px-4 sm:px-5 pb-5 pt-1 border-t border-mk-ink-100">{children}</div>}
     </div>
   );
 }
@@ -417,19 +417,23 @@ export function VehicleDetailsPage({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
                       label={T("Registration number", "رقم الاستمارة", ar)}
+                      inputMode="numeric"
+                      dir="ltr"
                       value={form.registrationNumber}
                       onChange={(e) => setForm((f: any) => ({ ...f, registrationNumber: e.target.value }))}
-                    />
-                    <Input
-                      label={T("Serial number", "الرقم التسلسلي", ar)}
-                      value={form.serialNumber}
-                      onChange={(e) => setForm((f: any) => ({ ...f, serialNumber: e.target.value }))}
                     />
                     <Input
                       label={T("Registration expiry", "انتهاء الاستمارة", ar)}
                       type="date"
                       value={form.registrationExpiryDate}
                       onChange={(e) => setForm((f: any) => ({ ...f, registrationExpiryDate: e.target.value }))}
+                    />
+                    <Input
+                      label={T("Serial number", "الرقم التسلسلي", ar)}
+                      inputMode="numeric"
+                      dir="ltr"
+                      value={form.serialNumber}
+                      onChange={(e) => setForm((f: any) => ({ ...f, serialNumber: e.target.value }))}
                     />
                     <Input
                       label={T("Inspection expiry", "انتهاء الفحص", ar)}
@@ -439,6 +443,8 @@ export function VehicleDetailsPage({
                     />
                     <Input
                       label={T("Operation card number", "رقم بطاقة التشغيل", ar)}
+                      inputMode="numeric"
+                      dir="ltr"
                       value={form.operationCardNumber}
                       onChange={(e) => setForm((f: any) => ({ ...f, operationCardNumber: e.target.value }))}
                     />
@@ -450,10 +456,12 @@ export function VehicleDetailsPage({
                     />
                     <Input
                       label={T("Customs number (optional)", "رقم الجمارك (اختياري)", ar)}
+                      inputMode="numeric"
+                      dir="ltr"
                       value={form.customsNumber}
                       onChange={(e) => setForm((f: any) => ({ ...f, customsNumber: e.target.value }))}
                     />
-                    <div className="col-span-2 flex flex-col gap-2">
+                    <div className="sm:col-span-2 flex flex-col gap-2">
                       <label className="mk-overline text-mk-ink-500 uppercase tracking-wider">{T("Other notes", "أخرى", ar)}</label>
                       <textarea
                         value={form.otherNotes}
@@ -650,28 +658,40 @@ export function VehicleDetailsPage({
                     <Input
                       label={T("Daily rate *", "السعر اليومي *", ar)}
                       type="number"
+                      inputMode="decimal"
+                      min="0"
+                      dir="ltr"
                       value={form.dailyRate}
                       onChange={(e) => setForm((f: any) => ({ ...f, dailyRate: e.target.value }))}
                     />
                     <Input
                       label={T("Late hour rate", "سعر ساعة التأخير", ar)}
                       type="number"
+                      inputMode="decimal"
+                      min="0"
+                      dir="ltr"
                       value={form.lateHourRate}
                       onChange={(e) => setForm((f: any) => ({ ...f, lateHourRate: e.target.value }))}
                     />
                     <Input
                       label={T("Extra km rate", "سعر الكيلومتر الإضافي", ar)}
                       type="number"
+                      inputMode="decimal"
+                      min="0"
+                      dir="ltr"
                       value={form.extraKilometerRate}
                       onChange={(e) => setForm((f: any) => ({ ...f, extraKilometerRate: e.target.value }))}
                     />
                     <Input
                       label={T("Full fuel rate", "سعر تعبئة الوقود", ar)}
                       type="number"
+                      inputMode="decimal"
+                      min="0"
+                      dir="ltr"
                       value={form.fullFuelRate}
                       onChange={(e) => setForm((f: any) => ({ ...f, fullFuelRate: e.target.value }))}
                     />
-                    <div className="col-span-2 flex items-center justify-between py-2">
+                    <div className="sm:col-span-2 flex items-center justify-between py-2">
                       <span className="mk-caption text-mk-ink-700">{T("Enable daily km limit", "تفعيل حد الكيلومتر اليومي", ar)}</span>
                       <Toggle
                         checked={!!form.isKilometerLimitEnabled}
@@ -682,6 +702,9 @@ export function VehicleDetailsPage({
                       <Input
                         label={T("Daily km limit", "حد الكيلومتر اليومي", ar)}
                         type="number"
+                        inputMode="numeric"
+                        min="0"
+                        dir="ltr"
                         value={form.dailyKilometerLimit}
                         onChange={(e) => setForm((f: any) => ({ ...f, dailyKilometerLimit: e.target.value }))}
                       />
