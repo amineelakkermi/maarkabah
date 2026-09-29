@@ -27,7 +27,7 @@ export function StickyFooter({
   if (!(step < 3 || contractStep === "idle" || contractStep === "pending_signature" || contractStep === "error")) return null;
 
   return (
-    <div className="sticky bottom-0 z-40 mk-surface border border-mk-border py-4 px-6 flex justify-between items-center shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-xl mt-6 animate-[fi_0.22s_ease-out]">
+    <div className="sticky bottom-0 z-40 mk-surface border border-mk-border py-4 px-4 sm:px-6 flex justify-between items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-xl mt-6 animate-[fi_0.22s_ease-out]">
       {/* Back Button */}
       {step > 0 && (contractStep === "idle" || contractStep === "error") ? (
         <Button
@@ -61,19 +61,19 @@ export function StickyFooter({
       </div>
 
       {/* Action CTAs */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 min-w-0 sm:shrink-0">
         {step === 0 && (
           <Button
             onClick={() => onStepChange(1)}
             disabled={!canContinueFromStep0}
-            className="shadow-[var(--shadow-glow-blue)] shrink-0 whitespace-nowrap"
+            className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap"
           >
             {T("Continue", "متابعة", ar)}
             {ar ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
           </Button>
         )}
         {step === 1 && (
-          <Button variant="primary" onClick={() => onStepChange(2)} className="shadow-[var(--shadow-glow-blue)] shrink-0 whitespace-nowrap">
+          <Button variant="primary" onClick={() => onStepChange(2)} className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
             {T("Continue to payment", "متابعة إلى الدفع", ar)}
             {ar ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
           </Button>
@@ -81,7 +81,7 @@ export function StickyFooter({
         {step === 2 && (
           <Button
             onClick={() => onStepChange(3)}
-            className="shadow-[var(--shadow-glow-blue)] shrink-0 whitespace-nowrap"
+            className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap"
           >
             <CreditCard size={14} />
             {payType === "advance"
@@ -94,21 +94,21 @@ export function StickyFooter({
           <>
             {contractStep === "idle" && (
               <Button variant="primary" onClick={onIssue}
-                className="shadow-[var(--shadow-glow-blue)] shrink-0 whitespace-nowrap">
+                className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
                 <FileText size={15} />
                 {T("Issue Unified Contract", "إصدار العقد الموحد", ar)}
               </Button>
             )}
             {contractStep === "pending_signature" && otpComplete && (
               <Button variant="primary" onClick={onCheckSignature}
-                className="shadow-[var(--shadow-glow-blue)] shrink-0 whitespace-nowrap">
+                className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
                 <Check size={14} />
                 {T("Check signature status", "التحقق من حالة التوقيع", ar)}
               </Button>
             )}
             {contractStep === "error" && (
               <Button variant="primary" onClick={onRetry}
-                className="shadow-[var(--shadow-glow-blue)] shrink-0 whitespace-nowrap">
+                className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
                 {T("Try again", "حاول مرة أخرى", ar)}
               </Button>
             )}

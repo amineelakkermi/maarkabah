@@ -62,7 +62,7 @@ export function StepPricingPayment({
 
       {/* Right column (RTL): Pricing details — its own card, editable per contract nature */}
       <div className="flex flex-col gap-4">
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="mk-h4 mb-6 text-mk-ink-900">{T("Pricing Details", "تفاصيل أسعار العقد", ar)}</div>
 
           {/* Rates registered on the vehicle profile */}
@@ -227,7 +227,7 @@ export function StepPricingPayment({
       <div className="flex flex-col gap-4">
 
         {/* Payment type & method */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-6">
             <div className="mk-h4 flex-1 text-mk-ink-900">{T("Payment", "الدفع", ar)}</div>
             <Badge variant="warning" dot>{T("Awaiting capture", "بانتظار الخصم", ar)}</Badge>
@@ -279,7 +279,7 @@ export function StepPricingPayment({
         </div>
 
         {/* Price breakdown */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-6">
             <div className="mk-h4 text-mk-ink-900 uppercase tracking-wider">{T("Price Breakdown", "تفاصيل الأسعار", ar)}</div>
           </div>

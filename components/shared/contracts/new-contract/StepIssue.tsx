@@ -84,7 +84,7 @@ export function StepIssue({
 
         {/* IDLE: detailed review + issue button */}
         {contractStep === "idle" && (
-          <div className="mk-surface rounded-xl p-6 ">
+          <div className="mk-surface rounded-xl p-4 sm:p-6 ">
             <div className="flex items-center gap-2 mb-6">
               <div className="mk-h4 flex-1 text-mk-ink-900">{T("Review & Issue Contract", "مراجعة وإصدار العقد", ar)}</div>
               <Button variant="tonal" size="sm" onClick={onOpenPreview}>
@@ -129,7 +129,7 @@ export function StepIssue({
                     so renter data is shown as plain info, matching the rest of the contract details. */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {renterIdentityFields.map((f) => (
-                    <div key={f.key} className={`flex flex-col ${f.type === "hijri" ? "col-span-2" : ""}`}>
+                    <div key={f.key} className={`flex flex-col ${f.type === "hijri" ? "sm:col-span-2" : ""}`}>
                       <span className="mk-overline text-mk-ink-400 uppercase">
                         {T(f.labelEn, f.labelAr, ar)}{f.required && <span className="text-mk-danger"> *</span>}
                       </span>
@@ -199,7 +199,7 @@ export function StepIssue({
                   <span className="mk-label-muted text-mk-ink-700 mt-1">{rentStatus.oilChangeDate || "—"}</span>
                 </div>
                 {car?.otherNotes && (
-                  <div className="flex flex-col col-span-2">
+                  <div className="flex flex-col sm:col-span-2">
                     <span className="mk-overline text-mk-ink-400 uppercase">{T("Other", "أخرى", ar)}</span>
                     <span className="mk-label-muted text-mk-ink-700 mt-1">{car.otherNotes}</span>
                   </div>
@@ -209,7 +209,7 @@ export function StepIssue({
               {/* Vehicle condition & inspection at pickup */}
               <div className="pb-3 border-b border-mk-ink-100">
                 <div className="mk-overline text-mk-ink-400 uppercase mb-2">{T("Inspection & Vehicle Condition at Pickup", "بيانات الفحص وحالة المركبة عند الاستلام", ar)}</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[
                     { k: T("Fuel", "الوقود", ar), v: TAJEER_LOOKUPS.availableFuelOptions.find(o => o.code === rentStatus.availableFuel)?.[ar ? "ar" : "en"] ?? "—" },
                     { k: T("Odometer", "العداد الحالي", ar), v: `${(rentStatus.odometerReading ?? 0).toLocaleString()} ${T("km", "كم", ar)}` },
@@ -336,7 +336,7 @@ export function StepIssue({
 
         {/* SAVING */}
         {contractStep === "saving" && (
-          <div className="mk-surface rounded-xl p-6 text-center py-16">
+          <div className="mk-surface rounded-xl p-4 sm:p-6 text-center py-16">
             <div className="mk-display-lg animate-spin inline-block mb-4">⟳</div>
             <div className="mk-h4 mb-2 text-mk-ink-900">{T("Saving contract…", "جاري حفظ العقد…", ar)}</div>
             <p className="mk-label text-mk-ink-500">{T("Issuing contract. Please wait…", "يتم إصدار العقد، يرجى الانتظار…", ar)}</p>
@@ -345,7 +345,7 @@ export function StepIssue({
 
         {/* VERIFICATION & SIGNATURE — merged into one screen */}
         {contractStep === "pending_signature" && tajeerResponse && (
-          <div className="mk-surface rounded-xl p-6">
+          <div className="mk-surface rounded-xl p-4 sm:p-6">
             <div className="text-center mb-5">
               <div className="mk-display-lg mb-2">{otpDigits.every(d => d !== "") ? "⏳" : "🪪"}</div>
               <div className="mk-h4 mb-1 text-mk-ink-900">
@@ -403,7 +403,7 @@ export function StepIssue({
             )}
 
             {/* Payment summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
               {[
                 { k: T("Paid", "المدفوع", ar), v: tajeerResponse.totalPaymentDetails?.paid },
                 { k: T("Remaining", "المتبقي", ar), v: tajeerResponse.totalPaymentDetails?.remaining },
@@ -426,7 +426,7 @@ export function StepIssue({
 
         {/* ISSUED */}
         {contractStep === "issued" && tajeerResponse && (
-          <div className="mk-surface rounded-xl p-6 text-center">
+          <div className="mk-surface rounded-xl p-4 sm:p-6 text-center">
             <div className="mk-display-lg mb-3">✅</div>
             <div className="mk-h4 mb-2 text-mk-ink-900">{T("Contract issued successfully!", "تم إبرام العقد بنجاح!", ar)}</div>
             <p className="mk-label text-mk-ink-500 mb-2">{T("Contract no.", "رقم العقد", ar)}: <strong className="font-mono text-mk-blue-500 mk-body">{tajeerResponse.contractNumber}</strong></p>
@@ -449,7 +449,7 @@ export function StepIssue({
 
         {/* ERROR */}
         {contractStep === "error" && (
-          <div className="mk-surface rounded-xl p-6 text-center">
+          <div className="mk-surface rounded-xl p-4 sm:p-6 text-center">
             <div className="mk-display-lg mb-3">❌</div>
             <div className="mk-h4 mb-2 text-mk-ink-900">{T("An error occurred", "حدث خطأ", ar)}</div>
             <p className="mk-label text-mk-danger-700 mb-5 px-4 py-3 rounded-lg bg-mk-danger-100">{tajeerError}</p>
@@ -463,7 +463,7 @@ export function StepIssue({
       {/* Delivery actions */}
       <div className="flex flex-col gap-4">
         {/* Financial breakdown — beside the review column */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="mk-h4 mb-6 text-mk-ink-900">{T("Pricing Breakdown", "تفصيل الحساب المالي", ar)}</div>
           <div className="flex flex-col gap-2.5 mk-caption">
             <div className="flex justify-between">

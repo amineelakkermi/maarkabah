@@ -36,7 +36,7 @@ export function ContractStepper({ ar, step, onStepChange }: { ar: boolean; step:
         </div>
 
         {/* Segmented Progress Track */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 my-4">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 my-4">
           {STEPS.map((_, i) => (
             <button
               key={i}

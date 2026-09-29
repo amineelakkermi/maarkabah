@@ -118,7 +118,7 @@ export function StepCustomerVehicle({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Contract info card */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="mk-h4 mb-6 text-mk-ink-900">{T("Renter info", "بيانات المستأجر", ar)}</div>
           <div>
 
@@ -291,7 +291,7 @@ export function StepCustomerVehicle({
         </div>
 
         {/* Drivers card */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="mk-h4 mb-6 text-mk-ink-900">{T("Authorization & Drivers", "بيانات التفويض", ar)}</div>
           <div>
 
@@ -511,7 +511,7 @@ export function StepCustomerVehicle({
       {/* Vehicle selection — full width; condition & diagram open in a modal per vehicle */}
       <div className="grid grid-cols-1 gap-4 items-start">
         {/* 1. VEHICLE SELECTOR CARD */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <div className="flex-1 min-w-[160px]">
@@ -522,7 +522,7 @@ export function StepCustomerVehicle({
             </div>
 
             {/* Search */}
-            <div className="flex-1 min-w-[220px] max-w-[380px]">
+            <div className="w-full sm:flex-1 sm:min-w-[220px] sm:max-w-[380px]">
               <Input
                 variant="default"
                 icon={<Search size={14} />}

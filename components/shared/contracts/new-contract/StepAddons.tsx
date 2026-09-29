@@ -88,7 +88,7 @@ export function StepAddons({
       <div className="flex flex-col gap-4">
 
         {/* Vehicle, handover branches & km/delay limits — merged */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="mk-h4 mb-6 text-mk-ink-900">{T("Vehicle & Handover", "معلومات السيارة والتسليم", ar)}</div>
 
           {/* Selected vehicle */}
@@ -189,7 +189,7 @@ export function StepAddons({
         </div>
 
         {/* Rental policy — office-selectable, auto-reflected on the contract */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="mk-h4 mb-6 text-mk-ink-900">{T("Rental policy", "سياسة التأجير", ar)}</div>
 
           {/* Comprehensive insurance — mandatory, included on every contract */}
@@ -283,7 +283,7 @@ export function StepAddons({
       <div className="flex flex-col gap-4 sticky top-[18px]">
 
         {/* 1. ADDITIONAL SERVICES / ADD-ONS CARD */}
-        <div className="mk-surface rounded-xl p-6">
+        <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-6">
             <div className="mk-h4 flex-1 text-mk-ink-900">{T("Add-ons", "الخدمات الإضافية", ar)}</div>
             <span className="mk-caption text-mk-ink-400">{T("Optional", "اختياري", ar)}</span>
