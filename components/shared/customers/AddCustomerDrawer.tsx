@@ -183,7 +183,7 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
 
     if (newIdType === "Saudi ID" || newIdType === "Iqama") {
       const fields: IdentityFieldDef[] = [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: newId, onChange: setNewId },
+        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: newId, onChange: (v) => setNewId(newIdType === "Saudi ID" ? v.replace(/\D/g, "").slice(0, 10) : v) },
         addressField,
         {
           key: "birthDate",
@@ -278,6 +278,9 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
 
     if (!newNameAr.trim()) errors.push(T("Arabic full name is required", "الاسم الكامل بالعربية مطلوب", ar));
     if (!isValidSaudiPhone) errors.push(T("Enter a valid Saudi phone number", "أدخل رقم هاتف سعودي صحيح", ar));
+    if (newIdType === "Saudi ID" && newId.trim() && !/^\d{1,10}$/.test(newId.trim())) {
+      errors.push(T("National ID must not exceed 10 digits", "رقم الهوية الوطنية يجب ألا يتجاوز 10 أرقام", ar));
+    }
     if (email && !isValidEmail) errors.push(T("Enter a valid email address", "أدخل بريدًا إلكترونيًا صحيحا", ar));
     if (requiresEmailAndCountry && !email) errors.push(T("Email is required", "البريد الإلكتروني مطلوب", ar));
     if (requiresEmailAndCountry && !newCountryId) errors.push(T("Country is required", "الدولة مطلوبة", ar));

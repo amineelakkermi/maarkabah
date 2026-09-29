@@ -320,6 +320,10 @@ export default function CustomerDetailPage() {
       (field) => field.required && !String(field.value ?? "").trim()
     );
 
+    if (isSaudi && draft.idNumber.trim() && !/^\d{1,10}$/.test(draft.idNumber.trim())) {
+      alert(T("National ID must not exceed 10 digits", "رقم الهوية الوطنية يجب ألا يتجاوز 10 أرقام", ar));
+      return;
+    }
     if (!draft.nameAr.trim() || !isValidSaudiPhone || !isValidEmail || requiredIdentityFieldMissing) {
       alert(T("Please complete all required fields with valid values.", "يرجى تعبئة جميع الحقول المطلوبة بقيم صحيحة.", ar));
       return;
@@ -417,7 +421,7 @@ export default function CustomerDetailPage() {
 
     if (d.idType === "Saudi ID" || d.idType === "Iqama") {
       const fields: IdentityFieldDef[] = [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.idNumber, onChange: (v) => updateDraft("idNumber", v) },
+        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.idNumber, onChange: (v) => updateDraft("idNumber", d.idType === "Saudi ID" ? v.replace(/\D/g, "").slice(0, 10) : v) },
         addressField,
       ];
       if (d.idType === "Saudi ID") {

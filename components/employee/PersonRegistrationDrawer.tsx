@@ -83,7 +83,7 @@ export function PersonRegistrationDrawer({ open, onClose, onCreate, ar, titleEn,
 
     if (idType === "Saudi ID" || idType === "Iqama") {
       return [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: idNumber, onChange: setIdNumber },
+        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: idNumber, onChange: (v) => setIdNumber(idType === "Saudi ID" ? v.replace(/\D/g, "").slice(0, 10) : v) },
         addressField,
         {
           key: "birthDate",

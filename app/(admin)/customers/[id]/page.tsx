@@ -352,6 +352,10 @@ export default function CustomerDetailPage() {
 
   async function saveEditing() {
     if (!draft || !client) return;
+    if (draft.idType === "Saudi ID" && draft.idNumber.trim() && !/^\d{1,10}$/.test(draft.idNumber.trim())) {
+      alert(T("National ID must not exceed 10 digits", "رقم الهوية الوطنية يجب ألا يتجاوز 10 أرقام", ar));
+      return;
+    }
     try {
       const isSaudi = draft.idType === "Saudi ID";
       const isIqama = draft.idType === "Iqama";
@@ -445,7 +449,7 @@ export default function CustomerDetailPage() {
 
     if (d.idType === "Saudi ID" || d.idType === "Iqama") {
       const fields: IdentityFieldDef[] = [
-        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.idNumber, onChange: (v) => updateDraft("idNumber", v) },
+        { key: "idNumber", labelEn: "Beneficiary ID No.", labelAr: "رقم هوية المستفيد", required: true, type: "text", value: d.idNumber, onChange: (v) => updateDraft("idNumber", d.idType === "Saudi ID" ? v.replace(/\D/g, "").slice(0, 10) : v) },
         addressField,
       ];
       if (d.idType === "Saudi ID") {
