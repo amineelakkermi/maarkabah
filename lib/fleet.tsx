@@ -41,13 +41,13 @@ export const AR_LABELS: Record<string, string> = {
   Electric: "كهربائي",
   Automatic: "أوتوماتيك",
   Manual: "يدوي",
-  Available: "يوجد",
-  Rented: "مؤجر",
+  Available: "متاحة",
+  Rented: "مؤجرة",
   Maintenance: "صيانة",
-  Reserved: "محجوز",
-  Inactive: "غير نشط",
+  Reserved: "محجوزة",
+  Inactive: "غير نشطة",
   Draft: "مسودة",
-  Overdue: "متأخر",
+  Overdue: "متأخرة",
   Full: "ممتلئ",
   ThreeQuarters: "ثلاثة أرباع",
   Half: "نصف",
@@ -327,11 +327,13 @@ export function extractVehicleImageFileIds(raw: any): number[] {
 export function extractVehicleValidationErrors(error: any): Record<string, string> {
   const result: Record<string, string> = {};
   const sources = [error?.response?.errors, error?.response?.details?.errors, error?.response?.details, error?.errors];
+  // Envelope keys (e.g. `details.error`, top-level `message`) are not form fields.
+  const ENVELOPE_KEYS = new Set(["error", "message", "title", "code", "detail", "details", "traceid"]);
 
   const collect = (value: unknown, path = "") => {
     if (Array.isArray(value) || typeof value === "string") {
       const field = path.split(".").filter(Boolean).pop();
-      if (!field) return;
+      if (!field || ENVELOPE_KEYS.has(field.toLowerCase())) return;
       const key = field.charAt(0).toLowerCase() + field.slice(1);
       const message = Array.isArray(value) ? value.filter((item) => typeof item === "string").join(" ") : value;
       if (message) result[key] = message;
@@ -342,6 +344,11 @@ export function extractVehicleValidationErrors(error: any): Record<string, strin
   };
 
   sources.forEach((source) => collect(source));
+  // Backend may key the duplicate-plate error as "Plate" — the form field is plateNumber.
+  if (result.plate && !result.plateNumber) {
+    result.plateNumber = result.plate;
+    delete result.plate;
+  }
   return result;
 }
 

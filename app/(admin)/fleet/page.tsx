@@ -194,9 +194,8 @@ export default function FleetPage() {
       console.error("Error saving vehicle:", error);
       const validationErrors = extractVehicleValidationErrors(error);
       setFieldErrors(validationErrors);
-      if (Object.keys(validationErrors).length === 0) {
-        showToast(describeApiError(error, ar, T("Failed to save vehicle", "فشل حفظ السيارة", ar)), "error");
-      }
+      // Always toast — field errors may sit on a hidden wizard step/panel.
+      showToast(describeApiError(error, ar, T("Failed to save vehicle", "فشل حفظ السيارة", ar)), "error");
     } finally {
       setSaving(false);
     }

@@ -81,9 +81,10 @@ export function mapBackendVehicleToCar(item: any): Car {
     plateChar3: item.plateThirdLetter ?? item.plateChar3 ?? "",
     chassisNumber: item.chassisNumber === "UNKNOWN" ? "" : (item.chassisNumber || ""),
     fuelTypeCode: item.fuelTypeCode || 1,
-    extraKmCost: item.extraKmCost || 0,
-    fullFuelCost: item.fullFuelCost || 0,
-    lateFeePerHour: item.lateFeePerHour || 0,
+    // Backend field names: extraKilometerRate / fullFuelRate / lateHourRate.
+    extraKmCost: item.extraKmCost ?? item.extraKilometerRate ?? 0,
+    fullFuelCost: item.fullFuelCost ?? item.fullFuelRate ?? 0,
+    lateFeePerHour: item.lateFeePerHour ?? item.lateHourRate ?? 0,
     enduranceAmount: item.enduranceAmount || 0,
     bodyType: item.bodyType || "",
     seats: item.seats || 0,

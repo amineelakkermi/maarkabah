@@ -50,6 +50,14 @@ const fieldLabel = (name: string, ar: boolean) => {
 // Ordered pattern → localized message rules. First match wins.
 const RULES: { pattern: RegExp; message: (ar: boolean) => string }[] = [
   {
+    pattern: /plate.*(exist|already|taken|used|duplicate)|duplicate.*plate|Vehicle\.DuplicatePlate/i,
+    message: (ar) => T(
+      "A vehicle with this plate number and letters already exists — change the plate.",
+      "توجد مركبة مسجّلة بنفس رقم وحروف اللوحة — قم بتغيير اللوحة.",
+      ar,
+    ),
+  },
+  {
     pattern: /phone.*(exist|already|taken|used|duplicate)/i,
     message: (ar) => T(
       "A user with this phone number already exists — change the phone number.",

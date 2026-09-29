@@ -346,6 +346,54 @@ export function VehicleDetailsPage({
         <CompletionBar pct={pct} missing={missing} ar={ar} />
       </div>
 
+      {/* Fleet status — quick access at the top of the page */}
+      <div className="rounded-lg p-4 sm:px-5 mb-4 mk-surface mk-shadow-8 border border-mk-ink-100">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+          <div className="flex-1 min-w-0 sm:max-w-[280px]">
+            <FL label={T("Fleet status", "حالة الأسطول", ar)}>
+              <Select
+                value={form.status}
+                onChange={(e) => setForm((f: any) => ({ ...f, status: e.target.value }))}
+              >
+                {enumOptions(Types.VehicleFleetStatus, AR_LABELS)}
+              </Select>
+            </FL>
+          </div>
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            <span className="mk-caption text-mk-ink-700">{T("Listing active", "الإدراج نشط", ar)}</span>
+            <Toggle
+              checked={!!form.isListingActive}
+              onChange={(v) => setForm((f: any) => ({ ...f, isListingActive: v }))}
+            />
+          </div>
+          {editingVehicleId && (
+            <div className="flex items-center gap-2 sm:ms-auto">
+              {statusLockedByContract ? (
+                <p className="mk-caption flex items-center gap-1.5 text-mk-ink-500">
+                  <Info size={13} className="shrink-0" />
+                  {T("Status is managed by the active contract", "الحالة مرتبطة بالعقد النشط", ar)}
+                </p>
+              ) : (
+                <>
+                  {statusNum !== Types.VehicleFleetStatus.Available && (
+                    <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
+                      onClick={() => handleLifecycle("activate")}>
+                      <Power size={13} />{T("Activate", "تفعيل", ar)}
+                    </Button>
+                  )}
+                  {statusNum !== Types.VehicleFleetStatus.Inactive && (
+                    <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
+                      onClick={() => handleLifecycle("deactivate")}>
+                      <Power size={13} />{T("Deactivate", "إيقاف", ar)}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       <form id="vehicle-details-form" onSubmit={onSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* ── LEFT: info panels ─────────────────────────────── */}
@@ -723,74 +771,29 @@ export function VehicleDetailsPage({
               onToggle={() => togglePanel("status")}
             >
               <div className="flex flex-col gap-5">
-                <div>
-                  <FL label={T("Fleet status", "حالة الأسطول", ar)}>
-                    <Select
-                      value={form.status}
-                      onChange={(e) => setForm((f: any) => ({ ...f, status: e.target.value }))}
-                    >
-                      {enumOptions(Types.VehicleFleetStatus, AR_LABELS)}
-                    </Select>
-                  </FL>
-                  <div className="flex items-center justify-between py-3 mt-2">
-                    <span className="mk-caption text-mk-ink-700">{T("Listing active", "الإدراج نشط", ar)}</span>
-                    <Toggle
-                      checked={!!form.isListingActive}
-                      onChange={(v) => setForm((f: any) => ({ ...f, isListingActive: v }))}
-                    />
-                  </div>
-
-                  {editingVehicleId && (
-                    <div className="mt-2">
-                      {statusLockedByContract ? (
-                        <p className="mk-caption flex items-center gap-1.5 text-mk-ink-500">
-                          <Info size={13} className="shrink-0" />
-                          {T("Status is managed by the active contract", "الحالة مرتبطة بالعقد النشط", ar)}
-                        </p>
-                      ) : (
-                        <div className="flex gap-2">
-                          {statusNum !== Types.VehicleFleetStatus.Available && (
-                            <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
-                              onClick={() => handleLifecycle("activate")}>
-                              <Power size={13} />{T("Activate", "تفعيل", ar)}
-                            </Button>
-                          )}
-                          {statusNum !== Types.VehicleFleetStatus.Inactive && (
-                            <Button type="button" variant="outline" size="sm" disabled={lifecycleBusy}
-                              onClick={() => handleLifecycle("deactivate")}>
-                              <Power size={13} />{T("Deactivate", "إيقاف", ar)}
-                            </Button>
-                          )}
+                {editingVehicleId && transfers && transfers.length > 0 && (
+                  <div>
+                    <div className="mk-overline uppercase mb-2 text-mk-ink-400 tracking-wider flex items-center gap-1.5">
+                      <History size={12} />{T("Transfer history", "سجل النقل", ar)}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {transfers.slice(0, 5).map((t: any, i: number) => (
+                        <div key={t.id ?? i} className="flex items-center gap-2 mk-caption text-mk-ink-600">
+                          <span className="flex-1 truncate">
+                            {(ar ? t.fromBranchNameAr : t.fromBranchNameEn) ?? t.fromBranchName ?? "—"}
+                            {" → "}
+                            {(ar ? t.toBranchNameAr : t.toBranchNameEn) ?? t.toBranchName ?? "—"}
+                          </span>
+                          <span className="text-mk-ink-400 font-mono shrink-0">
+                            {String(t.occurredAtUtc ?? t.createdAtUtc ?? "").slice(0, 10)}
+                          </span>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {editingVehicleId && transfers && transfers.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-mk-ink-100">
-                      <div className="mk-overline uppercase mb-2 text-mk-ink-400 tracking-wider flex items-center gap-1.5">
-                        <History size={12} />{T("Transfer history", "سجل النقل", ar)}
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        {transfers.slice(0, 5).map((t: any, i: number) => (
-                          <div key={t.id ?? i} className="flex items-center gap-2 mk-caption text-mk-ink-600">
-                            <span className="flex-1 truncate">
-                              {(ar ? t.fromBranchNameAr : t.fromBranchNameEn) ?? t.fromBranchName ?? "—"}
-                              {" → "}
-                              {(ar ? t.toBranchNameAr : t.toBranchNameEn) ?? t.toBranchName ?? "—"}
-                            </span>
-                            <span className="text-mk-ink-400 font-mono shrink-0">
-                              {String(t.occurredAtUtc ?? t.createdAtUtc ?? "").slice(0, 10)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-
-                <div className="pt-4 border-t border-mk-ink-100">
+                <div className={editingVehicleId && transfers && transfers.length > 0 ? "pt-4 border-t border-mk-ink-100" : ""}>
                   <SectionBadge>{T("Maintenance", "الصيانة", ar)}</SectionBadge>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
