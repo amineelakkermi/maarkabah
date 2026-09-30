@@ -145,7 +145,7 @@ export default function DashboardPage() {
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-3 rounded-lg px-5 py-4 min-w-[200px] mk-surface no-underline transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50"
+            className="flex items-center gap-3 rounded-lg px-4 sm:px-5 py-4 min-w-[200px] flex-1 mk-surface no-underline transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50"
           >
             <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${iconBg} ${iconColor}`}>
               <Icon size={18} />
@@ -161,7 +161,7 @@ export default function DashboardPage() {
       {/* Two-column grid */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-[2fr_1fr]">
         {/* Today's pickups */}
-        <div className="rounded-xl p-6 mk-surface">
+        <div className="rounded-xl p-4 sm:p-6 mk-surface">
           <div className="flex items-center gap-3 mb-4">
             <div className="mk-h4 flex-1 text-mk-ink-900 tracking-tight">
               {T("Today's pickups & returns", "تسليمات وإرجاعات اليوم", ar)}
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                 return (
                 <div
                   key={b.id}
-                  className="flex flex-wrap items-center gap-3 rounded-lg px-5 py-4 bg-white border border-mk-ink-100 shadow-[var(--shadow-card)] cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50"
+                  className="flex flex-wrap items-center gap-3 rounded-lg px-4 sm:px-5 py-4 bg-white border border-mk-ink-100 shadow-[var(--shadow-card)] cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50"
                 >
                   <div className="text-center min-w-14">
                     <div className="mk-h4 text-mk-ink-900">{b.time}</div>
@@ -238,7 +238,7 @@ export default function DashboardPage() {
         {/* Right column */}
         <div className="flex flex-col gap-4">
           {/* Revenue sparkline */}
-          <div className="rounded-xl p-6 mk-surface">
+          <div className="rounded-xl p-4 sm:p-6 mk-surface">
             <div className="flex items-center gap-3 mb-2">
               <div className="mk-h4 flex-1 text-mk-ink-900 tracking-tight">
                 {period === "week" ? T("Revenue · 7 days", "الإيرادات · ٧ أيام", ar) : T("Revenue · 30 days", "الإيرادات · ٣٠ يوم", ar)}
@@ -265,14 +265,17 @@ export default function DashboardPage() {
               <>
                 <Spark data={data!.revenue.map((d) => d.value)} color="var(--color-mk-blue-500)" />
                 <div className="flex justify-between mt-2 mk-overline text-mk-ink-500">
-                  {data!.revenue.map((d, i) => <span key={i}>{d.label}</span>)}
+                  {(data!.revenue.length <= 10
+                    ? data!.revenue
+                    : [data!.revenue[0], data!.revenue[data!.revenue.length - 1]]
+                  ).map((d, i) => <span key={i}>{d.label}</span>)}
                 </div>
               </>
             )}
           </div>
 
           {/* Fleet status */}
-          <div className="rounded-xl p-6 mk-surface">
+          <div className="rounded-xl p-4 sm:p-6 mk-surface">
             <div className="mk-h4 mb-4 text-mk-ink-900">
               {T("Fleet status", "حالة الأسطول", ar)}
             </div>

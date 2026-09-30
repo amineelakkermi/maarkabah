@@ -140,7 +140,7 @@ export default function EmpTodayPage() {
           </div>
 
           {/* Queue */}
-          <div className="rounded-xl p-6 bg-white shadow-[var(--shadow-card)]">
+          <div className="rounded-xl p-4 sm:p-6 bg-white shadow-[var(--shadow-card)]">
             <div className="flex items-center gap-3 mb-6">
               <div className="mk-h4 flex-1 text-mk-ink-900 tracking-tight">
                 {T("Your queue · today", "المهام · اليوم", ar)}
@@ -158,7 +158,7 @@ export default function EmpTodayPage() {
                 queue.map((task) => (
                   <div
                     key={task.id}
-                    className={`flex flex-wrap items-center gap-3 rounded-lg px-5 py-4 bg-white border border-mk-ink-100 cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 ${task.urgent ? "shadow-[var(--shadow-urgent)]" : "shadow-[var(--shadow-card)]"}`}
+                    className={`flex flex-wrap items-center gap-3 rounded-lg px-4 sm:px-5 py-4 bg-white border border-mk-ink-100 cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50 ${task.urgent ? "shadow-[var(--shadow-urgent)]" : "shadow-[var(--shadow-card)]"}`}
                   >
                     <div className="text-center min-w-14">
                       <div className="mk-body text-mk-ink-900">{task.time}</div>
@@ -218,7 +218,7 @@ export default function EmpTodayPage() {
           )}
 
           {/* Tip card */}
-          <div className="rounded-xl p-6 bg-mk-midnight">
+          <div className="rounded-xl p-4 sm:p-6 bg-mk-midnight">
             <div className="flex items-center gap-2 mb-2">
               <Lightbulb size={16} className="text-mk-mint-500" />
               <b className="mk-body-sm text-white">{T("Tip", "نصيحة", ar)}</b>
@@ -235,7 +235,7 @@ export default function EmpTodayPage() {
 
         {/* Side column: Alerts & Activity Log (full length) + Cars at this branch below */}
         <div className="flex flex-col gap-6 w-full lg:sticky lg:top-[88px] self-start">
-          <div className="rounded-xl p-6 bg-white shadow-[var(--shadow-card)] flex flex-col gap-4">
+          <div className="rounded-xl p-4 sm:p-6 bg-white shadow-[var(--shadow-card)] flex flex-col gap-4">
             <div className="mk-h4  mb-2 text-mk-ink-900 tracking-tight flex items-center justify-between">
               <span>{T("Fleet Alerts & Notifications", "التنبيهات وسجل النشاط", ar)}</span>
               {visibleAlerts.length > 0 && <span className="w-2 h-2 rounded-full bg-mk-danger animate-pulse" />}
@@ -292,7 +292,7 @@ export default function EmpTodayPage() {
           </div>
 
           {/* Branch fleet */}
-          <div className="rounded-xl p-6 bg-white shadow-[var(--shadow-card)]">
+          <div className="rounded-xl p-4 sm:p-6 bg-white shadow-[var(--shadow-card)]">
             <div className="mk-h4 mb-4 text-mk-ink-900">
               {T("Cars at this branch", "مركبات هذا الفرع", ar)}
             </div>
