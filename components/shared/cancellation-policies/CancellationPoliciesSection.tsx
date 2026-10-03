@@ -249,7 +249,7 @@ export default function CancellationPoliciesSection() {
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <div className="flex flex-col justify-between h-full w-full">
-          <div className="overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
             <DrawerHeader title={editingPolicy ? T("Edit cancellation policy", "تعديل سياسة الإلغاء", ar) : T("Create cancellation policy", "إنشاء سياسة إلغاء", ar)} onClose={() => setDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-border" />
             <div className="flex flex-col gap-4 mt-5">
               <Input label={T("Arabic name *", "الاسم بالعربية *", ar)} variant="muted" value={form.nameAr} onChange={(event) => setForm({ ...form, nameAr: event.target.value })} />

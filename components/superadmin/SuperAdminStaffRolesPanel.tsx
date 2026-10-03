@@ -870,7 +870,7 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
 
               <div>
                 <div className="mk-body-sm text-mk-fg-1 mb-2">{T("Branches", "الفروع", ar)}</div>
-                <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto border border-mk-ink-100 rounded-md p-3">
+                <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto mk-scrollbar border border-mk-ink-100 rounded-md p-3">
                   {branchOptions.map((b) => (
                     <div key={b.id} className="flex items-center gap-2">
                       <input
@@ -951,7 +951,7 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
 
               <div>
                 <div className="mk-body-sm text-mk-fg-1 mb-2">{T("Branches", "الفروع", ar)}</div>
-                <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto border border-mk-ink-100 rounded-md p-3">
+                <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto mk-scrollbar border border-mk-ink-100 rounded-md p-3">
                   {branchOptions.map((b) => (
                     <div key={b.id} className="flex items-center gap-2">
                       <input

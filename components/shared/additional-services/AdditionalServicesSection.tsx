@@ -518,8 +518,8 @@ export default function AdditionalServicesSection() {
 
       {/* ── DRAWER: Add new add-on service ───────────────────────── */}
       <Drawer open={showAdd} onClose={() => { setShowAdd(false); resetAddForm(); }}>
-        <div className="flex flex-col justify-between h-full max-w-[480px] overflow-y-auto">
-          <div>
+        <div className="flex flex-col justify-between h-full max-w-[480px]">
+          <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
             <DrawerHeader
               title={T("Add add-on service", "إضافة خدمة إضافية", ar)}
               onClose={() => { setShowAdd(false); resetAddForm(); }}
@@ -631,7 +631,7 @@ export default function AdditionalServicesSection() {
                     {T("Offered at branches", "متوفرة في الفروع", ar)}
                     <span className="text-mk-ink-400 ms-1">{T("(empty = tenant-wide)", "(فارغ = جميع الفروع)", ar)}</span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto p-3 rounded-lg border border-mk-ink-100 bg-mk-ink-50">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto mk-scrollbar p-3 rounded-lg border border-mk-ink-100 bg-mk-ink-50">
                     {branches.map((b) => (
                       <Checkbox
                         key={b.id}

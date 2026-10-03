@@ -192,7 +192,7 @@ export function SearchableSelect({
                 className="flex-1 min-w-0 bg-transparent border-0 outline-none mk-body-sm text-mk-fg-1 placeholder:text-mk-ink-400"
               />
             </div>
-            <ul ref={listRef} role="listbox" className="max-h-[260px] overflow-y-auto py-1">
+            <ul ref={listRef} role="listbox" className="max-h-[260px] overflow-y-auto mk-scrollbar py-1">
               {filtered.length === 0 ? (
                 <li className="px-3 py-6 text-center mk-caption text-mk-ink-400">{emptyText}</li>
               ) : (

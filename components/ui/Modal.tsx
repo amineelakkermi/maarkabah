@@ -70,7 +70,7 @@ function Modal({
               </IconButton>
             </div>
           </div>
-          <div className="flex-1 min-h-0 relative overflow-y-auto">{children}</div>
+          <div className="flex-1 min-h-0 relative overflow-y-auto mk-scrollbar">{children}</div>
         </div>
       </div>
     );

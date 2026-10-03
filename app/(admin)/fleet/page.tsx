@@ -214,7 +214,7 @@ export default function FleetPage() {
       await loadVehicles();
     } catch (error) {
       console.error("Error deleting vehicle:", error);
-      showToast(T("Failed to delete vehicle", "فشل حذف السيارة", ar));
+      showToast(describeApiError(error, ar, T("Failed to delete vehicle", "فشل حذف السيارة", ar)), "error");
     } finally {
       setDeleting(false);
     }

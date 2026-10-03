@@ -12,6 +12,7 @@ import { Avatar, Badge, HijriDatePicker, Button, Select, Modal } from "@/compone
 import { useAdmin } from "@/contexts/AdminContext";
 import { customerService, customerEvents, countryService } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
+import { describeApiError } from "@/lib/api-error-messages";
 import { CLIENTS, type ClientProfile, type ClientContract } from "@/lib/data";
 import { OtpVerificationPanel } from "@/components/employee/OtpVerification";
 import { hijriToGregorianStr, gregorianToHijriStr, formatHijriDisplay } from "@/lib/hijri-utils";
@@ -218,7 +219,7 @@ export default function CustomerDetailPage() {
       router.push(listHref);
     } catch (err) {
       console.error("Error deleting customer:", err);
-      alert(T("Failed to delete customer.", "فشل حذف العميل.", ar));
+      alert(describeApiError(err, ar, T("Failed to delete customer.", "فشل حذف العميل.", ar)));
       setDeleting(false);
     }
   }

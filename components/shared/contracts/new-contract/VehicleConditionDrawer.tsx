@@ -25,7 +25,7 @@ export function VehicleConditionDrawer({
 }: VehicleConditionDrawerProps) {
   return (
     <Drawer open={showConditionModal} onClose={() => setShowConditionModal(false)}>
-      <div className="flex flex-col h-full max-w-[480px] overflow-y-auto">
+      <div className="flex flex-col h-full max-w-[480px] overflow-y-auto mk-scrollbar pe-2">
         <DrawerHeader
           title={T("Vehicle Condition & Status at Pickup", "حالة السيارة عند الاستلام", ar)}
           sub={`${car.make} ${car.model} · ${car.plate}`}

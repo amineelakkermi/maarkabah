@@ -70,7 +70,7 @@ export function PersonPicker({
             />
           </div>
           <div
-            className="absolute top-full inset-x-0 mt-2 z-20 flex flex-col gap-2 max-h-[220px] overflow-y-auto p-2 rounded-lg border border-mk-ink-200 shadow-lg bg-mk-bg-elevated"
+            className="absolute top-full inset-x-0 mt-2 z-20 flex flex-col gap-2 max-h-[220px] overflow-y-auto mk-scrollbar p-2 rounded-lg border border-mk-ink-200 shadow-lg bg-mk-bg-elevated"
           >
             {loading && (
               <div className="flex items-center gap-2 p-3 mk-caption text-mk-ink-500">

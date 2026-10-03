@@ -114,6 +114,38 @@ const RULES: { pattern: RegExp; message: (ar: boolean) => string }[] = [
     ),
   },
   {
+    pattern: /Customer\.InUse|customer.*linked to other/i,
+    message: (ar) => T(
+      "Cannot delete this customer — contracts or drivers still reference it. Remove the linked records first.",
+      "لا يمكن حذف العميل لأنه مرتبط بعقود أو سائقين — احذف السجلات المرتبطة أولاً.",
+      ar,
+    ),
+  },
+  {
+    pattern: /Driver\.InUse|driver.*linked to other/i,
+    message: (ar) => T(
+      "Cannot delete this driver — contracts still reference it as authorized or extra driver.",
+      "لا يمكن حذف السائق لأنه مرتبط بعقود كسائق مفوّض أو إضافي.",
+      ar,
+    ),
+  },
+  {
+    pattern: /Branch\.InUse|branch.*(linked|in.?use)/i,
+    message: (ar) => T(
+      "Cannot delete this branch — vehicles, contracts, staff or services still reference it.",
+      "لا يمكن حذف الفرع لأنه مرتبط بمركبات أو عقود أو موظفين أو خدمات.",
+      ar,
+    ),
+  },
+  {
+    pattern: /linked to other records/i,
+    message: (ar) => T(
+      "Cannot delete — the record is linked to other records.",
+      "لا يمكن الحذف — السجل مرتبط بسجلات أخرى.",
+      ar,
+    ),
+  },
+  {
     pattern: /Vehicle\.InUse|vehicle.*in.?use/i,
     message: (ar) => T(
       "The vehicle is still referenced by contracts — it can't be deleted or transferred.",

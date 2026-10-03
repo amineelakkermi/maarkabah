@@ -11,6 +11,7 @@ import { Avatar, Badge, Button, Input, IconButton, Modal, useToast } from "@/com
 import { useAdmin } from "@/contexts/AdminContext";
 import { customerService, customerEvents } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
+import { describeApiError } from "@/lib/api-error-messages";
 import { CLIENTS } from "@/lib/data";
 import { AddCustomerDrawer, type ClientProfile } from "./AddCustomerDrawer";
 
@@ -143,7 +144,7 @@ export default function CustomerListPage({ customerDetailPath, canBlacklist, can
       customerEvents.reload();
     } catch (err) {
       console.error("Error deleting customer:", err);
-      showToast(T("Failed to delete customer", "فشل في حذف العميل", ar));
+      showToast(describeApiError(err, ar, T("Failed to delete customer", "فشل في حذف العميل", ar)), "error");
     } finally {
       setIsDeleting(false);
       setCustomerToDelete(null);

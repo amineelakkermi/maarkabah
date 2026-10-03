@@ -12,6 +12,7 @@ import { Avatar, Badge, HijriDatePicker, Button, Select, Modal } from "@/compone
 import { useAdmin } from "@/contexts/AdminContext";
 import { driverService, driverEvents } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
+import { describeApiError } from "@/lib/api-error-messages";
 import { MOCK_DRIVERS, type DriverProfile } from "@/lib/data";
 
 type EditableFields = Pick<DriverProfile,
@@ -141,7 +142,7 @@ export default function DriverDetailPage() {
       router.push(listHref);
     } catch (err) {
       console.error("Error deleting driver:", err);
-      alert(T("Failed to delete driver.", "فشل حذف السائق.", ar));
+      alert(describeApiError(err, ar, T("Failed to delete driver.", "فشل حذف السائق.", ar)));
       setDeleting(false);
     }
   }

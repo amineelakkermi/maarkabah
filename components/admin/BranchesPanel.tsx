@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Loader2, MapPin, Edit, Trash2, RefreshCw } from "lucide-react";
-import { Badge, Button, Table, Th, Td, type BadgeVariant, Input, Drawer, DrawerHeader, DrawerFooter, useToast } from "@/components/ui";
+import { Plus, Loader2, MapPin, Edit, Trash2, RefreshCw, HelpCircle } from "lucide-react";
+import { Badge, Button, Table, Th, Td, type BadgeVariant, Input, Drawer, DrawerHeader, DrawerFooter, Toggle, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { branchService } from "@/lib/api-services";
+import { describeApiError } from "@/lib/api-error-messages";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -31,6 +32,9 @@ export function BranchesPanel() {
   const [isEditDrawerOpen, setEditDrawerOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editingBranch, setEditingBranch] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [branchToDelete, setBranchToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { showToast } = useToast();
 
   const [nameAr, setNameAr] = useState("");
@@ -38,6 +42,30 @@ export function BranchesPanel() {
   const [isActive, setIsActive] = useState(true);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [tajeerExternalId, setTajeerExternalId] = useState("");
+  const [cityAr, setCityAr] = useState("");
+  const [cityEn, setCityEn] = useState("");
+  const [addressAr, setAddressAr] = useState("");
+  const [addressEn, setAddressEn] = useState("");
+  const [phone, setPhone] = useState("");
+  const [hoursFrom, setHoursFrom] = useState("08:00");
+  const [hoursTo, setHoursTo] = useState("22:00");
+
+  const resetForm = () => {
+    setNameAr("");
+    setNameEn("");
+    setIsActive(true);
+    setLatitude("");
+    setLongitude("");
+    setTajeerExternalId("");
+    setCityAr("");
+    setCityEn("");
+    setAddressAr("");
+    setAddressEn("");
+    setPhone("");
+    setHoursFrom("08:00");
+    setHoursTo("22:00");
+  };
 
   // ── Tajeer sync (preview → import) ─────────────────────────
   const [syncOpen, setSyncOpen] = useState(false);
@@ -60,6 +88,14 @@ export function BranchesPanel() {
         status: item.isActive ? 'Active' : 'Inactive',
         latitude: item.latitude ?? null,
         longitude: item.longitude ?? null,
+        tajeerExternalId: item.tajeerExternalId ?? null,
+        cityAr: item.cityAr || '',
+        cityEn: item.cityEn || '',
+        addressAr: item.addressAr || '',
+        addressEn: item.addressEn || '',
+        phone: item.phone || '',
+        hoursFrom: item.hoursFrom || '',
+        hoursTo: item.hoursTo || '',
       }));
       setBranches(transformedBranches);
     } catch (error) {
@@ -126,18 +162,20 @@ export function BranchesPanel() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(ar ? 'هل أنت متأكد من حذف هذا الفرع؟' : 'Are you sure you want to delete this branch?')) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!branchToDelete) return;
 
     try {
-      await branchService.delete(id);
+      setIsDeleting(true);
+      await branchService.delete(branchToDelete.id);
       loadBranches();
       showToast(T("Branch deleted successfully", "تم حذف الفرع بنجاح", ar));
+      setBranchToDelete(null);
     } catch (error) {
       console.error('Error deleting branch:', error);
-      alert(ar ? 'فشل حذف الفرع' : 'Failed to delete branch');
+      showToast(describeApiError(error, ar, ar ? 'فشل حذف الفرع' : 'Failed to delete branch'), "error");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -149,12 +187,20 @@ export function BranchesPanel() {
     setIsActive(branch.status === "Active");
     setLatitude(branch.latitude != null ? String(branch.latitude) : "");
     setLongitude(branch.longitude != null ? String(branch.longitude) : "");
+    setTajeerExternalId(branch.tajeerExternalId != null ? String(branch.tajeerExternalId) : "");
+    setCityAr(branch.cityAr || "");
+    setCityEn(branch.cityEn || "");
+    setAddressAr(branch.addressAr || "");
+    setAddressEn(branch.addressEn || "");
+    setPhone(branch.phone || "");
+    setHoursFrom(branch.hoursFrom || "");
+    setHoursTo(branch.hoursTo || "");
     setEditDrawerOpen(true);
   };
 
   const handleUpdateBranch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameAr || !nameEn) {
+    if (!(nameAr || nameEn) || !phone) {
       showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar));
       return;
     }
@@ -166,16 +212,20 @@ export function BranchesPanel() {
         isActive,
         latitude: latitude ? parseFloat(latitude) : undefined,
         longitude: longitude ? parseFloat(longitude) : undefined,
+        tajeerExternalId: tajeerExternalId !== "" ? parseInt(tajeerExternalId, 10) : undefined,
+        cityAr,
+        cityEn,
+        addressAr,
+        addressEn,
+        phone,
+        hoursFrom,
+        hoursTo,
       });
 
       await loadBranches();
       setEditDrawerOpen(false);
       setEditingBranch(null);
-      setNameAr("");
-      setNameEn("");
-      setIsActive(true);
-      setLatitude("");
-      setLongitude("");
+      resetForm();
       showToast(T("🟢 Branch updated successfully!", "🟢 تم تحديث الفرع بنجاح!", ar));
     } catch (error) {
       console.error('Error updating branch:', error);
@@ -185,7 +235,7 @@ export function BranchesPanel() {
 
   const handleCreateBranch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameAr || !nameEn) {
+    if (!(nameAr || nameEn) || !phone) {
       showToast(T("Please fill all mandatory fields", "الرجاء تعبئة الحقول الإلزامية", ar));
       return;
     }
@@ -197,16 +247,20 @@ export function BranchesPanel() {
         isActive,
         latitude: latitude ? parseFloat(latitude) : undefined,
         longitude: longitude ? parseFloat(longitude) : undefined,
+        tajeerExternalId: tajeerExternalId !== "" ? parseInt(tajeerExternalId, 10) : undefined,
+        cityAr,
+        cityEn,
+        addressAr,
+        addressEn,
+        phone,
+        hoursFrom,
+        hoursTo,
       });
 
       // Reload branches list
       await loadBranches();
       setDrawerOpen(false);
-      setNameAr("");
-      setNameEn("");
-      setIsActive(true);
-      setLatitude("");
-      setLongitude("");
+      resetForm();
       showToast(T("🟢 Branch created successfully!", "🟢 تم إضافة الفرع الجديد بنجاح!", ar));
     } catch (error) {
       console.error('Error creating branch:', error);
@@ -228,7 +282,7 @@ export function BranchesPanel() {
         <Button 
           variant="primary" 
           className="shadow-[var(--shadow-glow-blue)]"
-          onClick={() => setDrawerOpen(true)}
+          onClick={() => { resetForm(); setDrawerOpen(true); }}
         >
           <Plus size={14} />
           {T("Add branch", "إضافة فرع", ar)}
@@ -242,6 +296,7 @@ export function BranchesPanel() {
             <tr>
               {[
                 T("Branch name", "اسم الفرع", ar),
+                T("City", "المدينة", ar),
                 T("Coordinates", "الموقع", ar),
                 T("Status", "الحالة", ar),
                 "",
@@ -251,13 +306,13 @@ export function BranchesPanel() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="text-center py-12">
+                <td colSpan={5} className="text-center py-12">
                   <Loader2 className="animate-spin text-mk-blue-500 mx-auto" size={32} />
                 </td>
               </tr>
             ) : branches.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-12 mk-label text-mk-ink-400">
+                <td colSpan={5} className="text-center py-12 mk-label text-mk-ink-400">
                   {T("No branches found", "لم يتم العثور على فروع", ar)}
                 </td>
               </tr>
@@ -267,6 +322,12 @@ export function BranchesPanel() {
                   <Td>
                     <div className="mk-body text-mk-ink-900">
                       {ar ? (branch.nameAr || branch.name) : branch.name}
+                    </div>
+                  </Td>
+                  <Td>
+                    <div className="mk-label text-mk-ink-700">
+                      {(ar ? (branch.cityAr || branch.cityEn) : (branch.cityEn || branch.cityAr))
+                        || T("Not set", "غير محدد", ar)}
                     </div>
                   </Td>
                   <Td>
@@ -294,7 +355,7 @@ export function BranchesPanel() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(branch.id)}
+                        onClick={() => setBranchToDelete(branch)}
                       >
                         <Trash2 size={14} />
                       </Button>
@@ -309,62 +370,119 @@ export function BranchesPanel() {
 
       {/* Drawer */}
       <Drawer open={isDrawerOpen} onClose={() => setDrawerOpen(false)}>
-        <div className="flex flex-col gap-5 justify-between h-full max-w-[480px]">
-          <div>
-            <DrawerHeader title={T("Add New Branch", "إضافة فرع جديد", ar)} onClose={() => setDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-ink-100" />
+        <div className="flex flex-col justify-between h-full w-full">
+          <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
+            <DrawerHeader title={T("Add New Branch", "إضافة فرع جديد", ar)} onClose={() => setDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-border" />
 
             <form onSubmit={handleCreateBranch} className="flex flex-col gap-4 mt-5">
               <Input
-                label={T("Arabic Branch Name *", "اسم الفرع بالعربية *", ar)}
-                placeholder={T("e.g. فرع الرياض", "مثال: فرع الرياض", ar)}
-                value={nameAr}
-                onChange={(e) => setNameAr(e.target.value)}
-              />
-              <Input
-                label={T("English Branch Name *", "اسم الفرع بالإنجليزية *", ar)}
-                placeholder="e.g. Riyadh Branch"
-                value={nameEn}
-                onChange={(e) => setNameEn(e.target.value)}
+                variant="muted"
+                label={<>{T("Branch name", "اسم الفرع", ar)} <span className="text-mk-danger">*</span></>}
+                placeholder={T("Riyadh — Olaya", "الرياض — العليا", ar)}
+                value={ar ? nameAr : nameEn}
+                onChange={(e) => { setNameAr(e.target.value); setNameEn(e.target.value); }}
               />
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label={T("Latitude", "خط العرض", ar)}
-                  placeholder="e.g. 24.7136"
+                  variant="muted"
                   type="number"
                   step="any"
+                  className="font-mono"
+                  dir="ltr"
+                  label={T("Latitude", "خط العرض", ar)}
+                  placeholder="24.7136"
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                 />
                 <Input
-                  label={T("Longitude", "خط الطول", ar)}
-                  placeholder="e.g. 46.6753"
+                  variant="muted"
                   type="number"
                   step="any"
+                  className="font-mono"
+                  dir="ltr"
+                  label={T("Longitude", "خط الطول", ar)}
+                  placeholder="46.6753"
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-mk-ink-50">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="w-4 h-4"
+              <Input
+                variant="muted"
+                label={T("City", "المدينة", ar)}
+                placeholder={T("Riyadh", "الرياض", ar)}
+                value={ar ? cityAr : cityEn}
+                onChange={(e) => { setCityAr(e.target.value); setCityEn(e.target.value); }}
+              />
+              <Input
+                variant="muted"
+                label={T("Address", "العنوان", ar)}
+                placeholder={T("Olaya District, Riyadh 12213", "حي العليا، الرياض 12213", ar)}
+                value={ar ? addressAr : addressEn}
+                onChange={(e) => { setAddressAr(e.target.value); setAddressEn(e.target.value); }}
+              />
+              <Input
+                variant="muted"
+                type="tel"
+                className="font-mono"
+                dir="ltr"
+                label={<>{T("Phone", "الهاتف", ar)} <span className="text-mk-danger">*</span></>}
+                placeholder="+966 55 000 1234"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <Input
+                variant="muted"
+                className="font-mono"
+                dir="ltr"
+                label={
+                  <span className="flex items-center gap-1">
+                    {T("Tajeer External ID", "معرف تأجير الخارجي", ar)}
+                    <HelpCircle size={12} className="text-mk-ink-300" />
+                  </span>
+                }
+                placeholder="10045"
+                value={tajeerExternalId}
+                onChange={(e) => setTajeerExternalId(e.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  variant="muted"
+                  type="time"
+                  className="font-mono"
+                  label={T("Opens", "من الساعة", ar)}
+                  value={hoursFrom}
+                  onChange={(e) => setHoursFrom(e.target.value)}
                 />
-                <label htmlFor="isActive" className="mk-body text-mk-ink-900">
-                  {T("Active Branch", "فرع نشط", ar)}
-                </label>
+                <Input
+                  variant="muted"
+                  type="time"
+                  className="font-mono"
+                  label={T("Closes", "إلى الساعة", ar)}
+                  value={hoursTo}
+                  onChange={(e) => setHoursTo(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <div className="mk-label text-mk-ink-900">{T("Branch Active", "الفرع نشط", ar)}</div>
+                  <p className="mk-caption text-mk-ink-400 mt-1">{T("Disabled branches can't be assigned to new contracts or staff.", "الفروع المعطّلة لا يمكن تعيينها لعقود أو موظفين جدد.", ar)}</p>
+                </div>
+                <Toggle checked={isActive} onChange={setIsActive} />
               </div>
             </form>
           </div>
 
-          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch">
+          <DrawerFooter className="mt-4 pt-4 border-t border-mk-border justify-stretch">
             <Button variant="outline" onClick={() => setDrawerOpen(false)}>
               {T("Cancel", "إلغاء", ar)}
             </Button>
-            <Button variant="primary" onClick={handleCreateBranch} className="flex-1 shadow-[var(--shadow-glow-blue)]">
-              {T("✓ Create Branch", "✓ حفظ الفرع", ar)}
+            <Button
+              variant="primary"
+              disabled={!(nameAr || nameEn) || !phone}
+              onClick={handleCreateBranch}
+              className="flex-1"
+            >
+              {T("Add Branch", "إضافة فرع", ar)}
             </Button>
           </DrawerFooter>
         </div>
@@ -372,62 +490,119 @@ export function BranchesPanel() {
 
       {/* Edit Drawer */}
       <Drawer open={isEditDrawerOpen} onClose={() => setEditDrawerOpen(false)}>
-        <div className="flex flex-col gap-5 justify-between h-full max-w-[480px]">
-          <div>
-            <DrawerHeader title={T("Edit Branch", "تعديل الفرع", ar)} onClose={() => setEditDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-ink-100" />
+        <div className="flex flex-col justify-between h-full w-full">
+          <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
+            <DrawerHeader title={T("Edit Branch", "تعديل الفرع", ar)} onClose={() => setEditDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-border" />
 
             <form onSubmit={handleUpdateBranch} className="flex flex-col gap-4 mt-5">
               <Input
-                label={T("Arabic Branch Name *", "اسم الفرع بالعربية *", ar)}
-                placeholder={T("e.g. فرع الرياض", "مثال: فرع الرياض", ar)}
-                value={nameAr}
-                onChange={(e) => setNameAr(e.target.value)}
-              />
-              <Input
-                label={T("English Branch Name *", "اسم الفرع بالإنجليزية *", ar)}
-                placeholder="e.g. Riyadh Branch"
-                value={nameEn}
-                onChange={(e) => setNameEn(e.target.value)}
+                variant="muted"
+                label={<>{T("Branch name", "اسم الفرع", ar)} <span className="text-mk-danger">*</span></>}
+                placeholder={T("Riyadh — Olaya", "الرياض — العليا", ar)}
+                value={ar ? nameAr : nameEn}
+                onChange={(e) => { setNameAr(e.target.value); setNameEn(e.target.value); }}
               />
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label={T("Latitude", "خط العرض", ar)}
-                  placeholder="e.g. 24.7136"
+                  variant="muted"
                   type="number"
                   step="any"
+                  className="font-mono"
+                  dir="ltr"
+                  label={T("Latitude", "خط العرض", ar)}
+                  placeholder="24.7136"
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                 />
                 <Input
-                  label={T("Longitude", "خط الطول", ar)}
-                  placeholder="e.g. 46.6753"
+                  variant="muted"
                   type="number"
                   step="any"
+                  className="font-mono"
+                  dir="ltr"
+                  label={T("Longitude", "خط الطول", ar)}
+                  placeholder="46.6753"
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-mk-ink-50">
-                <input
-                  type="checkbox"
-                  id="isActiveEdit"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="w-4 h-4"
+              <Input
+                variant="muted"
+                label={T("City", "المدينة", ar)}
+                placeholder={T("Riyadh", "الرياض", ar)}
+                value={ar ? cityAr : cityEn}
+                onChange={(e) => { setCityAr(e.target.value); setCityEn(e.target.value); }}
+              />
+              <Input
+                variant="muted"
+                label={T("Address", "العنوان", ar)}
+                placeholder={T("Olaya District, Riyadh 12213", "حي العليا، الرياض 12213", ar)}
+                value={ar ? addressAr : addressEn}
+                onChange={(e) => { setAddressAr(e.target.value); setAddressEn(e.target.value); }}
+              />
+              <Input
+                variant="muted"
+                type="tel"
+                className="font-mono"
+                dir="ltr"
+                label={<>{T("Phone", "الهاتف", ar)} <span className="text-mk-danger">*</span></>}
+                placeholder="+966 55 000 1234"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <Input
+                variant="muted"
+                className="font-mono"
+                dir="ltr"
+                label={
+                  <span className="flex items-center gap-1">
+                    {T("Tajeer External ID", "معرف تأجير الخارجي", ar)}
+                    <HelpCircle size={12} className="text-mk-ink-300" />
+                  </span>
+                }
+                placeholder="10045"
+                value={tajeerExternalId}
+                onChange={(e) => setTajeerExternalId(e.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  variant="muted"
+                  type="time"
+                  className="font-mono"
+                  label={T("Opens", "من الساعة", ar)}
+                  value={hoursFrom}
+                  onChange={(e) => setHoursFrom(e.target.value)}
                 />
-                <label htmlFor="isActiveEdit" className="mk-body text-mk-ink-900">
-                  {T("Active Branch", "فرع نشط", ar)}
-                </label>
+                <Input
+                  variant="muted"
+                  type="time"
+                  className="font-mono"
+                  label={T("Closes", "إلى الساعة", ar)}
+                  value={hoursTo}
+                  onChange={(e) => setHoursTo(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <div className="mk-label text-mk-ink-900">{T("Branch Active", "الفرع نشط", ar)}</div>
+                  <p className="mk-caption text-mk-ink-400 mt-1">{T("Disabled branches can't be assigned to new contracts or staff.", "الفروع المعطّلة لا يمكن تعيينها لعقود أو موظفين جدد.", ar)}</p>
+                </div>
+                <Toggle checked={isActive} onChange={setIsActive} />
               </div>
             </form>
           </div>
 
-          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch">
+          <DrawerFooter className="mt-4 pt-4 border-t border-mk-border justify-stretch">
             <Button variant="outline" onClick={() => setEditDrawerOpen(false)}>
               {T("Cancel", "إلغاء", ar)}
             </Button>
-            <Button variant="primary" onClick={handleUpdateBranch} className="flex-1 shadow-[var(--shadow-glow-blue)]">
-              {T("✓ Update Branch", "✓ تحديث الفرع", ar)}
+            <Button
+              variant="primary"
+              disabled={!(nameAr || nameEn) || !phone}
+              onClick={handleUpdateBranch}
+              className="flex-1"
+            >
+              {T("Save Changes", "حفظ التعديلات", ar)}
             </Button>
           </DrawerFooter>
         </div>
@@ -436,8 +611,8 @@ export function BranchesPanel() {
       {/* Tajeer sync drawer — preview remote branches, pick, import */}
       <Drawer open={syncOpen} onClose={() => setSyncOpen(false)}>
         <div className="flex flex-col gap-5 justify-between h-full max-w-[480px]">
-          <div>
-            <DrawerHeader title={T("Sync branches from Tajeer", "مزامنة الفروع من تاجير", ar)} onClose={() => setSyncOpen(false)} className="mb-0 pb-4 border-b border-mk-ink-100" />
+          <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
+            <DrawerHeader title={T("Sync branches from Tajeer", "مزامنة الفروع من تاجير", ar)} onClose={() => setSyncOpen(false)} className="mb-0 pb-4 border-b border-mk-border" />
             <div className="mt-5">
               {syncLoading ? (
                 <div className="py-12 text-center">
@@ -481,7 +656,7 @@ export function BranchesPanel() {
             </div>
           </div>
 
-          <DrawerFooter className="mt-0 pt-4 border-t border-mk-ink-100 justify-stretch">
+          <DrawerFooter className="mt-4 pt-4 border-t border-mk-border justify-stretch">
             <Button variant="outline" onClick={() => setSyncOpen(false)}>
               {T("Cancel", "إلغاء", ar)}
             </Button>
@@ -498,6 +673,35 @@ export function BranchesPanel() {
           </DrawerFooter>
         </div>
       </Drawer>
+
+      {/* Confirm delete branch modal — same pattern as CustomerListPage */}
+      <Modal
+        open={!!branchToDelete}
+        onClose={() => { if (!isDeleting) setBranchToDelete(null); }}
+        variant="centered"
+        size="sm"
+        title={T("Delete branch?", "حذف الفرع؟", ar)}
+      >
+        <div className="flex flex-col gap-5 p-2">
+          <p className="mk-body text-mk-ink-700">
+            {T(
+              `Are you sure you want to delete ${branchToDelete?.name || branchToDelete?.nameEn || branchToDelete?.nameAr || "this branch"}? This action cannot be undone.`,
+              `هل أنت متأكد من حذف ${branchToDelete?.nameAr || branchToDelete?.name || branchToDelete?.nameEn || "هذا الفرع"}؟ لا يمكن التراجع عن هذا الإجراء.`,
+              ar
+            )}
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setBranchToDelete(null)} disabled={isDeleting}>
+              {T("Cancel", "إلغاء", ar)}
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting
+                ? <><Loader2 size={13} className="animate-spin" /> {T("Deleting...", "جارٍ الحذف...", ar)}</>
+                : <><Trash2 size={13} /> {T("Delete", "حذف", ar)}</>}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

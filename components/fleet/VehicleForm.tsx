@@ -121,7 +121,7 @@ export function VehicleForm({
   return (
     <Drawer open={open} onClose={onClose}>
       <div className="flex flex-col gap-5 justify-between h-full max-w-[560px]">
-        <div className="overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
           <DrawerHeader
             title={editingVehicleId ? T("Edit Vehicle", "تعديل السيارة", ar) : T("Add Vehicle", "إضافة سيارة", ar)}
             onClose={onClose}

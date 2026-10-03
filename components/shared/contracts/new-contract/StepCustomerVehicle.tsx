@@ -165,7 +165,7 @@ export function StepCustomerVehicle({
                     </div>
                   )}
                   {!customersLoading && !customersError && customerQuery.trim().length > 0 && (
-                    <div className="absolute z-30 top-full inset-x-0 mt-2 rounded-xl border border-mk-ink-100 bg-white shadow-lg max-h-[280px] overflow-y-auto">
+                    <div className="absolute z-30 top-full inset-x-0 mt-2 rounded-xl border border-mk-ink-100 bg-white shadow-lg max-h-[280px] overflow-y-auto mk-scrollbar">
                       {filteredCustomers.length === 0 ? (
                         <div className="p-4 text-center mk-caption text-mk-ink-400">{T("No customers found", "لا يوجد عملاء مطابقون", ar)}</div>
                       ) : filteredCustomers.map((c) => {

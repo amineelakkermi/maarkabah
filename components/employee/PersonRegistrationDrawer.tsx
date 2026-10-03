@@ -170,8 +170,8 @@ export function PersonRegistrationDrawer({ open, onClose, onCreate, ar, titleEn,
 
   return (
     <Drawer open={open} onClose={onClose}>
-      <div className="flex flex-col justify-between h-full max-w-[480px] overflow-y-auto">
-        <div>
+      <div className="flex flex-col justify-between h-full max-w-[480px]">
+        <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
           <DrawerHeader title={T(titleEn, titleAr, ar)} onClose={onClose} className="mb-0 pb-4 border-b border-mk-border" />
 
           <div className="flex flex-col gap-4 mt-5">

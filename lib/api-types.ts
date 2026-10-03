@@ -2,7 +2,7 @@
 //  Maarkbh · مركبة — API Types
 //  TypeScript types generated from swagger.json
 // ─────────────────────────────────────────────────────────────
-
+//ContractStatus
 // ─── Authentication ───────────────────────────────────────────
 
 export interface TokenRequest {
@@ -145,9 +145,17 @@ export interface CustomerReasonRequest {
 export interface CreateBranchCommand {
   nameAr?: string;
   nameEn?: string;
+  isActive?: boolean;
   latitude?: number;
   longitude?: number;
-  isActive?: boolean;
+  tajeerExternalId?: number;
+  cityAr?: string;
+  cityEn?: string;
+  addressAr?: string;
+  addressEn?: string;
+  phone?: string;
+  hoursFrom?: string;
+  hoursTo?: string;
 }
 
 export interface UpdateBranchRequest {
@@ -156,6 +164,14 @@ export interface UpdateBranchRequest {
   isActive?: boolean;
   latitude?: number;
   longitude?: number;
+  tajeerExternalId?: number;
+  cityAr?: string;
+  cityEn?: string;
+  addressAr?: string;
+  addressEn?: string;
+  phone?: string;
+  hoursFrom?: string;
+  hoursTo?: string;
 }
 
 export interface BranchSearchRequest {

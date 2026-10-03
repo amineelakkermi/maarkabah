@@ -51,6 +51,102 @@ const FALLBACK_TINTS = [
   "bg-mk-danger-100 text-mk-danger-700",
 ];
 
+// ── Arabic labels for the permission catalog ──────────────────────────
+// GET /api/tenant/roles/get-permissions ships English page/label strings
+// only, so the Arabic UI maps each module name and each permission's
+// action segment ("Permissions.Contracts.View" → "عرض"). Unknown keys fall
+// back to the API's English text instead of breaking the tree.
+const MODULE_AR: Record<string, string> = {
+  tenants: "المكاتب",
+  users: "المستخدمون",
+  roles: "الأدوار والصلاحيات",
+  settings: "الإعدادات",
+  branches: "الفروع",
+  contracts: "العقود",
+  vehicles: "السيارات",
+  vehiclecatalogs: "كتالوج السيارات",
+  customers: "العملاء",
+  drivers: "السائقون",
+  countries: "الدول",
+  customerwarehouse: "مستودع العملاء",
+  blacklist: "القائمة السوداء",
+  additionalservices: "الخدمات الإضافية",
+  cancellationpolicies: "سياسات الإلغاء",
+  extendedcoverages: "التغطيات الإضافية",
+  latereturns: "الإرجاعات المتأخرة",
+  dashboard: "لوحة التحكم",
+  bookings: "الحجوزات",
+  fleet: "الأسطول",
+  finance: "المالية",
+  reports: "التقارير",
+  refunds: "الاستردادات",
+  billing: "الفوترة",
+  kyc: "التحقق من الهوية",
+  returns: "الإرجاعات",
+  staff: "الموظفون",
+  payments: "المدفوعات",
+  notifications: "الإشعارات",
+};
+
+const ACTION_AR: Record<string, string> = {
+  view: "عرض",
+  overview: "النظرة العامة",
+  permissions: "الصلاحيات",
+  create: "إضافة",
+  add: "إضافة",
+  edit: "تعديل",
+  update: "تعديل",
+  delete: "حذف",
+  remove: "حذف",
+  cancel: "إلغاء",
+  extend: "تمديد",
+  save: "حفظ",
+  import: "استيراد",
+  export: "تصدير",
+  report: "إبلاغ",
+  manage: "إدارة",
+  assign: "تعيين",
+  approve: "اعتماد",
+  reject: "رفض",
+  print: "طباعة",
+  issue: "إصدار",
+  sync: "مزامنة",
+  search: "بحث",
+  activate: "تفعيل",
+  deactivate: "تعطيل",
+  details: "التفاصيل",
+};
+
+/** Module/page name in the current locale (keys normalized case-insensitively,
+ * separators stripped — "Additional Services" → additionalservices). */
+export function moduleName(page: string, ar: boolean): string {
+  if (!ar) return page;
+  const key = page.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  return MODULE_AR[key] ?? page;
+}
+
+/** Permission item label in the current locale — resolves the action from the
+ * value's last segment ("Permissions.Contracts.View" → view → عرض), splitting
+ * camel-case compounds ("ViewOverview" → عرض النظرة العامة); falls back to a
+ * word-by-word translation of the API label, then the raw label. */
+export function permissionItemLabel(perm: { value: string; label: string }, ar: boolean): string {
+  if (!ar) return perm.label;
+  const raw = perm.value.split(".").pop() ?? "";
+  const direct = ACTION_AR[raw.toLowerCase()];
+  if (direct) return direct;
+  const words = raw.replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(" ").filter(Boolean);
+  if (words.length > 0) {
+    const parts = words.map((w) => ACTION_AR[w.toLowerCase()]);
+    if (parts.every(Boolean)) return parts.join(" ");
+  }
+  const labelWords = perm.label.trim().toLowerCase().split(/[\s\-_/]+/).filter(Boolean);
+  if (labelWords.length > 0) {
+    const parts = labelWords.map((w) => ACTION_AR[w] ?? MODULE_AR[w]);
+    if (parts.every(Boolean)) return parts.join(" ");
+  }
+  return perm.label;
+}
+
 function moduleVisual(page: string, index: number): { Icon: LucideIcon; tint: string } {
   const key = page.trim().toLowerCase();
   const hit =
@@ -181,7 +277,7 @@ export function RolePermissionsTree({
                 <span aria-hidden className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${mod.tint}`}>
                   <mod.Icon size={14} />
                 </span>
-                <span className="mk-label truncate text-mk-ink-900">{page.page}</span>
+                <span className="mk-label truncate text-mk-ink-900">{moduleName(String(page.page ?? ""), ar)}</span>
               </div>
               <button
                 type="button"
@@ -199,7 +295,7 @@ export function RolePermissionsTree({
                 checked={isPageFullySelected(items)}
                 indeterminate={isPagePartiallySelected(items)}
                 onChange={() => onTogglePage(items)}
-                aria-label={`${page.page} — ${T("toggle all", "تحديد الكل", ar)}`}
+                aria-label={`${moduleName(String(page.page ?? ""), ar)} — ${T("toggle all", "تحديد الكل", ar)}`}
               />
             </div>,
           ];
@@ -212,12 +308,12 @@ export function RolePermissionsTree({
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0 ps-7">
                     <span aria-hidden className="w-1 h-1 rounded-full shrink-0 bg-mk-ink-300" />
-                    <span className="mk-label truncate text-mk-ink-700">{perm.label}</span>
+                    <span className="mk-label truncate text-mk-ink-700">{permissionItemLabel(perm, ar)}</span>
                   </div>
                   <Checkbox
                     checked={selectedPermissions.includes(perm.value)}
                     onChange={() => onTogglePermission(perm.value)}
-                    aria-label={perm.label}
+                    aria-label={permissionItemLabel(perm, ar)}
                   />
                 </div>
               );
