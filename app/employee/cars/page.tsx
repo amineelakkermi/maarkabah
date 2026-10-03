@@ -52,7 +52,8 @@ export default function EmployeeCarsPage() {
   // Load vehicles from API
   useEffect(() => {
     loadVehicles();
-  }, [tab, search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const resetForm = () => {
     setFieldErrors({});
@@ -205,18 +206,8 @@ export default function EmployeeCarsPage() {
       if (search) {
         searchRequest.search = search;
       }
-      if (tab !== "all") {
-        const statusMap: Record<CarStatus, number> = {
-          available: 1,
-          rented: 2,
-          overdue: 3,
-          maintenance: 4,
-          reserved: 5,
-          inactive: 6,
-          draft: 7,
-        };
-        searchRequest.status = statusMap[tab];
-      }
+      // Status is filtered client-side (see `visible` below) so per-tab
+      // counts stay accurate on a single unfiltered fetch.
       const response = await vehicleService.search(searchRequest);
 
       const searchItems = response.items || response.data || [];
@@ -315,6 +306,7 @@ export default function EmployeeCarsPage() {
 
   const counts: Record<string, number> = {
     total: vehicles.length,
+    draft: vehicles.filter((c) => c.status === "draft").length,
     available: vehicles.filter((c) => c.status === "available").length,
     rented: vehicles.filter((c) => c.status === "rented").length,
     overdue: vehicles.filter((c) => c.status === "overdue").length,

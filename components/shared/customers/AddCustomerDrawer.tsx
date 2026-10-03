@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserPlus, CheckCircle, Phone, CreditCard, Plus, Trash2 } from "lucide-react";
+import { UserPlus, Loader2, Phone, CreditCard, Plus, Trash2 } from "lucide-react";
 import { HijriDatePicker, GregorianDateInput, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { customerService, attachmentService, countryService, customerEvents } from "@/lib/api-services";
@@ -120,7 +120,7 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
   const [newIdCopyNumber, setNewIdCopyNumber] = useState("");
   const [newLicenseIssuePlace, setNewLicenseIssuePlace] = useState("");
   const [newBorderNumber, setNewBorderNumber] = useState("");
-  const [added, setAdded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   // Countries selection (for Visitor type)
   const [countries, setCountries] = useState<{ id: number; name: string; nameAr?: string; nameEn?: string }[]>([]);
@@ -321,7 +321,7 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
     }
 
     try {
-      setAdded(true);
+      setIsAdding(true);
 
       // Upload any attached documents first and collect their file IDs
       setUploadingDocuments(true);
@@ -395,14 +395,14 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
       customerEvents.reload();
 
       resetForm();
-      setAdded(false);
+      setIsAdding(false);
       onClose();
       onCreated?.(createdId);
 
       showToast(T("🟢 Customer added successfully!", "🟢 تم إضافة العميل بنجاح!", ar));
     } catch (err) {
       console.error("Error creating customer:", err);
-      setAdded(false);
+      setIsAdding(false);
       setUploadingDocuments(false);
 
       if (err instanceof ApiError && err.status === 409) {
@@ -584,11 +584,11 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
             </Button>
             <Button
               variant="primary"
-              disabled={isCustomerFormInvalid() || uploadingDocuments}
+              disabled={isCustomerFormInvalid() || uploadingDocuments || isAdding}
               onClick={handleAdd}
-              className={`flex-1 ${added ? "bg-mk-mint-500 hover:bg-mk-mint-500" : ""}`}
+              className="flex-1"
             >
-              {added ? (<><CheckCircle size={16} /> {T("Added!", "تمت الإضافة!", ar)}</>) : (<><UserPlus size={16} /> {T("Add Customer", "إضافة عميل", ar)}</>)}
+              {isAdding ? (<><Loader2 size={16} className="animate-spin" /> {T("Adding...", "جارٍ الإضافة...", ar)}</>) : (<><UserPlus size={16} /> {T("Add Customer", "إضافة عميل", ar)}</>)}
             </Button>
             </div>
           </DrawerFooter>

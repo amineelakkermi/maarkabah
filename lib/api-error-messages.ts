@@ -48,7 +48,74 @@ const fieldLabel = (name: string, ar: boolean) => {
 };
 
 // Ordered pattern → localized message rules. First match wins.
-const RULES: { pattern: RegExp; message: (ar: boolean) => string }[] = [
+// `m` is the RegExp match on the tested text (field detail, raw message or code)
+// — used by parameterized messages.
+const RULES: { pattern: RegExp; message: (ar: boolean, m?: RegExpMatchArray | null) => string }[] = [
+  {
+    // FluentValidation-style ID rules: "National ID must be 10 digits and start with 1."
+    pattern: /must be (\d+) digits and start with (\d)/i,
+    message: (ar, m) => T(
+      `ID number must be ${m?.[1] ?? ""} digits and start with ${m?.[2] ?? ""}.`,
+      `يجب أن يتكون رقم الهوية من ${m?.[1] ?? ""} أرقام وأن يبدأ بالرقم ${m?.[2] ?? ""}.`,
+      ar,
+    ),
+  },
+  {
+    pattern: /must be (\d+) digits/i,
+    message: (ar, m) => T(
+      `ID number must be ${m?.[1] ?? ""} digits.`,
+      `يجب أن يتكون رقم الهوية من ${m?.[1] ?? ""} أرقام.`,
+      ar,
+    ),
+  },
+  {
+    pattern: /must not exceed (\d+)|may not exceed|maximum.*(\d+).*(digits|characters)|cannot exceed (\d+)/i,
+    message: (ar, m) => T(
+      `Must not exceed ${m?.[1] ?? m?.[2] ?? m?.[4] ?? ""} digits.`,
+      `يجب ألا يتجاوز ${m?.[1] ?? m?.[2] ?? m?.[4] ?? ""} أرقام.`,
+      ar,
+    ),
+  },
+  {
+    pattern: /not a valid e-?mail|invalid e-?mail|must be a valid email/i,
+    message: (ar) => T(
+      "Enter a valid email address.",
+      "أدخل بريدًا إلكترونيًا صحيحًا.",
+      ar,
+    ),
+  },
+  {
+    pattern: /not a valid phone|invalid phone|must be a valid phone|phone.*(is not valid|invalid)/i,
+    message: (ar) => T(
+      "Enter a valid phone number.",
+      "أدخل رقم هاتف صحيح.",
+      ar,
+    ),
+  },
+  {
+    pattern: /must be in the future/i,
+    message: (ar) => T(
+      "The date must be in the future.",
+      "يجب أن يكون التاريخ في المستقبل.",
+      ar,
+    ),
+  },
+  {
+    pattern: /must be in the past/i,
+    message: (ar) => T(
+      "The date must be in the past.",
+      "يجب أن يكون التاريخ في الماضي.",
+      ar,
+    ),
+  },
+  {
+    pattern: /must (only )?(contain|consist).*digits|digits only|must be numeric/i,
+    message: (ar) => T(
+      "Only digits are allowed.",
+      "أدخل أرقامًا فقط.",
+      ar,
+    ),
+  },
   {
     pattern: /plate.*(exist|already|taken|used|duplicate)|duplicate.*plate|Vehicle\.DuplicatePlate/i,
     message: (ar) => T(
@@ -249,34 +316,33 @@ export function describeApiError(err: unknown, ar: boolean, fallback?: string): 
   // 1) ASP.NET-style field validation object: { errors: { PhoneNumber: ["..."] } }
   const fieldErrors = response?.errors;
   if (fieldErrors && typeof fieldErrors === "object") {
-    const rawField = Object.keys(fieldErrors)[0];
-    const firstField = rawField?.includes(".") ? rawField.split(".").pop() : rawField;
-    if (firstField) {
-      const detail = Array.isArray(fieldErrors[rawField]) ? fieldErrors[rawField][0] : "";
-      for (const rule of RULES) {
-        if (rule.pattern.test(detail)) return rule.message(ar);
-      }
-      if (/required/i.test(detail)) {
-        return T(
+    const parts: string[] = [];
+    for (const rawField of Object.keys(fieldErrors)) {
+      const firstField = rawField.includes(".") ? rawField.split(".").pop()! : rawField;
+      const value = fieldErrors[rawField];
+      const detail = Array.isArray(value) ? String(value[0] ?? "") : String(value ?? "");
+      if (!detail) continue;
+      const rule = RULES.find((r) => r.pattern.test(detail));
+      if (rule) {
+        parts.push(rule.message(ar, detail.match(rule.pattern)));
+      } else if (/required/i.test(detail)) {
+        parts.push(T(
           `The field "${fieldLabel(firstField, false)}" is required.`,
           `الحقل "${fieldLabel(firstField, true)}" مطلوب.`,
           ar,
-        );
-      }
-      if (detail) {
-        return T(
-          `${fieldLabel(firstField, false)}: ${detail}`,
-          `${fieldLabel(firstField, true)}: ${detail}`,
-          ar,
-        );
+        ));
+      } else {
+        parts.push(`${fieldLabel(firstField, ar)}: ${detail}`);
       }
     }
+    if (parts.length) return parts.join(" • ");
   }
 
   // 2) Known message patterns on the flat backend text or the error code
   const code = String(response?.code ?? response?.details?.code ?? "");
   for (const rule of RULES) {
-    if (rule.pattern.test(raw) || (code && rule.pattern.test(code))) return rule.message(ar);
+    const m = rule.pattern.exec(raw) ?? (code ? rule.pattern.exec(code) : null);
+    if (m) return rule.message(ar, m);
   }
 
   // 3) "The X field is required" — translate the field name

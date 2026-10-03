@@ -1031,7 +1031,7 @@ export function VehicleDetailsPage({
                         required
                       />
                     </FL>
-                    <FL label={T("Last oil change", "آخر تغيير زيت", ar)} required>
+                    <FL label={T("Oil change date", "موعد تغيير زيت", ar)} required>
                       <FI
                         type="date"
                         ar={ar}

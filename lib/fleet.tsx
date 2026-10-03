@@ -60,7 +60,7 @@ export const AR_LABELS: Record<string, string> = {
   Excellent: "ممتاز",
   Good: "جيد",
   Weak: "ضعيف",
-  Broken: "معطّل",
+  Broken: "متعطّل",
   NotWorking: "متعطل",
   Working: "يعمل",
   Clean: "نظيف",
@@ -542,11 +542,13 @@ export const mapStatusFromBackend = (status: number): CarStatus => {
 
 export const STATUS_TABS: { key: "all" | CarStatus; labelEn: string; labelAr: string }[] = [
   { key: "all", labelEn: "All", labelAr: "الكل" },
+  { key: "draft", labelEn: "Draft", labelAr: "مسودة" },
   { key: "available", labelEn: "Available", labelAr: "متاحة" },
   { key: "rented", labelEn: "Rented", labelAr: "مؤجرة" },
-  { key: "overdue", labelEn: "Overdue", labelAr: "متأخر" },
+  { key: "overdue", labelEn: "Overdue", labelAr: "متأخرة" },
   { key: "maintenance", labelEn: "Maintenance", labelAr: "صيانة" },
   { key: "reserved", labelEn: "Reserved", labelAr: "محجوزة" },
+  { key: "inactive", labelEn: "Inactive", labelAr: "غير نشطة" },
 ];
 
 export type VehicleFieldPanel = "basic" | "insurance" | "status";

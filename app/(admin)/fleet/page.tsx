@@ -65,7 +65,8 @@ export default function FleetPage() {
   // Load vehicles from API
   useEffect(() => {
     loadVehicles();
-  }, [tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const resetForm = () => {
     setFieldErrors({});
@@ -227,18 +228,8 @@ export default function FleetPage() {
         pageNumber: 1,
         pageSize: 100,
       };
-      if (tab !== "all") {
-        const statusMap: Record<CarStatus, number> = {
-          available: 1,
-          rented: 2,
-          overdue: 3,
-          maintenance: 4,
-          reserved: 5,
-          inactive: 6,
-          draft: 7,
-        };
-        searchRequest.status = statusMap[tab];
-      }
+      // Status is filtered client-side (see `visible` below) so per-tab
+      // counts stay accurate on a single unfiltered fetch.
       const response = await vehicleService.search(searchRequest);
       console.log("Vehicles API response:", response);
 
@@ -284,6 +275,7 @@ export default function FleetPage() {
 
   const counts: Record<string, number> = {
     total: vehicles.length,
+    draft: vehicles.filter((c) => c.status === "draft").length,
     available: vehicles.filter((c) => c.status === "available").length,
     rented: vehicles.filter((c) => c.status === "rented").length,
     overdue: vehicles.filter((c) => c.status === "overdue").length,
