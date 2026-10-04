@@ -12,6 +12,7 @@ import {
 import { useAdmin } from "@/contexts/AdminContext";
 import { tenantUserService, tenantRoleService, branchService } from "@/lib/api-services";
 import { SaudiPhoneInput, saudiLocalDigits, isSaudiMobileLocal } from "@/components/shared/SaudiPhoneInput";
+import { describeApiError } from "@/lib/api-error-messages";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -334,7 +335,7 @@ export function StaffRolesPanel() {
       showToast(T("User created successfully!", "تم إضافة الموظف بنجاح!", ar));
     } catch (error: any) {
       console.error('Error creating user:', error);
-      const message = error?.message || T('Failed to create user', 'فشل إنشاء الموظف', ar);
+      const message = describeApiError(error, ar, T('Failed to create user', 'فشل إنشاء الموظف', ar));
       showToast(message, "error");
     } finally {
       setCreating(false);
@@ -373,7 +374,7 @@ export function StaffRolesPanel() {
       showToast(T("User updated successfully!", "تم تحديث الموظف بنجاح!", ar));
     } catch (error: any) {
       console.error('Error updating user:', error);
-      const message = error?.message || T('Failed to update user', 'فشل تحديث الموظف', ar);
+      const message = describeApiError(error, ar, T('Failed to update user', 'فشل تحديث الموظف', ar));
       showToast(message, "error");
     } finally {
       setSavingEdit(false);
@@ -398,7 +399,7 @@ export function StaffRolesPanel() {
       showToast(user.isActive ? T("User deactivated", "تم تعطيل المستخدم", ar) : T("User activated", "تم تفعيل المستخدم", ar));
     } catch (error: any) {
       console.error('Error toggling user active state:', error);
-      const message = error?.message || T('Failed to update user status', 'فشل تحديث حالة المستخدم', ar);
+      const message = describeApiError(error, ar, T('Failed to update user status', 'فشل تحديث حالة المستخدم', ar));
       showToast(message, "error");
     } finally {
       setTogglingRowId(null);
@@ -428,7 +429,7 @@ export function StaffRolesPanel() {
       }
     } catch (error: any) {
       console.error('Error toggling user active state:', error);
-      const message = error?.message || T('Failed to update user status', 'فشل تحديث حالة المستخدم', ar);
+      const message = describeApiError(error, ar, T('Failed to update user status', 'فشل تحديث حالة المستخدم', ar));
       showToast(message, "error");
     } finally {
       setTogglingActive(false);
@@ -450,7 +451,7 @@ export function StaffRolesPanel() {
       setNewPassword("");
     } catch (error: any) {
       console.error('Error resetting password:', error);
-      const message = error?.message || T('Failed to reset password', 'فشل إعادة تعيين كلمة المرور', ar);
+      const message = describeApiError(error, ar, T('Failed to reset password', 'فشل إعادة تعيين كلمة المرور', ar));
       showToast(message, "error");
     } finally {
       setResetting(false);
@@ -716,7 +717,7 @@ export function StaffRolesPanel() {
                 </Button>
               </div>
             ) : (
-            <form onSubmit={handleCreateUser} className="flex flex-col gap-4 mt-5">
+            <form onSubmit={handleCreateUser} className="flex flex-col gap-4 mt-5" autoComplete="off">
               <Input
                 variant="muted"
                 label={<>{T("Full name", "الاسم الكامل", ar)} <span className="text-mk-danger">*</span></>}
@@ -736,6 +737,7 @@ export function StaffRolesPanel() {
               <Input
                 variant="muted"
                 type="email"
+                autoComplete="off"
                 className="font-mono"
                 dir="ltr"
                 label={<>{T("Email", "البريد الإلكتروني", ar)} <span className="text-mk-danger">*</span></>}
@@ -756,6 +758,7 @@ export function StaffRolesPanel() {
                 <Input
                   variant="muted"
                   className="font-mono"
+                  autoComplete="new-password"
                   label={<>{T("Password", "كلمة المرور", ar)} <span className="text-mk-danger">*</span></>}
                   type={showPassword ? "text" : "password"}
                   placeholder={T("Enter password", "أدخل كلمة المرور", ar)}
@@ -823,7 +826,7 @@ export function StaffRolesPanel() {
           <div>
             <DrawerHeader title={T("Edit employee", "تعديل الموظف", ar)} onClose={() => setEditDrawerOpen(false)} className="mb-0 pb-4 border-b border-mk-border" />
 
-            <form onSubmit={handleUpdateUser} className="flex flex-col gap-4 mt-5">
+            <form onSubmit={handleUpdateUser} className="flex flex-col gap-4 mt-5" autoComplete="off">
               <Input
                 variant="muted"
                 className="font-mono"
@@ -843,6 +846,7 @@ export function StaffRolesPanel() {
               <Input
                 variant="muted"
                 type="email"
+                autoComplete="off"
                 className="font-mono"
                 dir="ltr"
                 label={<>{T("Email", "البريد الإلكتروني", ar)} <span className="text-mk-danger">*</span></>}
@@ -1058,6 +1062,7 @@ export function StaffRolesPanel() {
             <Input
               variant="muted"
               className="font-mono"
+              autoComplete="new-password"
               label={T("New password", "كلمة المرور الجديدة", ar)}
               type={showNewPassword ? "text" : "password"}
               placeholder={T("e.g. Employee@123", "مثال: Employee@123", ar)}
