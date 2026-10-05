@@ -1121,10 +1121,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nameAr\": \"مقعد أطفال (٣–١٢)\",\n  \"nameEn\": \"Child seat (3–12)\",\n  \"billingUnit\": 2,\n  \"unitPrice\": 30,\n  \"sortOrder\": 10,\n  \"isActive\": true,\n  \"descriptionAr\": \"مركّب قبل التسليم\",\n  \"descriptionEn\": \"Installed before pickup\",\n  \"iconKey\": \"child\",\n  \"branchIds\": []\n}"
+              "raw": "{\n  \"nameAr\": \"مقعد أطفال (٣–١٢)\",\n  \"nameEn\": \"Child seat (3–12)\",\n  \"billingUnit\": 2,\n  \"unitPrice\": 30,\n  \"sortOrder\": 10,\n  \"isActive\": true,\n  \"includeInVat\": true,\n  \"descriptionAr\": \"مركّب قبل التسليم\",\n  \"descriptionEn\": \"Installed before pickup\",\n  \"iconKey\": \"child\",\n  \"branchIds\": []\n}"
             },
             "url": "{{baseUrl}}/api/additional-services",
-            "description": "Requires Permissions.AdditionalServices.Create. billingUnit: 1=Once, 2=PerDay, 3=PerKm (from lookups AdditionalServiceEnums). Empty or omitted branchIds = tenant-wide. Code is generated (AS00001…)."
+            "description": "Requires Permissions.AdditionalServices.Create. billingUnit: 1=Once, 2=PerDay, 3=PerKm (from lookups AdditionalServiceEnums). includeInVat defaults to true: the line is inside the 15% VAT base. false keeps the amount on the invoice and out of VAT. Empty or omitted branchIds = tenant-wide. Code is generated (AS00001…)."
           }
         },
         {
@@ -1139,10 +1139,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nameAr\": \"تأمين · شامل\",\n  \"nameEn\": \"Insurance · Comprehensive\",\n  \"billingUnit\": 1,\n  \"unitPrice\": 1500,\n  \"sortOrder\": 1,\n  \"isActive\": true,\n  \"descriptionAr\": \"تغطية كاملة بدون تحمل شخصي\",\n  \"descriptionEn\": \"Full coverage, zero liability\",\n  \"iconKey\": \"insurance\",\n  \"branchIds\": []\n}"
+              "raw": "{\n  \"nameAr\": \"تأمين · شامل\",\n  \"nameEn\": \"Insurance · Comprehensive\",\n  \"billingUnit\": 1,\n  \"unitPrice\": 1500,\n  \"sortOrder\": 1,\n  \"isActive\": true,\n  \"includeInVat\": true,\n  \"descriptionAr\": \"تغطية كاملة بدون تحمل شخصي\",\n  \"descriptionEn\": \"Full coverage, zero liability\",\n  \"iconKey\": \"insurance\",\n  \"branchIds\": []\n}"
             },
             "url": "{{baseUrl}}/api/additional-services/{{additionalServiceId}}",
-            "description": "Requires Permissions.AdditionalServices.Edit. System rows lock code and billing unit. Empty branchIds = all branches."
+            "description": "Requires Permissions.AdditionalServices.Edit. System rows lock code and billing unit. includeInVat can be changed on system rows. Empty branchIds = all branches."
           }
         },
         {

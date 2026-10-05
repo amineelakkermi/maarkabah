@@ -185,7 +185,7 @@ export default function SuperAdminCustomerWarehousePage() {
     if (!stats) return [];
     return [
       { icon: Database, label: ["Total identities", "إجمالي الهويات"], value: stats.totalIdentities ?? 0, color: "text-mk-blue-500" },
-      { icon: Building2, label: ["Tenant records", "سجلات المستأجر"], value: stats.totalTenantRecords ?? 0, color: "text-mk-mint-600" },
+      { icon: Building2, label: ["Tenant records", "سجلات الشركات"], value: stats.totalTenantRecords ?? 0, color: "text-mk-mint-600" },
       { icon: Globe, label: ["External records", "سجلات خارجية"], value: stats.totalExternalRecords ?? 0, color: "text-mk-warning" },
       { icon: ShieldAlert, label: ["Network blacklisted", "محظورون شبكياً"], value: stats.networkBlacklistedCount ?? 0, color: "text-mk-danger" },
     ];

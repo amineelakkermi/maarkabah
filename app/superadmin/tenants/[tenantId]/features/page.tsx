@@ -90,12 +90,12 @@ export default function SuperAdminTenantFeaturesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <div className="mk-h4 text-mk-ink-900">
-            {T("Tenant features", "ميزات المستأجر", ar)} #{tenantId}
+            {T("Tenant features", "ميزات الشركة", ar)} #{tenantId}
           </div>
           <div className="mk-label text-mk-ink-500 mt-1">
             {T(
               "Licensed modules for this tenant. Tajeer credentials are managed in tenant settings.",
-              "الوحدات المرخصة لهذا المستأجر. تُدار بيانات اعتماد تاجير في إعدادات المستأجر.",
+              "الوحدات المرخصة لهذه الشركة. تُدار بيانات اعتماد تاجير في إعدادات الشركة.",
               ar
             )}
           </div>

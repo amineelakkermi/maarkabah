@@ -549,6 +549,7 @@ export interface AdditionalServiceDto {
   isActive?: boolean;
   isSystem?: boolean;
   isTenantWide?: boolean;
+  includeInVat?: boolean;
   branchCount?: number;
   branchIds?: number[];
 }
@@ -562,6 +563,7 @@ export interface CreateAdditionalServiceCommand {
   unitPrice?: number;
   sortOrder?: number;
   iconKey?: string;
+  includeInVat?: boolean;
   branchIds?: number[];
 }
 
@@ -575,6 +577,7 @@ export interface UpdateAdditionalServiceRequest {
   sortOrder?: number;
   iconKey?: string;
   isActive?: boolean;
+  includeInVat?: boolean;
   branchIds?: number[];
 }
 

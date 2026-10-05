@@ -15,8 +15,8 @@ export default function SuperAdminDashboardPage() {
     {
       href: "/superadmin/tenants",
       icon: Building2,
-      title: ["Manage tenants", "إدارة المستأجرين"],
-      meta: ["Create a tenant or manage users and roles of an existing tenant.", "إنشاء مستأجر جديد أو إدارة المستخدمين والأدوار."],
+      title: ["Manage tenants", "إدارة الشركات"],
+      meta: ["Create a tenant or manage users and roles of an existing tenant.", "إنشاء شركة جديدة أو إدارة المستخدمين والأدوار."],
     },
     {
       href: "/superadmin/customer-warehouse",
@@ -32,7 +32,7 @@ export default function SuperAdminDashboardPage() {
         <div>
           <div className="mk-h4 text-mk-ink-900">{T("Welcome, SuperAdmin", "مرحباً، المشرف العام", ar)}</div>
           <div className="mk-label text-mk-ink-500 mt-1">
-            {T("Manage the platform and support tenant operations.", "إدارة المنصة ودعم عمليات المستأجرين.", ar)}
+            {T("Manage the platform and support tenant operations.", "إدارة المنصة ودعم عمليات الشركات.", ar)}
           </div>
         </div>
       </div>

@@ -55,10 +55,10 @@ export default function SuperAdminTenantRolesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <div className="mk-h4 text-mk-ink-900">
-            {T("Tenant roles", "أدوار المستأجر", ar)} #{tenantId}
+            {T("Tenant roles", "أدوار الشركة", ar)} #{tenantId}
           </div>
           <div className="mk-label text-mk-ink-500 mt-1">
-            {T("Roles defined for this tenant.", "الأدوار المعرفة لهذا المستأجر.", ar)}
+            {T("Roles defined for this tenant.", "الأدوار المعرفة لهذه الشركة.", ar)}
           </div>
         </div>
       </div>

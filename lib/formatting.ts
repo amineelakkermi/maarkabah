@@ -63,7 +63,7 @@ export function formatPlate(item: {
   const l1 = item.plateFirstLetter ?? item.plateChar1 ?? item.plate?.plateFirstLetter ?? "";
   const l2 = item.plateSecondLetter ?? item.plateChar2 ?? item.plate?.plateSecondLetter ?? "";
   const l3 = item.plateThirdLetter ?? item.plateChar3 ?? item.plate?.plateThirdLetter ?? "";
-  const letters = [l3, l2, l1].filter(Boolean).join(" ");
+  const letters = [l1, l2, l3].filter(Boolean).join(" ");
   return [String(num || ""), letters].filter(Boolean).join(" ");
 }
 

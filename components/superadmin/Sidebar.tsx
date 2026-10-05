@@ -8,7 +8,7 @@ import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shar
 
 const NAV_ITEMS = [
   { href: "/superadmin", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية" },
-  { href: "/superadmin/tenants", icon: Building2, label: "Tenants", labelAr: "المستأجرين" },
+  { href: "/superadmin/tenants", icon: Building2, label: "Tenants", labelAr: "الشركات" },
   { href: "/superadmin/customer-warehouse", icon: Globe, label: "Warehouse Admin", labelAr: "إدارة المستودع" },
 ];
 

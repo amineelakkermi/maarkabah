@@ -51,7 +51,7 @@ export function Topbar() {
           {meta.crumbEn && (
             <div className="mk-body-sm mb-1 text-mk-ink-500 hidden sm:block">{ar ? meta.crumbAr : meta.crumbEn}</div>
           )}
-          <h1 className="mk-h2 leading-tight text-mk-ink-900 tracking-tight truncate">{ar ? meta.ar : meta.en}</h1>
+          <h1 className="mk-h2 leading-tight text-mk-ink-900 tracking-tight">{ar ? meta.ar : meta.en}</h1>
         </>
       }
     />

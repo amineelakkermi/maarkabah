@@ -71,7 +71,7 @@ export default function SuperAdminTenantsPage() {
       const tenantId = result?.tenantId ?? result?.data?.tenantId;
       if (tenantId) {
         setCreatedTenantId(tenantId);
-        showToast(T(`Tenant created with ID ${tenantId}`, `تم إنشاء المستأجر رقم ${tenantId}`, ar));
+        showToast(T(`Tenant created with ID ${tenantId}`, `تم إنشاء الشركة رقم ${tenantId}`, ar));
         setForm({
           name: "",
           subdomain: "",
@@ -89,10 +89,10 @@ export default function SuperAdminTenantsPage() {
         });
         setEnableTajeer(false);
       } else {
-        showToast(T("Tenant created.", "تم إنشاء المستأجر.", ar));
+        showToast(T("Tenant created.", "تم إنشاء الشركة.", ar));
       }
     } catch (err) {
-      showToast(err instanceof Error ? err.message : T("Failed to create tenant.", "فشل إنشاء المستأجر.", ar));
+      showToast(err instanceof Error ? err.message : T("Failed to create tenant.", "فشل إنشاء الشركة.", ar));
     } finally {
       setCreating(false);
     }
@@ -131,9 +131,9 @@ export default function SuperAdminTenantsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="mk-h4 text-mk-ink-900">{T("Tenants", "المستأجرين", ar)}</div>
+          <div className="mk-h4 text-mk-ink-900">{T("Tenants", "الشركات", ar)}</div>
           <div className="mk-label text-mk-ink-500 mt-1">
-            {T("Create and manage tenants on the platform.", "إنشاء وإدارة المستأجرين على المنصة.", ar)}
+            {T("Create and manage tenants on the platform.", "إنشاء وإدارة الشركات على المنصة.", ar)}
           </div>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function SuperAdminTenantsPage() {
           <CardIcon gradient="blue-violet">
             <Building2 className="w-5 h-5 text-white mx-auto mt-2" />
           </CardIcon>
-          <CardTitle>{T("Create tenant", "إنشاء مستأجر", ar)}</CardTitle>
+          <CardTitle>{T("Create tenant", "إنشاء شركة", ar)}</CardTitle>
         </CardHeader>
         <CardBody>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
@@ -188,7 +188,7 @@ export default function SuperAdminTenantsPage() {
                 label={T("Enable ElmTajeer", "تفعيل تاجير (علم)", ar)}
                 description={T(
                   "License the Tajeer integration module for this tenant. Requires the admin identity fields above.",
-                  "ترخيص وحدة تكامل تاجير لهذا المستأجر. يتطلب حقول هوية المشرف أعلاه.",
+                  "ترخيص وحدة تكامل تاجير لهذه الشركة. يتطلب حقول هوية المشرف أعلاه.",
                   ar
                 )}
                 checked={enableTajeer}
@@ -197,13 +197,13 @@ export default function SuperAdminTenantsPage() {
             </div>
             <div className="md:col-span-2">
               <Button type="submit" variant="primary" disabled={creating} className="w-full md:w-auto">
-                {creating ? T("Creating...", "جاري الإنشاء...", ar) : T("Create tenant", "إنشاء مستأجر", ar)}
+                {creating ? T("Creating...", "جاري الإنشاء...", ar) : T("Create tenant", "إنشاء شركة", ar)}
               </Button>
             </div>
           </form>
           {createdTenantId && (
             <div className="mt-4 p-3 rounded-lg bg-mk-mint-50 text-mk-mint-700 mk-body-sm">
-              {T(`Last created tenant ID: ${createdTenantId}`, `رقم آخر مستأجر تم إنشاؤه: ${createdTenantId}`, ar)}
+              {T(`Last created tenant ID: ${createdTenantId}`, `رقم آخر شركة تم إنشاؤها: ${createdTenantId}`, ar)}
             </div>
           )}
         </CardBody>
@@ -214,17 +214,17 @@ export default function SuperAdminTenantsPage() {
           <CardIcon gradient="mint-blue">
             <Users className="w-5 h-5 text-white mx-auto mt-2" />
           </CardIcon>
-          <CardTitle>{T("Manage tenant", "إدارة مستأجر", ar)}</CardTitle>
+          <CardTitle>{T("Manage tenant", "إدارة شركة", ar)}</CardTitle>
         </CardHeader>
         <CardBody>
           <CardMeta className="mb-3">
-            {T("Enter a tenant ID to manage its users or roles.", "أدخل رقم المستأجر لإدارة مستخدميه أو أدواره.", ar)}
+            {T("Enter a tenant ID to manage its users or roles.", "أدخل رقم الشركة لإدارة مستخدميها أو أدوارها.", ar)}
           </CardMeta>
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
               type="number"
               variant="muted"
-              label={T("Tenant ID", "رقم المستأجر", ar)}
+              label={T("Tenant ID", "رقم الشركة", ar)}
               value={manageId}
               onChange={(e) => setManageId(e.target.value)}
               className="font-mono text-start sm:w-64"

@@ -73,6 +73,7 @@ export default function AdditionalServicesSection() {
   const [newUnitPrice, setNewUnitPrice] = useState<string>("0");
   const [newSortOrder, setNewSortOrder] = useState<string>("0");
   const [newIconKey, setNewIconKey] = useState("");
+  const [newIncludeInVat, setNewIncludeInVat] = useState(true);
   const [selectedBranchIds, setSelectedBranchIds] = useState<number[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -134,6 +135,7 @@ export default function AdditionalServicesSection() {
       return (
         s.unitPrice !== orig.unitPrice ||
         s.isActive !== orig.isActive ||
+        s.includeInVat !== orig.includeInVat ||
         s.nameEn !== orig.nameEn ||
         s.nameAr !== orig.nameAr ||
         s.descriptionEn !== orig.descriptionEn ||
@@ -178,6 +180,7 @@ export default function AdditionalServicesSection() {
             sortOrder: s.sortOrder,
             iconKey: s.iconKey,
             isActive: s.isActive,
+            includeInVat: s.includeInVat,
             branchIds: s.branchIds,
           })
         )
@@ -235,6 +238,7 @@ export default function AdditionalServicesSection() {
     setNewUnitPrice("0");
     setNewSortOrder("0");
     setNewIconKey("");
+    setNewIncludeInVat(true);
     setSelectedBranchIds([]);
   };
 
@@ -254,6 +258,7 @@ export default function AdditionalServicesSection() {
         unitPrice: Number(newUnitPrice) || 0,
         sortOrder: Number(newSortOrder) || 0,
         iconKey: newIconKey || undefined,
+        includeInVat: newIncludeInVat,
         branchIds: selectedBranchIds.length > 0 ? selectedBranchIds : [],
       });
       showToast(T("Add-on service created", "تم إنشاء الخدمة الإضافية", ar));
@@ -330,6 +335,7 @@ export default function AdditionalServicesSection() {
                 T("Description", "الوصف", ar),
                 T("Unit", "الوحدة", ar),
                 T("Price", "السعر", ar),
+                T("VAT", "الضريبة", ar),
                 T("Active", "نشط", ar),
                 ...(editing ? [""] : []),
               ].map((h, i) => <Th key={i}>{h}</Th>)}
@@ -338,7 +344,7 @@ export default function AdditionalServicesSection() {
           <tbody>
             {isLoading ? (
               <tr>
-                <Td colSpan={editing ? 6 : 5} className="text-center py-14">
+                <Td colSpan={editing ? 7 : 6} className="text-center py-14">
                   <div className="flex flex-col items-center justify-center gap-3 text-mk-ink-400">
                     <Loader2 size={32} className="animate-spin" />
                     <span className="mk-label">{T("Loading add-on services…", "جاري تحميل الخدمات الإضافية…", ar)}</span>
@@ -347,7 +353,7 @@ export default function AdditionalServicesSection() {
               </tr>
             ) : error ? (
               <tr>
-                <Td colSpan={editing ? 6 : 5} className="text-center py-14">
+                <Td colSpan={editing ? 7 : 6} className="text-center py-14">
                   <div className="flex flex-col items-center justify-center gap-3 text-mk-danger">
                     <span className="mk-label">{error}</span>
                     <Button variant="outline"  onClick={loadServices}>{T("Retry", "إعادة المحاولة", ar)}</Button>
@@ -356,7 +362,7 @@ export default function AdditionalServicesSection() {
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <Td colSpan={editing ? 6 : 5} className="text-center py-14">
+                <Td colSpan={editing ? 7 : 6} className="text-center py-14">
                   <span className="mk-label text-mk-ink-400">{T("No add-on services found", "لا توجد خدمات إضافية", ar)}</span>
                 </Td>
               </tr>
@@ -437,6 +443,18 @@ export default function AdditionalServicesSection() {
                           <span className="mk-body-sm text-mk-ink-900">{(s.unitPrice ?? 0).toLocaleString()}</span>
                           <span className="mk-caption ms-1 text-mk-ink-500 uppercase-none normal-case tracking-normal">{T("SAR", "ريال", ar)}</span>
                         </>
+                      )}
+                    </Td>
+                    <Td>
+                      {editing ? (
+                        <Toggle
+                          checked={s.includeInVat ?? true}
+                          onChange={(v) => handleFieldChange(s.id, "includeInVat", v)}
+                        />
+                      ) : (
+                        <Badge variant={s.includeInVat === false ? "neutral" : "success"} className="normal-case tracking-normal">
+                          {s.includeInVat === false ? T("Excluded", "خارج الضريبة", ar) : T("Included", "مشمولة", ar)}
+                        </Badge>
                       )}
                     </Td>
                     <Td>
@@ -624,6 +642,17 @@ export default function AdditionalServicesSection() {
                   onChange={(e) => setNewIconKey(e.target.value)}
                 />
               </div>
+
+              <Checkbox
+                label={T("Include in VAT (15%)", "مشمولة في ضريبة القيمة المضافة (١٥٪)", ar)}
+                description={T(
+                  "Included: the line is inside the 15% VAT base. Excluded: the amount stays on the invoice but out of VAT.",
+                  "مشمولة: يدخل المبلغ ضمن أساس الضريبة ١٥٪. خارج الضريبة: يبقى المبلغ على الفاتورة دون احتساب ضريبة.",
+                  ar
+                )}
+                checked={newIncludeInVat}
+                onChange={setNewIncludeInVat}
+              />
 
               {branches.length > 0 && (
                 <div className="flex flex-col gap-3">
