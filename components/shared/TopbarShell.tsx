@@ -27,7 +27,7 @@ export function TopbarShell({ onOpenSidebar, titleBlock, searchPlaceholder, isDa
         <Menu size={18} />
       </IconButton>
 
-      <div className="min-w-0">{titleBlock}</div>
+      <div className="min-w-0 mt-3 gap-3 flex flex-col">{titleBlock}</div>
 
       <div className="flex-1" />
 
