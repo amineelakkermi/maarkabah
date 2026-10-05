@@ -180,7 +180,9 @@ const Field = ({
       <span style={{ direction: "rtl" }}>{labelAr}</span>
       <span style={{ direction: "ltr" }}>{label}</span>
     </div>
-    <div style={{ fontSize: 11, fontWeight: 600, color: "#111", marginTop: 2, minHeight: 14 }}>
+    {/* dir=auto + isolate: numbers/codes (CT-…, phones, IDs, dates) must not be
+        reordered by the bidi algorithm inside the RTL document. */}
+    <div dir="auto" style={{ fontSize: 11, fontWeight: 600, color: "#111", marginTop: 2, minHeight: 14, unicodeBidi: "isolate" }}>
       {value ?? "—"}
     </div>
   </div>
@@ -508,7 +510,7 @@ export default function ContractPreview({
             عقد تأجير سيارة &nbsp;/&nbsp; Car Lease Contract &nbsp;
             <span style={{ background: "#3EC8BE", color: "#fff", padding: "1px 8px", borderRadius: 3, fontSize: 10 }}>(2)</span>
           </div>
-          <div style={{ fontSize: 10, color: "#4B72E6", fontFamily: "monospace" }}>{contractNumber}</div>
+          <div dir="ltr" style={{ fontSize: 10, color: "#4B72E6", fontFamily: "monospace", unicodeBidi: "isolate" }}>{contractNumber}</div>
         </div>
 
         {/* ── Section 6: Lease Info ── */}
@@ -629,7 +631,7 @@ export default function ContractPreview({
             عقد تأجير سيارة &nbsp;/&nbsp; Car Lease Contract &nbsp;
             <span style={{ background: "#3EC8BE", color: "#fff", padding: "1px 8px", borderRadius: 3, fontSize: 10 }}>(3)</span>
           </div>
-          <div style={{ fontSize: 10, color: "#4B72E6", fontFamily: "monospace" }}>{contractNumber}</div>
+          <div dir="ltr" style={{ fontSize: 10, color: "#4B72E6", fontFamily: "monospace", unicodeBidi: "isolate" }}>{contractNumber}</div>
         </div>
 
         {/* ── Section 10: Technical Condition ── */}
@@ -836,7 +838,7 @@ export default function ContractPreview({
                 <div style={{ borderBottom: "1px dashed #333", marginBottom: 4 }} />
                 <div style={{ fontSize: 10, color: "#888" }}>
                   {signed
-                    ? `${ar ? selectedCustomer.nameAr : selectedCustomer.name} · ${contractNumber}`
+                    ? <>{ar ? selectedCustomer.nameAr : selectedCustomer.name} · <span dir="ltr" style={{ unicodeBidi: "isolate" }}>{contractNumber}</span></>
                     : T("Awaiting renter signature (outside the platform)…", "بانتظار توقيع المستأجر (خارج المنصة)…", ar)}
                 </div>
               </div>

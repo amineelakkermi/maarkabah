@@ -989,7 +989,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
           headerActions={
             <div className="flex items-center gap-3">
               <span className="mk-caption text-mk-ink-400">
-                {tajeerResponse?.contractNumber ?? T("Draft", "مسودة", ar)} · {T("Tajeer Format", "تنسيق تاجير", ar)}
+                <span dir="ltr" className="inline-block" style={{ unicodeBidi: "isolate" }}>{tajeerResponse?.contractNumber ?? T("Draft", "مسودة", ar)}</span> · {T("Tajeer Format", "تنسيق تاجير", ar)}
               </span>
               <Button size="sm" variant="primary" onClick={() => window.print()}>
                 <Printer size={13} /> {ar ? "طباعة" : "Print"}

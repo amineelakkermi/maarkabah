@@ -232,9 +232,9 @@ function ContractPreviewModal({
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 9, color: "#999", marginBottom: 3, textTransform: "uppercase", letterSpacing: 0.5 }}>Contract No. / رقم العقد</div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: "#4B72E6" }}>{contract.id}</div>
+              <div dir="ltr" style={{ fontSize: 16, fontWeight: 900, color: "#4B72E6", unicodeBidi: "isolate" }}>{contract.id}</div>
               <div style={{ fontSize: 9, color: "#999", marginTop: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Date / التاريخ</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#1a2233" }}>{contract.date}</div>
+              <div dir="ltr" style={{ fontSize: 12, fontWeight: 700, color: "#1a2233", unicodeBidi: "isolate" }}>{contract.date}</div>
               <div style={{ marginTop: 8 }}>
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20,

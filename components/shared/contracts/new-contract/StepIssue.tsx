@@ -354,7 +354,7 @@ export function StepIssue({
                   ? T("Awaiting renter signature", "بانتظار توقيع المستأجر", ar)
                   : T("Verify renter identity", "التحقق من هوية المستأجر", ar)}
               </div>
-              <p className="mk-caption text-mk-ink-500">{T("Contract no.", "رقم العقد", ar)}: <strong className="font-mono text-mk-blue-500">{tajeerResponse.contractNumber}</strong></p>
+              <p className="mk-caption text-mk-ink-500">{T("Contract no.", "رقم العقد", ar)}: <strong dir="ltr" className="font-mono text-mk-blue-500 inline-block" style={{ unicodeBidi: "isolate" }}>{tajeerResponse.contractNumber}</strong></p>
             </div>
 
             {!otpDigits.every(d => d !== "") ? (
@@ -430,7 +430,7 @@ export function StepIssue({
           <div className="mk-surface rounded-xl p-4 sm:p-6 text-center">
             <div className="mk-display-lg mb-3">✅</div>
             <div className="mk-h4 mb-2 text-mk-ink-900">{T("Contract issued successfully!", "تم إبرام العقد بنجاح!", ar)}</div>
-            <p className="mk-label text-mk-ink-500 mb-2">{T("Contract no.", "رقم العقد", ar)}: <strong className="font-mono text-mk-blue-500 mk-body">{tajeerResponse.contractNumber}</strong></p>
+            <p className="mk-label text-mk-ink-500 mb-2">{T("Contract no.", "رقم العقد", ar)}: <strong dir="ltr" className="font-mono text-mk-blue-500 mk-body inline-block" style={{ unicodeBidi: "isolate" }}>{tajeerResponse.contractNumber}</strong></p>
             <p className="mk-caption text-mk-ink-400 mb-6">{T("The contract is now active on the system.", "العقد الآن نشط على النظام.", ar)}</p>
             <div className="flex flex-col gap-2">
               <Button variant="primary" className="shadow-[var(--shadow-glow-blue)]">
