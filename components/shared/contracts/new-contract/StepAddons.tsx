@@ -1,14 +1,13 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { Check, UserPlus, Gauge, CircleDot } from "lucide-react";
+import { Check, Gauge, CircleDot } from "lucide-react";
 import { Badge, RiyalSymbol, Select, Button } from "@/components/ui";
-import type { Car, DriverProfile } from "@/lib/data";
+import type { Car } from "@/lib/data";
 import { VehicleTypeIcon } from "@/components/employee/VehicleTypeIcon";
 import { T, ADD_ONS, RENTAL_POLICY_OPTIONS } from "./constants";
 import type { ContractAdditionalService, ContractCancellationPolicy, ContractRentPolicy, LookupItem } from "./useContractLookups";
 import { isTajeerSyncedPolicy } from "./useContractLookups";
-import { PersonPicker } from "./PersonPicker";
 
 export type Addons = Record<string, boolean>;
 
@@ -17,9 +16,6 @@ export type StepAddonsProps = {
   car: Car | undefined;
   days: number;
   total: number;
-  isHourlyRental: boolean;
-  driverFarePerDay: number;
-  driverFarePerHour: number;
   // Branches
   branches: LookupItem[];
   receiveBranchId: number; setReceiveBranchId: (v: number) => void;
@@ -28,7 +24,6 @@ export type StepAddonsProps = {
   // Add-ons
   addons: Addons; setAddons: Dispatch<SetStateAction<Addons>>;
   additionalServices: ContractAdditionalService[];
-  setExtraDriverEnabled: (next: boolean) => void;
   // Rental policies
   rentPolicies: ContractRentPolicy[];
   rentPolicyId: number; setRentPolicyId: (v: number) => void;
@@ -40,25 +35,16 @@ export type StepAddonsProps = {
   accidentReportPolicy: string; setAccidentReportPolicy: (v: string) => void;
   fuelReturnPolicy: string; setFuelReturnPolicy: (v: string) => void;
   breakdownReportPolicy: string; setBreakdownReportPolicy: (v: string) => void;
-  // Extra driver picker
-  filteredExtraDrivers: DriverProfile[];
-  extraDriverQuery: string; setExtraDriverQuery: (v: string) => void;
-  selectedExtraDriver: DriverProfile | null;
-  handleSelectExtraDriver: (d: DriverProfile) => void;
-  clearExtraDriver: () => void;
-  setShowExtraDriverAddNew: (v: boolean) => void;
 };
 
 export function StepAddons({
-  ar, car, days, total, isHourlyRental, driverFarePerDay, driverFarePerHour,
+  ar, car, days, total,
   branches, receiveBranchId, setReceiveBranchId, returnBranchId, setReturnBranchId, setWorkingBranchId,
-  addons, setAddons, additionalServices, setExtraDriverEnabled,
+  addons, setAddons, additionalServices,
   rentPolicies, rentPolicyId, setRentPolicyId, tajeerEnabled, cancellationPolicies, cancellationPolicyId, setCancellationPolicyId,
   extensionPolicy, setExtensionPolicy, earlyReturnPolicy, setEarlyReturnPolicy,
   accidentReportPolicy, setAccidentReportPolicy, fuelReturnPolicy, setFuelReturnPolicy,
   breakdownReportPolicy, setBreakdownReportPolicy,
-  filteredExtraDrivers, extraDriverQuery, setExtraDriverQuery, selectedExtraDriver,
-  handleSelectExtraDriver, clearExtraDriver, setShowExtraDriverAddNew,
 }: StepAddonsProps) {
   const resolvedAdditionalServices = additionalServices.map((service) => {
     const key = service.key.toLowerCase().replace(/[-\s]+/g, "_");
@@ -295,52 +281,8 @@ export function StepAddons({
               {T("Essential services", "خدمات أساسية", ar)}
             </div>
 
-            {/* ── Extra driver ── */}
-            <div className="flex flex-col gap-2 w-full">
-              <button
-                type="button"
-                onClick={() => setExtraDriverEnabled(!addons.driver)}
-                className={`mk-option ${addons.driver ? "mk-option--on" : ""} flex items-center gap-3 p-3 rounded-lg text-start w-full cursor-pointer border-0`}
-              >
-                <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
-                  <UserPlus size={16} className="text-mk-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="mk-label text-mk-ink-900">{T("Extra driver", "سائق إضافي", ar)}</div>
-                  <div className="mk-caption text-mk-ink-400">{T("A second driver authorized on the contract", "سائق ثانٍ مفوّض على العقد", ar)}</div>
-                </div>
-                <div className="text-end shrink-0">
-                  <div className={`mk-label ${addons.driver ? "text-mk-blue-500" : "text-mk-ink-900"}`}>
-                    {isHourlyRental ? (driverFarePerHour || 10) : (driverFarePerDay || 45)} {T("SAR", "ريال", ar)}
-                  </div>
-                  <div className="mk-overline text-mk-ink-400">{isHourlyRental ? T("/ hour", "/ ساعة", ar) : T("/ day", "/ يوم", ar)}</div>
-                </div>
-                <div className={`w-5 h-5 rounded-xs flex items-center justify-center shrink-0 ${addons.driver ? "bg-mk-blue-500 border-0" : "bg-white border border-mk-ink-200"}`}>
-                  {addons.driver && <Check size={11} className="text-white" />}
-                </div>
-              </button>
-
-              {addons.driver && (
-                <PersonPicker
-                  ar={ar}
-                  label={T("Select from drivers list:", "اختر من قائمة السائقين:", ar)}
-                  placeholder={T("Search by name, phone, or ID…", "بحث بالاسم، الهاتف، أو الهوية…", ar)}
-                  items={filteredExtraDrivers}
-                  query={extraDriverQuery}
-                  onQuery={setExtraDriverQuery}
-                  selected={selectedExtraDriver}
-                  onSelect={handleSelectExtraDriver}
-                  onClear={clearExtraDriver}
-                  showRating
-                  action={(
-                    <Button type="button" variant="tonal" size="sm" onClick={() => setShowExtraDriverAddNew(true)}>
-                      <UserPlus size={14} />
-                      {T("Add new driver", "إضافة سائق جديد", ar)}
-                    </Button>
-                  )}
-                />
-              )}
-            </div>
+            {/* The extra-driver choice lives on step 1 (drivers card) — the
+                picker needs the driver list anyway, so no duplicate card here. */}
 
             {resolvedAdditionalServices.filter((a) => a.k !== "unlimited_km" && a.k !== "driver" && !otherServiceKeys.has(a.k)).map((a) => {
               const on = addons[a.k as keyof typeof addons];

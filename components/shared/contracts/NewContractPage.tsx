@@ -452,13 +452,32 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
 
       await issueContract(contractId);
 
-      // Show the real contract number (CT…), not the numeric id.
+      // Show the real contract number (CT…), not the numeric id. Prefer the
+      // backend payment snapshot (paid/remaining) — fall back to the locally
+      // computed split so the issued summary always shows correct amounts.
       let contractNumber = String(contractId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let paymentDetails: any = null;
       try {
         const c = await contractService.getById(contractId);
         if (c?.contractNumber) contractNumber = String(c.contractNumber);
+        const p = c?.payment ?? c?.totalPaymentDetails;
+        if (p) {
+          paymentDetails = {
+            paid: Number(p.paidAmount ?? p.paid ?? 0),
+            remaining: Number(p.remainingAmount ?? p.remaining ?? 0),
+            total: Number(p.totalAmount ?? p.total ?? c?.totalAmount ?? total) || total,
+          };
+        }
       } catch { /* display falls back to the numeric id */ }
-      setTajeerResponse({ contractNumber } as unknown as TajeerSaveContractResponse);
+      if (!paymentDetails) {
+        paymentDetails = {
+          paid: payType === "full" ? total : advanceAmount,
+          remaining: payType === "full" ? 0 : remaining,
+          total,
+        };
+      }
+      setTajeerResponse({ contractNumber, totalPaymentDetails: paymentDetails } as unknown as TajeerSaveContractResponse);
       setContractStep("issued");
     } catch (err) {
       const msg = describeApiError(err, ar, "خطأ غير متوقع");
@@ -858,16 +877,12 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             car={car}
             days={days}
             total={total}
-            isHourlyRental={isHourlyRental}
-            driverFarePerDay={driverFarePerDay}
-            driverFarePerHour={driverFarePerHour}
             branches={branches}
             receiveBranchId={receiveBranchId} setReceiveBranchId={setReceiveBranchId}
             returnBranchId={returnBranchId} setReturnBranchId={setReturnBranchId}
             setWorkingBranchId={setWorkingBranchId}
             addons={addons} setAddons={setAddons}
             additionalServices={additionalServices}
-            setExtraDriverEnabled={setExtraDriverEnabled}
             rentPolicies={rentPolicies}
             rentPolicyId={rentPolicyId} setRentPolicyId={setRentPolicyId}
             tajeerEnabled={tajeerEnabled}
@@ -878,12 +893,6 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             accidentReportPolicy={accidentReportPolicy} setAccidentReportPolicy={setAccidentReportPolicy}
             fuelReturnPolicy={fuelReturnPolicy} setFuelReturnPolicy={setFuelReturnPolicy}
             breakdownReportPolicy={breakdownReportPolicy} setBreakdownReportPolicy={setBreakdownReportPolicy}
-            filteredExtraDrivers={filteredExtraDrivers}
-            extraDriverQuery={extraDriverQuery} setExtraDriverQuery={setExtraDriverQuery}
-            selectedExtraDriver={selectedExtraDriver}
-            handleSelectExtraDriver={handleSelectExtraDriver}
-            clearExtraDriver={clearExtraDriver}
-            setShowExtraDriverAddNew={setShowExtraDriverAddNew}
           />
         )}
 
@@ -966,6 +975,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             discountType={discountType}
             discountPercent={discountPercent}
             payMethod={payMethod}
+            payType={payType}
           />
         )}
 

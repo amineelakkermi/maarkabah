@@ -470,6 +470,13 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
   }
 
   const contract = toBooking(raw, ar, row);
+  // Payment snapshot — contract rows carry a nested payment object
+  // { paid, remaining, deposit, type/method codes }. For ADVANCE contracts
+  // the customer still owes `remaining` at handback — surface it loudly.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const paymentInfo: any = raw?.payment ?? {};
+  const paidAmountNum = Number(paymentInfo.paidAmount ?? paymentInfo.paid ?? raw.paidAmount ?? contract.amount);
+  const outstandingBalance = Math.max(0, Number(paymentInfo.remainingAmount ?? paymentInfo.remaining ?? raw.remainingAmount ?? (contract.amount - paidAmountNum)) || 0);
   const carKey = ["Camry", "Sonata", "Elantra", "Civic", "Sportage", "Patrol", "CX-5", "Land Cruiser", "Tahoe", "ZS"].find(k => contract.car.includes(k)) || "Sonata";
   const carImages = CAR_IMAGES[carKey] || CAR_IMAGES["Sonata"];
   const isLate = row.status === "late";
@@ -574,6 +581,24 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
               <div className="mk-h4 flex-1 text-mk-ink-900">{T(`Return · ${contract.id}`, `استلام إرجاع · ${contract.id}`, ar)}</div>
               <Badge variant={isLate ? "danger" : "success"} dot>{isLate ? T("Overdue", "متأخر", ar) : T("On time", "في الوقت", ar)}</Badge>
             </div>
+
+            {outstandingBalance > 0 && (
+              <div className="flex items-center gap-3 rounded-xl px-5 py-4 mb-4" style={{ border: "1px solid rgba(245,158,11,0.25)", background: "rgba(245,158,11,0.08)" }}>
+                <div className="w-10 h-10 rounded-md flex items-center justify-center shrink-0" style={{ background: "rgba(245,158,11,0.12)", color: "#B45309" }}>
+                  <AlertTriangle size={18} />
+                </div>
+                <div className="flex-1">
+                  <div className="mk-h4 text-mk-ink-900">{T("Balance still owed by the customer", "رصيد متبقٍ على العميل", ar)}</div>
+                  <div className="mk-caption mt-1 text-mk-ink-600">
+                    {T(
+                      `Advance payment — paid ${paidAmountNum.toLocaleString()} of ${contract.amount.toLocaleString()} SAR. Collect ${outstandingBalance.toLocaleString()} SAR now.`,
+                      `دفع مقدم — دُفع ${paidAmountNum.toLocaleString()} من ${contract.amount.toLocaleString()} ريال. تحصّل ${outstandingBalance.toLocaleString()} ريال الآن.`,
+                      ar
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {isLate && (
               <div className="flex items-center gap-3 rounded-xl px-5 py-4 mb-4" style={{ border: "1px solid rgba(226,65,113,0.20)", background: "rgba(226,65,113,0.08)" }}>
@@ -800,10 +825,11 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
                 {extraKmNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Extra km charge", "رسوم الكيلومترات الزائدة", ar)}</span><span className="text-mk-danger">+{extraKmNum} {T("SAR", "ر.س", ar)}</span></div>}
                 {fuelDiffNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Fuel difference", "فرق الوقود", ar)}</span><span className="text-mk-danger">+{fuelDiffNum} {T("SAR", "ر.س", ar)}</span></div>}
                 {damageNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Damage charge", "رسوم الأضرار", ar)}</span><span className="text-mk-danger">+{damageNum} {T("SAR", "ر.س", ar)}</span></div>}
+                {outstandingBalance > 0 && <div className="flex justify-between mk-label"><span style={{ color: "#B45309" }}>{T("Unpaid balance (advance)", "المتبقي من العقد (دفع مقدم)", ar)}</span><span style={{ color: "#B45309" }}>+{outstandingBalance.toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>}
                 <div className="flex justify-between items-center pt-3 border-t border-mk-ink-100"><span className="mk-h4 text-mk-ink-900">{T("Final total", "الإجمالي النهائي", ar)}</span><span className="mk-h4" style={{ color: extraCharges > 0 ? "var(--color-mk-danger)" : "var(--color-mk-ink-900)" }}>{finalTotal.toLocaleString()} {T("SAR", "ريال", ar)}</span></div>
                 <div className="flex justify-between mk-caption text-mk-ink-500">
-                  <span>{T(`Captured: ${contract.amount.toLocaleString()} SAR`, `تم حجز: ${contract.amount.toLocaleString()} ريال`, ar)}</span>
-                  <span className={`mk-label ${extraCharges > 0 ? "text-mk-danger" : "text-mk-mint-600"}`}>{extraCharges > 0 ? `+${extraCharges} ${T("SAR due", "ريال مستحق", ar)}` : T("No remaining balance", "لا رصيد متبقي", ar)}</span>
+                  <span>{T(`Paid: ${paidAmountNum.toLocaleString()} SAR`, `المدفوع: ${paidAmountNum.toLocaleString()} ريال`, ar)}</span>
+                  <span className={`mk-label ${outstandingBalance + extraCharges > 0 ? "text-mk-danger" : "text-mk-mint-600"}`}>{outstandingBalance + extraCharges > 0 ? `+${(outstandingBalance + extraCharges).toLocaleString()} ${T("SAR due", "ريال مستحق", ar)}` : T("No remaining balance", "لا رصيد متبقي", ar)}</span>
                 </div>
               </div>
             </div>

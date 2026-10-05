@@ -66,6 +66,9 @@ interface ContractExt {
   deposit: number;
   addOns: string[];
   payment: string;
+  paid: number;
+  remaining: number;
+  paymentType: string;
   kmCap: string;
 }
 
@@ -121,14 +124,22 @@ function mapExt(c: any): ContractExt {
   const days = Number(c.durationDays) || Math.max(1, Math.round((new Date(c.endAt).getTime() - new Date(c.startAt).getTime()) / 86400000)) || 1;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const addOns = Array.isArray(c.additionalServices) ? c.additionalServices.map((s: any) => s.nameEn ?? s.additionalServiceName ?? s.name ?? s.label ?? String(s.additionalServiceId ?? s.id ?? "")).filter(Boolean) : [];
-  const methodId = c.paymentMethodId ?? c.paymentMethodCode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pay: any = c.payment ?? {};
+  const methodId = pay.paymentMethodId ?? c.paymentMethodId ?? pay.paymentMethodCode ?? c.paymentMethodCode;
   const method = methodId != null ? (PAYMENT_METHOD_LABELS[String(methodId)] ?? c.otherPaymentMethodCode ?? String(methodId)) : (c.paymentMethodName ?? c.otherPaymentMethodCode ?? "—");
+  const totalAmount = Number(c.totalAmount ?? c.grandTotal ?? c.total ?? 0);
+  const paid = Number(pay.paidAmount ?? pay.paid ?? c.paidAmount ?? totalAmount);
+  const remaining = Number(pay.remainingAmount ?? pay.remaining ?? c.remainingAmount ?? Math.max(0, totalAmount - paid));
   return {
     days,
     dailyRate: Number(c.rentDayCost ?? c.dailyRate ?? 0),
-    deposit: Number(c.depositAmount ?? 0),
+    deposit: Number(pay.depositAmount ?? pay.deposit ?? c.depositAmount ?? 0),
     addOns,
     payment: method,
+    paid,
+    remaining,
+    paymentType: pay.paymentTypeCode ?? c.paymentTypeCode ?? (remaining > 0 ? "ADVANCE" : "FULL"),
     kmCap: c.unlimitedKm ? "Unlimited" : c.allowedKmPerDay != null ? `${c.allowedKmPerDay} km/day` : "—",
   };
 }
@@ -174,7 +185,7 @@ function ContractPreviewModal({
   contract, ext, lateFeePerHour, onClose, ar,
 }: {
   contract: ContractView;
-  ext: { days: number; dailyRate: number; deposit: number; addOns: string[]; payment: string; kmCap: string };
+  ext: ContractExt;
   lateFeePerHour: number;
   onClose: () => void;
   ar: boolean;
@@ -316,7 +327,15 @@ function ContractPreviewModal({
               </div>
               <div style={{ padding: "6px 10px", borderBottom: "1px solid #f0f0f0", borderRight: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                 <span style={{ color: "#555" }}>{T("Payment Method", "طريقة الدفع", ar)}</span>
-                <span style={{ fontWeight: 600 }}>{ext.payment}</span>
+                <span style={{ fontWeight: 600 }}>{ext.paymentType === "ADVANCE" ? T("Advance", "دفع مقدم", ar) : T("Full", "كامل", ar)} · {ext.payment}</span>
+              </div>
+              <div style={{ padding: "6px 10px", borderBottom: "1px solid #f0f0f0", borderRight: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <span style={{ color: "#555" }}>{T("Paid", "المدفوع", ar)}</span>
+                <span style={{ fontWeight: 600 }}>{ext.paid.toLocaleString()} SAR</span>
+              </div>
+              <div style={{ padding: "6px 10px", borderBottom: "1px solid #f0f0f0", borderRight: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <span style={{ color: "#555" }}>{T("Remaining", "المتبقي", ar)}</span>
+                <span style={{ fontWeight: 600, color: ext.remaining > 0 ? "#d6336c" : "inherit" }}>{ext.remaining.toLocaleString()} SAR</span>
               </div>
               <div style={{ padding: "6px 10px", borderBottom: "1px solid #f0f0f0", borderRight: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                 <span style={{ color: "#555" }}>{T("Late fee / hr", "غرامة التأخير/ساعة", ar)}</span>
@@ -521,13 +540,16 @@ function ExtendCard({
 
 // ── Pricing Details card — discount editable by owner role only ────────────────
 function PricingDetailsCard({
-  baseAmount, dailyRate, days, deposit, payment, role, ar,
+  baseAmount, dailyRate, days, deposit, payment, paymentType, paid, remaining, role, ar,
 }: {
   baseAmount: number;
   dailyRate: number;
   days: number;
   deposit: number;
   payment: string;
+  paymentType: string;
+  paid: number;
+  remaining: number;
   role: "owner" | "frontdesk";
   ar: boolean;
 }) {
@@ -624,7 +646,11 @@ function PricingDetailsCard({
       </div>
 
       <Row label={T("Deposit", "الوديعة", ar)} value={`${deposit} ${T("SAR", "ر.س", ar)}`} />
-      <Row label={T("Payment", "الدفع", ar)} value={payment} />
+      <Row label={T("Payment", "الدفع", ar)} value={`${paymentType === "ADVANCE" ? T("Advance", "دفع مقدم", ar) : T("Full", "كامل", ar)} · ${payment}`} />
+      <Row label={T("Paid", "المدفوع", ar)} value={`${paid.toLocaleString()} ${T("SAR", "ر.س", ar)}`} />
+      {remaining > 0 && (
+        <Row label={T("Remaining due", "المتبقي المستحق", ar)} value={`${remaining.toLocaleString()} ${T("SAR", "ر.س", ar)}`} />
+      )}
     </div>
   );
 }
@@ -1448,6 +1474,9 @@ export default function ContractDetailPage({
             days={ext.days}
             deposit={ext.deposit}
             payment={ext.payment}
+            paymentType={ext.paymentType}
+            paid={ext.paid}
+            remaining={ext.remaining}
             role={role}
             ar={ar}
           />

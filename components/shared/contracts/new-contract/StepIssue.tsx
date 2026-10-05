@@ -63,6 +63,7 @@ export type StepIssueProps = {
   discountType: "percent" | "amount";
   discountPercent: number;
   payMethod: string;
+  payType: "full" | "advance";
 };
 
 export function StepIssue({
@@ -72,9 +73,9 @@ export function StepIssue({
   days, pickupDate, returnDate, car, rentStatus, sketchItems,
   branches, rentPolicies, receiveBranchId, returnBranchId, rentPolicyId, contractTypeCode, addons, additionalServices,
   unlimitedKm, allowedKmPerDay, allowedKmPerHour, allowedLateHours, lateFeePerHour,
-  pricing, fullFuelCost, discountType, discountPercent, payMethod,
+  pricing, fullFuelCost, discountType, discountPercent, payMethod, payType,
 }: StepIssueProps) {
-  const { base, addonPrices, extraDriverFare, transferFare, authorizationFare, coverageFare, discountAmount, subtotal, vat, total } = pricing;
+  const { base, addonPrices, extraDriverFare, transferFare, authorizationFare, coverageFare, discountAmount, subtotal, vat, total, advanceAmount, remaining } = pricing;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
@@ -543,10 +544,16 @@ export function StepIssue({
           <div>
             <div className="mk-body-sm text-mk-mint-600">{T("Payment captured", "تم خصم الدفعة", ar)}</div>
             <div className="mk-caption mt-1 text-mk-mint-600 opacity-70">
-              {total.toLocaleString()}{" "}
+              {(tajeerResponse?.totalPaymentDetails?.paid ?? (payType === "advance" ? advanceAmount : total)).toLocaleString()}{" "}
               {payMethod === "cash"
                 ? T("SAR via Cash", "ريال نقداً", ar)
-                : T("SAR via POS · txn ZRT-8842", "ريال عبر نقطة البيع · العملية ZRT-8842", ar)}
+                : T("SAR via POS", "ريال عبر نقطة البيع", ar)}
+              {(() => {
+                const rem = tajeerResponse?.totalPaymentDetails?.remaining ?? (payType === "advance" ? remaining : 0);
+                return rem > 0 ? (
+                  <span className="block">{T(`Remaining on return: ${rem.toLocaleString()} SAR`, `المتبقي عند الإرجاع: ${rem.toLocaleString()} ريال`, ar)}</span>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
