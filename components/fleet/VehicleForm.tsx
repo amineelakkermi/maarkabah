@@ -377,6 +377,7 @@ export function VehicleForm({
                   <Input
                     label={T("Extra km rate", "سعر الكيلومتر الإضافي", ar)}
                     type="number"
+                    step="any"
                     value={form.extraKilometerRate}
                     onChange={(e) => setForm((f: any) => ({ ...f, extraKilometerRate: e.target.value }))}
                   />

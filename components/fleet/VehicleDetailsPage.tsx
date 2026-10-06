@@ -884,6 +884,7 @@ export function VehicleDetailsPage({
                       <FI
                         type="number"
                         inputMode="decimal"
+                        step="any"
                         min="0"
                         dir="ltr"
                         value={form.extraKilometerRate}
