@@ -99,9 +99,12 @@ export function mapBackendVehicleToCar(item: any): Car {
     chassisNumber: item.chassisNumber === "UNKNOWN" ? "" : (item.chassisNumber || ""),
     fuelTypeCode: item.fuelTypeCode || 1,
     // Backend field names: extraKilometerRate / fullFuelRate / lateHourRate.
-    extraKmCost: item.extraKmCost ?? item.extraKilometerRate ?? 0,
-    fullFuelCost: item.fullFuelCost ?? item.fullFuelRate ?? 0,
-    lateFeePerHour: item.lateFeePerHour ?? item.lateHourRate ?? 0,
+    // Those are the vehicle-owned rates shown/editable on the vehicle page —
+    // they win over the contract-side aliases (extraKmCost, …) which may carry
+    // a tenant-level default and diverge from the registered rate.
+    extraKmCost: item.extraKilometerRate ?? item.extraKmCost ?? 0,
+    fullFuelCost: item.fullFuelRate ?? item.fullFuelCost ?? 0,
+    lateFeePerHour: item.lateHourRate ?? item.lateFeePerHour ?? 0,
     enduranceAmount: item.enduranceAmount || 0,
     bodyType: item.bodyType || "",
     seats: item.seats || 0,

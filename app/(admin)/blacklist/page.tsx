@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UsersRound, ShieldCheck, ShieldAlert, Search, Loader2, FileWarning } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Search, Loader2, FileWarning, UserSearch } from "lucide-react";
 import { Badge, Button, Input, Table, Th, Td } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { blacklistService, customerEvents } from "@/lib/api-services";
 import { formatPhone } from "@/lib/formatting";
 import { VerificationStatus } from "@/lib/api-types";
+import CustomerInquiryPage from "@/components/shared/customers/CustomerInquiryPage";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -173,28 +174,60 @@ export default function BlacklistPage() {
   };
 
   return (
-    <div>
-      {/* Network card */}
-      <div className="flex items-center gap-4 rounded-xl px-4 sm:px-6 py-5 mb-5 mk-surface">
-        <div className="w-11 h-11 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50 text-mk-blue-500">
-          <UsersRound size={22} />
+    <div className="flex flex-col gap-8">
+      {/* ── Section: customer identity inquiry (same as /customers/inquiry) ── */}
+      <section>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-mk-blue-50 text-mk-blue-500">
+            <UserSearch size={20} />
+          </div>
+          <div className="min-w-0">
+            <div className="mk-h4 text-mk-ink-900">
+              {T("Customer inquiry", "الاستعلام عن عميل", ar)}
+            </div>
+            <div className="mk-caption mt-0.5 text-mk-ink-500">
+              {T(
+                "Look up an identity across the shared network before renting or flagging.",
+                "استعلم عن الهوية عبر الشبكة المشتركة قبل التأجير أو الإبلاغ.",
+                ar
+              )}
+            </div>
+          </div>
+        </div>
+        <CustomerInquiryPage customerProfilePath={(id) => `/customers/${id ?? ""}`} />
+      </section>
+
+      <hr className="border-mk-ink-100" />
+
+      {/* ── Section: shared blacklist ── */}
+      <section>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-mk-danger/10 text-mk-danger">
+          <ShieldAlert size={20} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="mk-h4 text-mk-ink-900">
             {T("Shared blacklist", "القائمة السوداء المشتركة", ar)}
           </div>
-          <div className="mk-label mt-1 text-mk-ink-500">
+          <div className="mk-caption mt-0.5 text-mk-ink-500">
             {T(
-              `${entries.length} verified entries`,
-              `${entries.length} إدخال موثق`,
-              ar
+              "Flagged identities reported by partner offices across the network.",
+                "الهويات المبلغ عنها من مكاتب الشبكة.",
+                ar
             )}
           </div>
         </div>
+        <Badge variant="neutral" className="shrink-0">
+          {T(
+            `${entries.length} entries`,
+            `${entries.length} إدخال`,
+            ar
+          )}
+        </Badge>
       </div>
 
       {/* Search bar */}
-      <div className="mb-5 max-w-md">
+      <div className="mb-4 max-w-md">
         <Input
           variant="search"
           icon={<Search size={14} />}
@@ -282,8 +315,8 @@ export default function BlacklistPage() {
 
       {/* How it works */}
       <div className="rounded-xl p-4 sm:p-6 mt-4 mk-surface">
-        <div className="mk-h4 mb-4 text-mk-ink-900">
-          {T("Shared blacklist — how it works", "القائمة السوداء المشتركة — كيف تعمل", ar)}
+        <div className="mk-label mb-4 text-mk-ink-900">
+          {T("How it works", "كيف تعمل", ar)}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {HOW_IT_WORKS.map((item) => (
@@ -299,6 +332,7 @@ export default function BlacklistPage() {
           ))}
         </div>
       </div>
+      </section>
     </div>
   );
 }

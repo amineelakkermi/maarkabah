@@ -690,6 +690,9 @@ export default function ContractDetailPage({
   const [activateError, setActivateError] = useState("");
   // Backend capability flags (canActivate / canDeliver / canReturn)
   const [caps, setCaps] = useState<{ canActivate?: boolean; canDeliver?: boolean; canReturn?: boolean }>({});
+  // Fallback delivery probe — the detail payload may not carry can* flags;
+  // then GET /contracts/{id}/delivery tells whether the handover happened.
+  const [hasDelivery, setHasDelivery] = useState<boolean | null>(null);
   // Tajeer link state + action feedback
   const [tajeerInfo, setTajeerInfo] = useState<{ linked: boolean; issuanceUrl: string | null; number: string | null; lastError: string | null }>({ linked: false, issuanceUrl: null, number: null, lastError: null });
   const [tajeerBusy, setTajeerBusy] = useState(false);
@@ -748,6 +751,12 @@ export default function ContractDetailPage({
         setContract(mapContract(c, ar));
         setExt(mapExt(c));
         setCaps({ canActivate: c.canActivate, canDeliver: c.canDeliver, canReturn: c.canReturn });
+        setHasDelivery(null);
+        if (c.canDeliver == null || c.canReturn == null) {
+          contractService.getDelivery(id)
+            .then((d) => { if (!cancelled) setHasDelivery((d?.data ?? d) != null); })
+            .catch(() => { if (!cancelled) setHasDelivery(false); });
+        }
         setTajeerInfo({
           linked: c.tajeerContractNumber != null || c.issuanceUrl != null,
           issuanceUrl: c.issuanceUrl ?? null,
@@ -827,10 +836,12 @@ export default function ContractDetailPage({
   const baseAmount = ext.dailyRate * ext.days;
 
   // Backend capability flags take precedence; status fallback covers payloads
-  // that don't send them.
+  // that don't send them. Per the API contract, deliver needs Active + no
+  // delivery yet, and return needs Active/Overdue + a recorded delivery —
+  // so the fallback gates both on the delivery probe (null = still loading).
   const canActivate = caps.canActivate ?? contract.status === "pending";
-  const canHandOver = caps.canDeliver ?? (contract.status === "pending" || contract.status === "active");
-  const canReturn   = caps.canReturn ?? (contract.status === "active" || contract.status === "late");
+  const canHandOver = caps.canDeliver ?? (contract.status === "active" && hasDelivery === false);
+  const canReturn   = caps.canReturn ?? ((contract.status === "active" || contract.status === "late") && hasDelivery === true);
   // Cancellation requires Permissions.Contracts.Cancel (manager role) and is
   // only meaningful before the contract reaches a terminal state.
   const canCancel = hasPermission(Permission.Contracts.Cancel) && (contract.status === "pending" || contract.status === "active" || contract.status === "late");
@@ -842,6 +853,11 @@ export default function ContractDetailPage({
       setContract(mapContract(c, ar));
       setExt(mapExt(c));
       setCaps({ canActivate: c.canActivate, canDeliver: c.canDeliver, canReturn: c.canReturn });
+      if (c.canDeliver == null || c.canReturn == null) {
+        contractService.getDelivery(id)
+          .then((d) => setHasDelivery((d?.data ?? d) != null))
+          .catch(() => setHasDelivery(false));
+      }
       setTajeerInfo({
         linked: c.tajeerContractNumber != null || c.issuanceUrl != null,
         issuanceUrl: c.issuanceUrl ?? null,

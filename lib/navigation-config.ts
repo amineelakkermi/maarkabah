@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, Car,
-  ShieldCheck, Search, Globe,
+  ShieldCheck, Globe,
   Tag, Users, IdCard,
   Sun, PlusCircle, CalendarCheck,
   KeyRound, Undo2,
@@ -51,7 +51,6 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     titleAr: "العملاء",
     items: [
       { href: "/customers", icon: Users, label: "Client List", labelAr: "قائمة العملاء", requiredPermission: Permission.Customers.View },
-      { href: "/customers/inquiry", icon: Search, label: "Inquiry", labelAr: "الاستعلام", requiredPermission: Permission.CustomerWarehouse.View },
       { href: "/drivers", icon: IdCard, label: "Drivers", labelAr: "بيانات السائقين", requiredPermission: Permission.Drivers.View },
       { href: "/kyc-queue", icon: ShieldCheck, label: "KYC Queue", labelAr: "مراجعة الهوية", requiredPermission: Permission.Customers.View },
       { href: "/drivers-kyc-queue", icon: ShieldCheck, label: "Driver KYC Queue", labelAr: "مراجعة هوية السائقين", requiredPermission: Permission.Drivers.View },
