@@ -60,6 +60,14 @@ export function computePricing(p: PricingInput) {
   const addonTotal = Object.entries(p.addons)
     .filter(([key, enabled]) => enabled && key !== "driver")
     .reduce((sum, [key]) => sum + (addonPrices[key] ?? 0), 0);
+  // Services flagged includeInVat=false stay on the invoice but are outside
+  // the 15% VAT base (backend semantic — defaults to included when absent).
+  const serviceByKey = new Map(
+    p.additionalServices.map((s) => [s.key.toLowerCase().replace(/[-\s]+/g, "_"), s])
+  );
+  const addonVatExempt = Object.entries(p.addons)
+    .filter(([key, enabled]) => enabled && key !== "driver")
+    .reduce((sum, [key]) => (serviceByKey.get(key)?.includeInVat === false ? sum + (addonPrices[key] ?? 0) : sum), 0);
   const extraDriverFare = p.hasExtraDriver
     ? (p.contractTypeCode === 4 ? p.driverFarePerHour * p.totalHours : p.driverFarePerDay * p.days)
     : 0;
@@ -80,7 +88,7 @@ export function computePricing(p: PricingInput) {
   // Round VAT to 2 decimals, not to the integer — the backend keeps the exact
   // decimal amount (e.g. 2750 × 15% = 412.5 → total 3162.5), and rejecting any
   // paidAmount above it means rounding up here would exceed the backend total.
-  const vat = Math.round(subtotal * 0.15 * 100) / 100;
+  const vat = Math.round(Math.max(0, subtotal - addonVatExempt) * 0.15 * 100) / 100;
   const total = subtotal + vat;
   const advanceAmount = Math.round(total * 0.5 * 100) / 100;
   const remaining = total - advanceAmount;
