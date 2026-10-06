@@ -4,6 +4,7 @@ import {
   branchService,
   cancellationPolicyService,
   extendedCoverageService,
+  pricingService,
   rentPolicyService,
 } from "@/lib/api-services";
 import type {
@@ -22,6 +23,9 @@ export function isTajeerSyncedPolicy(p: { tajeerId?: number | null; source?: num
   return p.tajeerId != null || Number(p.source) === 1;
 }
 export type ContractCancellationPolicy = LookupItem & CancellationPolicyDto;
+// Named discount rate from /pricing/discount-rates/picker — only `percent`
+// goes onto the contract (discountPercent); no rate id is persisted.
+export type ContractDiscountRate = { id: number; nameAr: string; nameEn: string; percent: number };
 export type ContractAdditionalService = AdditionalServiceDto & {
   key: string;
   nameAr: string;
@@ -49,6 +53,7 @@ export function useContractLookups(
   const [cancellationPolicies, setCancellationPolicies] = useState<ContractCancellationPolicy[]>([]);
   const [extendedCoverage, setExtendedCoverage] = useState<LookupItem[]>([]);
   const [additionalServices, setAdditionalServices] = useState<ContractAdditionalService[]>([]);
+  const [discountRates, setDiscountRates] = useState<ContractDiscountRate[]>([]);
 
   useEffect(() => {
     Promise.allSettled([
@@ -56,7 +61,8 @@ export function useContractLookups(
       rentPolicyService.picker(),
       cancellationPolicyService.picker(),
       extendedCoverageService.picker(),
-    ]).then(([branchResult, rentPolicyResult, cancellationPolicyResult, coverageResult]) => {
+      pricingService.pickDiscountRates(),
+    ]).then(([branchResult, rentPolicyResult, cancellationPolicyResult, coverageResult, discountResult]) => {
       const loadedBranches = branchResult.status === "fulfilled"
         ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string }>(branchResult.value)
           .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))
@@ -76,6 +82,10 @@ export function useContractLookups(
         ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string }>(coverageResult.value)
           .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))
         : [];
+      const loadedDiscountRates = discountResult.status === "fulfilled"
+        ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string; percent?: number }>(discountResult.value)
+          .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "", percent: Number(item.percent ?? 0) }))
+        : [];
 
       if (branchResult.status === "fulfilled") setBranches(loadedBranches);
       else console.error("Error loading branches:", branchResult.reason);
@@ -85,6 +95,8 @@ export function useContractLookups(
       else console.error("Error loading cancellation policies:", cancellationPolicyResult.reason);
       if (coverageResult.status === "fulfilled") setExtendedCoverage(loadedCoverage);
       else console.error("Error loading extended coverages:", coverageResult.reason);
+      if (discountResult.status === "fulfilled") setDiscountRates(loadedDiscountRates);
+      else console.error("Error loading discount rates:", discountResult.reason);
 
       onLoaded?.(loadedBranches, loadedRentPolicies, loadedCancellationPolicies);
     });
@@ -112,5 +124,5 @@ export function useContractLookups(
     });
   }, [branchId]);
 
-  return { branches, rentPolicies, cancellationPolicies, extendedCoverage, additionalServices };
+  return { branches, rentPolicies, cancellationPolicies, extendedCoverage, additionalServices, discountRates };
 }

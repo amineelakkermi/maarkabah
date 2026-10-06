@@ -10,7 +10,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const body = await request.json();
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/insurance-companies/${id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/admin/insurance-companies/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/insurance-companies/${id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/admin/insurance-companies/${id}`, {
       method: 'DELETE',
       headers: {
       'Authorization': `Bearer ${getAccessTokenFromRequest(request) || ''}`

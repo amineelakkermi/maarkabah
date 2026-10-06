@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/vehicle-makes/${makeId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/admin/vehicle-makes/${makeId}`, {
       method: 'GET',
       headers: {
 'Authorization': `Bearer ${getAccessTokenFromRequest(request) || ''}`
@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const body = await request.json();
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/vehicle-makes/${makeId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/admin/vehicle-makes/${makeId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/vehicle-makes/${makeId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://139.59.140.232'}/api/admin/vehicle-makes/${makeId}`, {
       method: 'DELETE',
       headers: {
 'Authorization': `Bearer ${getAccessTokenFromRequest(request) || ''}`

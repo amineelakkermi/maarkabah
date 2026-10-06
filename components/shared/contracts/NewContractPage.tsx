@@ -130,7 +130,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [breakdownReportPolicy, setBreakdownReportPolicy] = useState("call_office");
 
   // ── Tajeer: pre-required data ──────────────────────────────────
-  const { branches, rentPolicies, cancellationPolicies, extendedCoverage, additionalServices } = useContractLookups(workingBranchId, (b, p, c) => {
+  const { branches, rentPolicies, cancellationPolicies, extendedCoverage, additionalServices, discountRates } = useContractLookups(workingBranchId, (b, p, c) => {
     if (b.length > 0) {
       setWorkingBranchId(b[0].id);
       setReceiveBranchId(b[0].id);
@@ -231,6 +231,9 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [discountFlatAmount, setDiscountFlatAmount] = useState<number>(0);
+  // Selected named discount rate — its percent is copied to discountPercent
+  // (the contract only persists discountPercent, never the rate id).
+  const [discountRateId, setDiscountRateId] = useState<number | null>(null);
   const [extendedCoverageId, setExtendedCoverageId] = useState<number | undefined>();
   const [additionalCoverageCost, setAdditionalCoverageCost] = useState<number>(0);
   const [driverFarePerDay, setDriverFarePerDay] = useState<number>(0);
@@ -924,6 +927,14 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             lateFeePerHour={lateFeePerHour} setLateFeePerHour={setLateFeePerHour}
             discountType={discountType}
             discountPercent={discountPercent}
+            discountRates={discountRates}
+            discountRateId={discountRateId}
+            onDiscountRateChange={(id) => {
+              setDiscountRateId(id);
+              const rate = discountRates.find((r) => r.id === id);
+              setDiscountType("percent");
+              setDiscountPercent(rate?.percent ?? 0);
+            }}
             payType={payType} setPayType={setPayType}
             payMethod={payMethod} setPayMethod={setPayMethod}
             pricing={pricing}

@@ -1,9 +1,10 @@
 "use client";
 
-import { Info, Lock, Tag, CreditCard, Wallet, Banknote } from "lucide-react";
-import { Badge } from "@/components/ui";
+import { Info, Lock, CreditCard, Wallet, Banknote } from "lucide-react";
+import { Badge, Select } from "@/components/ui";
 import type { Car } from "@/lib/data";
 import type { TajeerContractType } from "@/lib/tajeer";
+import type { ContractDiscountRate } from "./useContractLookups";
 import {
   T, ADD_ONS,
   SYSTEM_DRIVER_FARE_PER_DAY, SYSTEM_DRIVER_FARE_PER_HOUR,
@@ -36,9 +37,13 @@ export type StepPricingPaymentProps = {
   allowedKmPerDay: number; setAllowedKmPerDay: (v: number) => void;
   allowedLateHours: number; setAllowedLateHours: (v: number) => void;
   lateFeePerHour: number; setLateFeePerHour: (v: number) => void;
-  // Discount (read-only here)
+  // Discount — picked from the tenant's named discount-rate catalog; only the
+  // percent goes to the backend (discountPercent).
   discountType: "percent" | "amount";
   discountPercent: number;
+  discountRates: ContractDiscountRate[];
+  discountRateId: number | null;
+  onDiscountRateChange: (id: number | null) => void;
   // Payment
   payType: "full" | "advance"; setPayType: (v: "full" | "advance") => void;
   payMethod: string; setPayMethod: (v: string) => void;
@@ -51,7 +56,7 @@ export function StepPricingPayment({
   driverFarePerDay, setDriverFarePerDay, driverFarePerHour, setDriverFarePerHour, vehicleTransferCost, setVehicleTransferCost,
   internationalAuthorizationCost, setInternationalAuthorizationCost, additionalCoverageCost, setAdditionalCoverageCost,
   allowedKmPerDay, setAllowedKmPerDay, allowedLateHours, setAllowedLateHours, lateFeePerHour, setLateFeePerHour,
-  discountType, discountPercent, payType, setPayType, payMethod, setPayMethod, pricing,
+  discountType, discountPercent, discountRates, discountRateId, onDiscountRateChange, payType, setPayType, payMethod, setPayMethod, pricing,
 }: StepPricingPaymentProps) {
   const {
     base, addonPrices, extraDriverFare, transferFare, authorizationFare, coverageFare,
@@ -170,24 +175,39 @@ export function StepPricingPayment({
             )}
           </div>
 
-          {/* Discount — registered by the owner in Pricing settings; read-only here */}
+          {/* Discount — picked from the tenant's named discount rates
+              (managed in Pricing settings); only the percent is sent. */}
           <div className="pt-6 mt-6 border-t border-mk-ink-100">
             <div className="flex items-center justify-between mb-3">
               <div className="mk-label text-mk-ink-900">{T("Discount", "نسبة الخصم", ar)}</div>
               <span className="flex items-center gap-1 mk-overline text-mk-ink-400">
-                <Lock size={11} />{T("Set in Pricing settings", "تُحدَّد من إعدادات الأسعار", ar)}
+                <Lock size={11} />{T("Rates managed in Pricing settings", "النسب تُدار من إعدادات الأسعار", ar)}
               </span>
             </div>
-            <div className="flex items-center gap-2 h-10 px-3 rounded-md bg-mk-ink-50 border border-mk-ink-100">
-              <Tag size={13} className="text-mk-ink-400" />
-              <span className="mk-caption text-mk-ink-400">
-                {discountAmount > 0
-                  ? (discountType === "percent"
-                    ? T(`${discountPercent}% discount applied`, `تم تطبيق خصم ${discountPercent}٪`, ar)
-                    : T(`${discountAmount.toLocaleString()} SAR discount applied`, `تم تطبيق خصم ${discountAmount.toLocaleString()} ريال`, ar))
-                  : T("No discount", "لا يوجد خصم", ar)}
-              </span>
+            <div className="flex items-center gap-2">
+              <Select
+                value={discountRateId != null ? String(discountRateId) : ""}
+                onChange={(e) => onDiscountRateChange(e.target.value ? Number(e.target.value) : null)}
+                className="flex-1"
+              >
+                <option value="">{T("No discount", "بدون خصم", ar)}</option>
+                {discountRates.map((r) => (
+                  <option key={r.id} value={String(r.id)}>
+                    {(ar ? (r.nameAr || r.nameEn) : (r.nameEn || r.nameAr)) || `—`} ({r.percent}%)
+                  </option>
+                ))}
+              </Select>
             </div>
+            {discountAmount > 0 && (
+              <p className="mk-caption text-mk-blue-500 mt-2">
+                {T(`−${discountAmount.toLocaleString()} SAR (${discountPercent}% off)`, `−${discountAmount.toLocaleString()} ريال (خصم ${discountPercent}٪)`, ar)}
+              </p>
+            )}
+            {discountRates.length === 0 && (
+              <p className="mk-caption text-mk-ink-400 mt-2">
+                {T("No discount rates configured in Pricing settings.", "لا توجد نسب خصم مُعرَّفة في إعدادات الأسعار.", ar)}
+              </p>
+            )}
           </div>
 
           {/* Km & delay limits */}
