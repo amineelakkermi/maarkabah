@@ -13,26 +13,14 @@ import {
   lookupService,
 } from "@/lib/api-services";
 
-// Vehicle makes and insurance companies are admin-namespaced on the backend
-// (/api/admin/…) and return 404/403 for tenant users — the tenant-facing
-// source is POST /api/lookups/context, one call serving both sections.
+// Makes and insurance companies come from lookups/context for tenants.
 async function fetchAdminLookups(): Promise<{ makes: any[]; insuranceCompanies: any[] }> {
-  try {
-    const ctx = await lookupService.getContext({ sections: ["VehicleMakes", "InsuranceCompanies"] });
-    const root = ctx?.data ?? ctx ?? {};
-    return {
-      makes: root.vehicleMakes ?? [],
-      insuranceCompanies: root.insuranceCompanies ?? [],
-    };
-  } catch {
-    const [makesRes, companiesRes] = await Promise.allSettled([
-      vehicleMakeService.search({ pageNumber: 1, pageSize: 100 }),
-      insuranceCompanyService.search({ pageNumber: 1, pageSize: 100 }),
-    ]);
-    const pick = (r: PromiseSettledResult<any>) =>
-      r.status === "fulfilled" ? (r.value?.items || r.value?.data || []) : [];
-    return { makes: pick(makesRes), insuranceCompanies: pick(companiesRes) };
-  }
+  const ctx = await lookupService.getContext({ sections: ["VehicleMakes", "InsuranceCompanies"] });
+  const root = ctx?.data ?? ctx ?? {};
+  // Response uses "makes" key for VehicleMakes (not "vehicleMakes")
+  const makes = root.makes ?? root.vehicleMakes ?? root.VehicleMakes ?? [];
+  const companies = root.insuranceCompanies ?? root.InsuranceCompanies ?? [];
+  return { makes, insuranceCompanies: companies };
 }
 
 export function useVehicleLookups(makeId?: string | number) {
