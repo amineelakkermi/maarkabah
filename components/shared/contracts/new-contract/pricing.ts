@@ -1,6 +1,6 @@
 import type { Car } from "@/lib/data";
 import type { TajeerContractType } from "@/lib/tajeer";
-import { SYSTEM_VEHICLE_TRANSFER_COST, SYSTEM_COVERAGE_BASE_COST } from "./constants";
+import { SYSTEM_VEHICLE_TRANSFER_COST } from "./constants";
 import type { ContractAdditionalService } from "./useContractLookups";
 
 const HOUR_MS = 1000 * 60 * 60;
@@ -76,7 +76,7 @@ export function computePricing(p: PricingInput) {
   // (only relevant when the authorization is actually international), so its
   // real registered default is "no fee" until the employee enters one.
   const authorizationFare = p.internationalAuthorizationCost;
-  const coverageFare = p.extendedCoverageId ? (p.additionalCoverageCost || SYSTEM_COVERAGE_BASE_COST) : 0;
+  const coverageFare = p.extendedCoverageId ? (p.additionalCoverageCost || 100) : 0;
   // fullFuelCost is sent in the payload as the vehicle's fuel rate, but the
   // backend doesn't bill it in the contract total — adding it here makes
   // paidAmount exceed the backend total (Contract.PaidExceedsTotal).

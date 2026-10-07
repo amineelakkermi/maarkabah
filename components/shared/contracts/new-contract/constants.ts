@@ -1,4 +1,4 @@
-import { ShieldCheck, Gauge, Baby, Fuel, Wifi, MapPin, Compass, Accessibility } from "lucide-react";
+import { Gauge, Baby, Fuel, Wifi, MapPin, Compass, Accessibility } from "lucide-react";
 import type { DriverProfile } from "@/lib/data";
 
 export const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -33,10 +33,8 @@ export const SYSTEM_DRIVER_FARE_PER_DAY = 45;
 export const SYSTEM_DRIVER_FARE_PER_HOUR = 10;
 // System-registered flat fees — same figures the office's Pricing settings hold.
 export const SYSTEM_VEHICLE_TRANSFER_COST = 150;
-export const SYSTEM_COVERAGE_BASE_COST = 100;
 
 export const ADD_ONS = [
-  { k: "insurance_comprehensive", Icon: ShieldCheck, nameEn: "Insurance · Comprehensive", nameAr: "تأمين · شامل", descEn: "Full coverage, zero liability", descAr: "تغطية كاملة بدون تحمل شخصي", price: 1500, unit: "· once", unitAr: "· مرة واحدة", perDay: false },
   { k: "unlimited_km", Icon: Gauge, nameEn: "Unlimited Kilometers", nameAr: "كيلومتر مفتوح", descEn: "No km cap for the rental period", descAr: "بدون حد للكيلومتر طوال الإيجار", price: 85, unit: "/ day", unitAr: "/ يوم", perDay: true },
   { k: "child", Icon: Baby, nameEn: "Child seat (0–2)", nameAr: "مقعد أطفال (٠–٢)", descEn: "Installed before pickup", descAr: "مركّب قبل التسليم", price: 25, unit: "/ day", unitAr: "/ يوم", perDay: true },
   { k: "fuel", Icon: Fuel, nameEn: "Fuel prepay (40 L)", nameAr: "وقود مسبق (٤٠ ل)", descEn: "Return empty, no penalty", descAr: "الإرجاع فارغ بلا غرامة", price: 175, unit: "· once", unitAr: "· مرة واحدة", perDay: false },

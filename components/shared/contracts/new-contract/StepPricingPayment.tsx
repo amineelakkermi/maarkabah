@@ -8,7 +8,7 @@ import type { ContractDiscountRate } from "./useContractLookups";
 import {
   T, ADD_ONS,
   SYSTEM_DRIVER_FARE_PER_DAY, SYSTEM_DRIVER_FARE_PER_HOUR,
-  SYSTEM_VEHICLE_TRANSFER_COST, SYSTEM_COVERAGE_BASE_COST,
+  SYSTEM_VEHICLE_TRANSFER_COST,
 } from "./constants";
 import type { Pricing } from "./pricing";
 import { PriceInputField, PriceInput } from "./PriceInput";
@@ -166,8 +166,8 @@ export function StepPricingPayment({
             {extendedCoverageId && (
               <PriceInput
                 label={T("Additional coverage cost (SAR)", "تكلفة التغطية الإضافية", ar)}
-                value={additionalCoverageCost || SYSTEM_COVERAGE_BASE_COST}
-                defaultValue={SYSTEM_COVERAGE_BASE_COST}
+                value={additionalCoverageCost || 100}
+                defaultValue={100}
                 onChange={setAdditionalCoverageCost}
                 ar={ar}
                 helpText={T(`Max = day rate × 2`, "الحد الأقصى = سعر اليوم × ٢", ar)}

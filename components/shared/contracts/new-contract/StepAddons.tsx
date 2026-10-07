@@ -178,34 +178,6 @@ export function StepAddons({
         <div className="mk-surface rounded-xl p-4 sm:p-6">
           <div className="mk-h4 mb-6 text-mk-ink-900">{T("Rental policy", "سياسة التأجير", ar)}</div>
 
-          {/* Comprehensive insurance — mandatory, included on every contract */}
-          {ADD_ONS.filter(a => a.k === "insurance_comprehensive").map((a) => (
-            <div key={a.k} className="flex items-center gap-3 p-3 mb-4 rounded-lg bg-mk-blue-500/8 border border-mk-blue-500/20">
-              <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
-                <a.Icon size={16} className="text-mk-blue-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="mk-label text-mk-ink-900">{ar ? a.nameAr : a.nameEn}</span>
-                  <span className="mk-overline px-2 py-1 rounded-full bg-mk-blue-500/10 text-mk-blue-500 shrink-0">
-                    {T("Included on every contract", "مُدرج في كل عقد", ar)}
-                  </span>
-                </div>
-                <div className="mk-caption mt-1 text-mk-ink-500">
-                  {T(
-                    "Fully refunded after the vehicle is returned, with no dispute — as long as there's no damage or violation on the vehicle.",
-                    "يُسترد المبلغ بالكامل بعد إرجاع المركبة دون أي نزاع، بشرط عدم وجود ضرر أو مخالفة على المركبة.",
-                    ar
-                  )}
-                </div>
-              </div>
-              <div className="text-end shrink-0">
-                <div className="mk-label text-mk-blue-500">{a.price} {T("SAR", "ريال", ar)}</div>
-                <div className="mk-overline text-mk-ink-400">{ar ? a.unitAr : a.unit}</div>
-              </div>
-            </div>
-          ))}
-
           <div className="grid grid-cols-1 gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
