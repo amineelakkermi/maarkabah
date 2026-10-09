@@ -20,7 +20,7 @@ import { describeApiError } from "@/lib/api-error-messages";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
 import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
 import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
-import { fleetAlertSeverity } from "@/components/employee/FleetAlertBadges";
+import { effectiveCarStatus } from "@/components/employee/FleetAlertBadges";
 
 export default function FleetPage() {
   const { dir } = useAdmin();
@@ -270,12 +270,9 @@ export default function FleetPage() {
     }
   };
 
-  // A vehicle isn't rentable while a blocking document/maintenance alert is
-  // active (expired istamara/inspection, overdue oil change) — those cars keep
-  // their backend status but don't count as "available" anymore.
-  const isBlocked = (c: Car) => fleetAlertSeverity(c, ar) === "danger";
-  const effectiveStatus = (c: Car): CarStatus =>
-    c.status === "available" && isBlocked(c) ? "maintenance" : c.status;
+  // Derived rentability — shared with the card badges and the contract
+  // picker via `effectiveCarStatus` (see FleetAlertBadges).
+  const effectiveStatus = (c: Car): CarStatus => effectiveCarStatus(c, ar);
 
   const visible = vehicles.filter((c) => {
     const matchTab = tab === "all" || effectiveStatus(c) === tab;

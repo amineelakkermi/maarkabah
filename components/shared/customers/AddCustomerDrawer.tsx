@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { UserPlus, Loader2, Phone, CreditCard, Plus, Trash2 } from "lucide-react";
-import { HijriDatePicker, GregorianDateInput, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton, Modal, useToast } from "@/components/ui";
+import { HijriDatePicker, GregorianDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, IconButton, Modal, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { customerService, attachmentService, countryService, customerEvents } from "@/lib/api-services";
 import { formatPhone, normalizeKycStatus } from "@/lib/formatting";
@@ -492,14 +492,12 @@ export function AddCustomerDrawer({ open, onClose, onCreated, existingCustomers,
                     <HijriDatePicker value={f.value} onChange={f.onChange} ar={ar} />
                   </div>
                 ) : f.type === "date" && f.key.includes("birthDate") ? (
-                  <GregorianDateInput
-                    key={f.key}
-                    label={<>{T(f.labelEn, f.labelAr, ar)} {f.required && <span className="text-mk-danger">*</span>}</>}
-                    value={f.value}
-                    onChange={f.onChange}
-                    ar={ar}
-                    required={f.required}
-                  />
+                  <div key={f.key} className="flex flex-col gap-2">
+                    <label className="mk-caption text-mk-ink-700">
+                      {T(f.labelEn, f.labelAr, ar)} {f.required && <span className="text-mk-danger">*</span>}
+                    </label>
+                    <GregorianDatePicker value={f.value} onChange={f.onChange} ar={ar} yearMax={new Date().getFullYear()} />
+                  </div>
                 ) : (
                   <Input
                     key={f.key}

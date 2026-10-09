@@ -35,6 +35,7 @@ export { AlertBanner } from "./AlertBanner";
 export { RiyalSymbol } from "./RiyalSymbol";
 export { HijriDatePicker, HIJRI_MONTHS, HIJRI_YEAR_MIN, HIJRI_YEAR_MAX } from "./HijriDatePicker";
 export { GregorianDateInput } from "./GregorianDateInput";
+export { GregorianDatePicker, GREGORIAN_MONTHS, GREGORIAN_YEAR_MIN } from "./GregorianDatePicker";
 export { DatePicker } from "./DatePicker";
 export { DateTimePicker } from "./DateTimePicker";
 

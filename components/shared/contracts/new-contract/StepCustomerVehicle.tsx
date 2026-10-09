@@ -5,7 +5,7 @@ import { Search, Check, UserPlus, UserCheck, Shield, Gauge, X, LayoutGrid, List,
 import { Avatar, Badge, RiyalSymbol, Input, Select, Button, Chip, IconButton, Tabs, DatePicker, DateTimePicker } from "@/components/ui";
 import type { Car, CarStatus, DriverProfile } from "@/lib/data";
 import { TAJEER_LOOKUPS, type TajeerRentStatus, type SketchItem } from "@/lib/tajeer";
-import { FleetAlertBadgeList, FleetAlertImageOverlay } from "@/components/employee/FleetAlertBadges";
+import { FleetAlertBadgeList, FleetAlertImageOverlay, effectiveCarStatus } from "@/components/employee/FleetAlertBadges";
 import { VehicleTypeIcon } from "@/components/employee/VehicleTypeIcon";
 import { getAvailabilityText } from "@/lib/maps";
 import { T, getCustomerStatusTag, CUSTOMER_STATUS_META, NEIGHBORING_COUNTRIES } from "./constants";
@@ -617,6 +617,7 @@ export function StepCustomerVehicle({
                 .map((c) => {
                   const picked = c.plate === pickedPlate;
                   const odometer = c.odometerReading ?? 0;
+                  const effStatus = effectiveCarStatus(c, ar);
                   return (
                     <div
                       key={c.plate}
@@ -663,20 +664,21 @@ export function StepCustomerVehicle({
                           <div className="flex flex-col items-end gap-1 shrink-0">
                             <Badge
                               variant={
-                                c.status === "available" ? "success" :
-                                  c.status === "rented" ? "info" :
-                                    c.status === "overdue" ? "danger" : "warning"
+                                effStatus === "available" ? "success" :
+                                  effStatus === "rented" ? "info" :
+                                    effStatus === "overdue" ? "danger" : "warning"
                               }
                               dot
                             >
-                              {c.status === "available" ? T("Free", "متاحة", ar) :
-                                c.status === "rented" ? T("Rented", "مؤجرة", ar) :
-                                  c.status === "overdue" ? T("Overdue", "متأخرة", ar) :
-                                    T(c.status, c.status, ar)}
+                              {effStatus === "available" ? T("Free", "متاحة", ar) :
+                                effStatus === "rented" ? T("Rented", "مؤجرة", ar) :
+                                  effStatus === "overdue" ? T("Overdue", "متأخرة", ar) :
+                                    effStatus === "maintenance" ? T("Maintenance", "صيانة", ar) :
+                                    T(effStatus, effStatus, ar)}
                             </Badge>
-                            {(c.status === "rented" || c.status === "overdue") && (
+                            {(effStatus === "rented" || effStatus === "overdue") && (
                               <span className="mk-caption mt-1 text-mk-ink-500 shrink-0">
-                                {getAvailabilityText(c.status, c.id, ar)}
+                                {getAvailabilityText(effStatus, c.id, ar)}
                               </span>
                             )}
                           </div>
@@ -722,6 +724,7 @@ export function StepCustomerVehicle({
                 .map((c) => {
                   const picked = c.plate === pickedPlate;
                   const odometer = c.odometerReading ?? 0;
+                  const effStatus = effectiveCarStatus(c, ar);
                   const statusColor: Record<string, string> = {
                     available: "var(--color-mk-mint-600)", rented: "var(--color-mk-blue-500)", overdue: "var(--color-mk-danger)",
                     maintenance: "var(--color-mk-warning)", reserved: "var(--color-mk-violet-500)",
@@ -755,15 +758,16 @@ export function StepCustomerVehicle({
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="mk-body text-mk-ink-900">{c.make} {c.model} · {c.year}</div>
                           <span className="mk-overline px-2 py-1 rounded-full"
-                            style={{ background: `${statusColor[c.status] ?? "var(--color-mk-ink-400)"}18`, color: statusColor[c.status] ?? "var(--color-mk-ink-400)" }}>
-                            {c.status === "available" ? T("Free", "متاحة", ar) :
-                              c.status === "rented" ? T("Rented", "مؤجرة", ar) :
-                                c.status === "overdue" ? T("Overdue", "متأخرة", ar) :
-                                  T(c.status, c.status, ar)}
+                            style={{ background: `${statusColor[effStatus] ?? "var(--color-mk-ink-400)"}18`, color: statusColor[effStatus] ?? "var(--color-mk-ink-400)" }}>
+                            {effStatus === "available" ? T("Free", "متاحة", ar) :
+                              effStatus === "rented" ? T("Rented", "مؤجرة", ar) :
+                                effStatus === "overdue" ? T("Overdue", "متأخرة", ar) :
+                                  effStatus === "maintenance" ? T("Maintenance", "صيانة", ar) :
+                                  T(effStatus, effStatus, ar)}
                           </span>
-                          {(c.status === "rented" || c.status === "overdue") && (
+                          {(effStatus === "rented" || effStatus === "overdue") && (
                             <span className="mk-overline text-mk-ink-500">
-                              · {getAvailabilityText(c.status, c.id, ar)}
+                              · {getAvailabilityText(effStatus, c.id, ar)}
                             </span>
                           )}
                           <FleetAlertBadgeList car={c} ar={ar} showEmpty={false} />

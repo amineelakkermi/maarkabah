@@ -6,7 +6,7 @@ import { ChevronRight, Edit, Gauge, MapPin, Trash2, Car as CarIcon } from "lucid
 import { Badge, Button, IconButton, RiyalSymbol, Td, Tr } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { T, STATUS_BADGE_VARIANT, STATUS_TABS } from "@/lib/fleet";
-import { FleetAlertImageOverlay, FleetAlertBadgeList } from "@/components/employee/FleetAlertBadges";
+import { FleetAlertImageOverlay, FleetAlertBadgeList, effectiveCarStatus } from "@/components/employee/FleetAlertBadges";
 import { CAR_TYPE_AR } from "@/components/shared/contracts/new-contract/mappers";
 
 interface CarCardProps {
@@ -19,7 +19,7 @@ interface CarCardProps {
 }
 
 function statusLabel(car: Car, ar: boolean) {
-  const status = STATUS_TABS.find((item) => item.key === car.status);
+  const status = STATUS_TABS.find((item) => item.key === effectiveCarStatus(car, ar));
   return status ? (ar ? status.labelAr : status.labelEn) : car.status;
 }
 
@@ -72,7 +72,7 @@ export function CarCard({ car, onEdit, onDelete, canDelete = true }: CarCardProp
             <div className="mk-body text-mk-ink-900 truncate">{car.make} {car.model}</div>
             <div className="mk-overline text-mk-ink-500 mt-1 truncate">{car.plate} · {T(car.type, CAR_TYPE_AR[car.type] ?? car.type, ar)} · {car.year}</div>
           </div>
-          <Badge variant={STATUS_BADGE_VARIANT[car.status]} dot>{statusLabel(car, ar)}</Badge>
+          <Badge variant={STATUS_BADGE_VARIANT[effectiveCarStatus(car, ar)]} dot>{statusLabel(car, ar)}</Badge>
         </div>
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-mk-ink-100">
           <div className="flex items-center gap-1"><RiyalSymbol size={16} /><span className="mk-body text-mk-ink-900">{car.dailyRate}</span><span className="mk-caption text-mk-ink-400">{T("/d", "/يوم", ar)}</span></div>
@@ -94,7 +94,7 @@ export function CarListRow({ car, onEdit, onDelete, canDelete = true, onMapClick
       <Td><div className="flex items-center gap-1"><RiyalSymbol size={16} /><span className="mk-body text-mk-ink-900">{car.dailyRate}</span></div><span className="mk-overline text-mk-ink-400">{T("/day", "/يوم", ar)}</span></Td>
       <Td><span className="mk-caption text-mk-ink-900">{car.utilization}%</span><div className="w-12 h-1 rounded-full bg-mk-ink-100 mt-1 overflow-hidden"><div className="h-full rounded-full bg-mk-blue-500" style={{ width: `${Math.min(car.utilization, 100)}%` }} /></div></Td>
       <Td onClick={(event) => event.stopPropagation()}>{onMapClick && <Button variant="outline" size="sm" className="rounded-full whitespace-nowrap" onClick={() => onMapClick(car)}><MapPin size={12} className="text-mk-blue-500" />{T("Show on map", "عرض على الخريطة", ar)}</Button>}</Td>
-      <Td><Badge variant={STATUS_BADGE_VARIANT[car.status]} dot>{statusLabel(car, ar)}</Badge></Td>
+      <Td><Badge variant={STATUS_BADGE_VARIANT[effectiveCarStatus(car, ar)]} dot>{statusLabel(car, ar)}</Badge></Td>
       <Td onClick={(event) => event.stopPropagation()}><div className="flex justify-end gap-1"><IconButton size="sm" variant="ghost" aria-label={T("Edit", "تعديل", ar)} onClick={() => onEdit(car)}><Edit size={14} /></IconButton>{canDelete && <IconButton size="sm" variant="ghost" aria-label={T("Delete", "حذف", ar)} onClick={() => onDelete(car)}><Trash2 size={14} className="text-mk-danger" /></IconButton>}<ChevronRight size={16} className="text-mk-ink-300 self-center" /></div></Td>
     </Tr>
   );

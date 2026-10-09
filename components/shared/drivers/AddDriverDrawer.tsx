@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { UserPlus, CheckCircle } from "lucide-react";
-import { HijriDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, useToast } from "@/components/ui";
+import { HijriDatePicker, GregorianDatePicker, Button, Input, Select, Drawer, DrawerHeader, DrawerFooter, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { driverService, driverEvents, countryService } from "@/lib/api-services";
 import { transliterateArabicName } from "@/lib/transliterate";
@@ -347,6 +347,13 @@ export function AddDriverDrawer({
                     {T(f.labelEn, f.labelAr, ar)} {f.required && <span className="text-mk-danger">*</span>}
                   </label>
                   <HijriDatePicker value={f.value} onChange={f.onChange} ar={ar} />
+                </div>
+              ) : f.type === "date" && f.key.includes("birthDate") ? (
+                <div key={f.key} className="flex flex-col gap-2">
+                  <label className="mk-caption text-mk-ink-700">
+                    {T(f.labelEn, f.labelAr, ar)} {f.required && <span className="text-mk-danger">*</span>}
+                  </label>
+                  <GregorianDatePicker value={f.value} onChange={f.onChange} ar={ar} yearMax={new Date().getFullYear()} />
                 </div>
               ) : (
                 <Input

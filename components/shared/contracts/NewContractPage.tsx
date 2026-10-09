@@ -21,6 +21,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { useContractLookups, isTajeerSyncedPolicy } from "./new-contract/useContractLookups";
 import { useCustomersPicker } from "./new-contract/useCustomersPicker";
 import { useVehiclesPicker } from "./new-contract/useVehiclesPicker";
+import { effectiveCarStatus } from "@/components/employee/FleetAlertBadges";
 import { useDriversPicker } from "./new-contract/useDriversPicker";
 import { ContractStepper } from "./new-contract/ContractStepper";
 import { StickyFooter } from "./new-contract/StickyFooter";
@@ -70,7 +71,9 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [pickedPlate, setPickedPlate] = useState("");
   const { backendCars, vehiclesLoading, vehiclesError } = useVehiclesPicker(ar, (mapped) => {
     if (mapped.length > 0 && !pickedPlate) {
-      setPickedPlate(mapped[0].plate);
+      // Auto-pick the first *rentable* car — a doc-blocked "available" car is
+      // hidden from the picker and must not be pre-selected either.
+      setPickedPlate((mapped.find((c) => effectiveCarStatus(c, ar) === "available") ?? mapped[0]).plate);
     }
   });
   const [carFilter, setCarFilter] = useState("all");
@@ -406,7 +409,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
       const selectedCar = backendCars.find((c) => c.plate === pickedPlate) ?? backendCars[0];
       if (!selectedCustomer) throw new Error(ar ? "لم يتم اختيار عميل" : "No customer selected");
       if (!selectedCar) throw new Error(ar ? "لم يتم اختيار مركبة" : "No vehicle selected");
-      if (selectedCar.status !== "available") throw new Error(ar ? "المركبة غير متاحة للإيجار" : "Vehicle is not available for rental");
+      if (effectiveCarStatus(selectedCar, ar) !== "available") throw new Error(ar ? "المركبة غير متاحة للإيجار" : "Vehicle is not available for rental");
 
       const request = buildCreateContractRequest({
         customerId: toBackendDriverId(selectedCustomer) ?? 0,
@@ -583,16 +586,23 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
     .filter((c) => matchesDriverQuery(c, extraDriverQuery))
     .slice(0, 5);
 
+  // A car the backend lists as "available" but that's blocked by an expired
+  // document/maintenance alert can't be rented — hide it from the picker's
+  // vehicle presentation entirely (list, cards, map and status counts).
+  const pickerCars = backendCars.filter(
+    (c) => !(c.status === "available" && effectiveCarStatus(c, ar) === "maintenance")
+  );
+
   const carStatusCounts: Record<string, number> = {
-    available: backendCars.filter((c) => c.status === "available").length,
-    rented: backendCars.filter((c) => c.status === "rented").length,
-    overdue: backendCars.filter((c) => c.status === "overdue").length,
-    maintenance: backendCars.filter((c) => c.status === "maintenance").length,
-    reserved: backendCars.filter((c) => c.status === "reserved").length,
+    available: pickerCars.filter((c) => effectiveCarStatus(c, ar) === "available").length,
+    rented: pickerCars.filter((c) => effectiveCarStatus(c, ar) === "rented").length,
+    overdue: pickerCars.filter((c) => effectiveCarStatus(c, ar) === "overdue").length,
+    maintenance: pickerCars.filter((c) => effectiveCarStatus(c, ar) === "maintenance").length,
+    reserved: pickerCars.filter((c) => effectiveCarStatus(c, ar) === "reserved").length,
   };
 
-  const availCars = backendCars.filter((c) => {
-    const matchStatus = carStatusTab === "all" || c.status === carStatusTab;
+  const availCars = pickerCars.filter((c) => {
+    const matchStatus = carStatusTab === "all" || effectiveCarStatus(c, ar) === carStatusTab;
     const matchType = carFilter === "all" || c.type === carFilter || c.categoryLabel === carFilter;
     const q = carSearch.trim().toLowerCase();
     const matchSearch = !q ||
@@ -645,7 +655,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
           map,
           lat,
           lng,
-          statusColor[c.status] ?? "var(--color-mk-ink-400)",
+          statusColor[effectiveCarStatus(c, ar)] ?? "var(--color-mk-ink-400)",
           c.name.split(" ")[0],
           c.plate === pickedPlate,
           () => setPickedPlate(c.plate)

@@ -1,12 +1,12 @@
 "use client";
 
-import { FileText, ShieldAlert, Droplet, type LucideIcon } from "lucide-react";
-import { getOilChangeStatus, type Car } from "@/lib/data";
+import { FileText, ShieldAlert, Droplet, IdCard, ShieldCheck, type LucideIcon } from "lucide-react";
+import { getOilChangeStatus, type Car, type CarStatus } from "@/lib/data";
 import { oilChangeLabel } from "./OilChangeBadge";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
-export type FleetAlertKind = "license" | "inspection" | "oil";
+export type FleetAlertKind = "license" | "inspection" | "operation_card" | "insurance" | "oil";
 
 export interface FleetAlert {
   kind: FleetAlertKind;
@@ -17,6 +17,8 @@ export interface FleetAlert {
 const ALERT_ICONS: Record<FleetAlertKind, LucideIcon> = {
   license: FileText,
   inspection: ShieldAlert,
+  operation_card: IdCard,
+  insurance: ShieldCheck,
   oil: Droplet,
 };
 
@@ -35,10 +37,23 @@ export function fleetAlertSeverity(car: Car, ar: boolean): "warning" | "danger" 
   return null;
 }
 
+/** Derived display status — single source of truth for "is this car really
+ *  rentable". A car that's `available` on the backend but has a blocking
+ *  alert (expired istamara / operation card / insurance / inspection,
+ *  overdue oil change) reads as `maintenance` everywhere: fleet list,
+ *  badges, counts, map pins and the contract picker all reuse this so
+ *  availability never diverges between pages. The backend status itself
+ *  is preserved on `car.status`. */
+export function effectiveCarStatus(car: Car, ar: boolean): CarStatus {
+  return car.status === "available" && fleetAlertSeverity(car, ar) === "danger"
+    ? "maintenance"
+    : car.status;
+}
+
 const EXPIRY_WARNING_DAYS = 30;
 
 function expiryAlert(
-  kind: "license" | "inspection",
+  kind: "license" | "inspection" | "operation_card" | "insurance",
   expiry: string | undefined,
   ar: boolean,
 ): FleetAlert | null {
@@ -50,6 +65,10 @@ function expiryAlert(
                  dueSoon: T("License Renewal", "تجديد الاستمارة", ar) },
     inspection:{ expired: T("Inspection Expired", "الفحص منتهي", ar),
                  dueSoon: T("Inspection due soon", "الفحص يقترب من الانتهاء", ar) },
+    operation_card: { expired: T("Operation Card Expired", "بطاقة التشغيل منتهية", ar),
+                 dueSoon: T("Operation card renewal", "تجديد بطاقة التشغيل", ar) },
+    insurance: { expired: T("Insurance Expired", "التأمين منتهي", ar),
+                 dueSoon: T("Insurance renewal", "تجديد التأمين", ar) },
   }[kind];
   const days = Math.ceil((new Date(`${expiry}T00:00:00`).getTime() - Date.now()) / 86_400_000);
   if (days < 0) return { kind, tone: "danger", label: labels.expired };
@@ -65,6 +84,8 @@ export function fleetAlerts(car: Car, ar: boolean): FleetAlert[] {
   const alerts: FleetAlert[] = [
     expiryAlert("license", car.istamaraExpiry, ar),
     expiryAlert("inspection", car.periodicInspectionExpiry, ar),
+    expiryAlert("operation_card", car.operationCardExpiryDate, ar),
+    expiryAlert("insurance", car.insuranceExpiry, ar),
   ].filter((a): a is FleetAlert => a !== null);
   const oilLabel = oilChangeLabel(car, ar);
   if (oilLabel) alerts.push({ kind: "oil", tone: getOilChangeStatus(car).status === "overdue" ? "danger" : "warning", label: oilLabel });
