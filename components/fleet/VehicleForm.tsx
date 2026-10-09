@@ -448,10 +448,18 @@ export function VehicleForm({
                     onChange={(e) => setForm((f: any) => ({ ...f, lastOilChangeDate: e.target.value }))}
                   />
                   <Input
-                    label={T("Oil change distance", "مسافة تغيير الزيت", ar)}
+                    label={T("Oil change interval (km)", "فترة تغيير الزيت (كم)", ar)}
                     type="number"
                     value={form.oilChangeDistance}
                     onChange={(e) => setForm((f: any) => ({ ...f, oilChangeDistance: e.target.value }))}
+                  />
+                  <Input
+                    label={T("Next oil change at (km)", "موعد تغيير الزيت القادم (كم)", ar)}
+                    type="number"
+                    value={form.odometerReading && form.oilChangeDistance ? String(Number(form.odometerReading) + Number(form.oilChangeDistance)) : ""}
+                    disabled
+                    placeholder="—"
+                    onChange={() => {}}
                   />
                   <Select
                     label={T("AC grade", "حالة التكييف", ar)}

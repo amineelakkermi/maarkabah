@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { loadGoogleMapsScript, getGoogleMapsStyle, getCarLatLng, createCustomMarker, getAvailabilityText } from "@/lib/maps";
 import { useAdmin } from "@/contexts/AdminContext";
-import { CARS, Car as CarType } from "@/lib/data";
+import { vehicleService } from "@/lib/api-services";
+import { Car as CarType } from "@/lib/data";
 import { Modal, IconButton } from "@/components/ui";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
@@ -23,6 +24,7 @@ const CAT_AR: Record<string, string> = {
 export function MapModal({ ar, car, showAll, onClose }: { ar: boolean; car?: CarType | null; showAll?: boolean; onClose: () => void }) {
   const { isDark } = useAdmin();
   const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [allCars, setAllCars] = useState<any[]>([]);
   const [selectedMarkerCar, setSelectedMarkerCar] = useState<CarType | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -33,6 +35,16 @@ export function MapModal({ ar, car, showAll, onClose }: { ar: boolean; car?: Car
       .then(() => setMapsLoaded(true))
       .catch(err => console.error("Error loading Google Maps SDK:", err));
   }, []);
+
+  useEffect(() => {
+    if (!showAll) return;
+    vehicleService.search({ pageNumber: 1, pageSize: 100 })
+      .then((res) => {
+        const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? [];
+        setAllCars(Array.isArray(items) ? items : []);
+      })
+      .catch(() => setAllCars([]));
+  }, [showAll]);
 
   useEffect(() => {
     if (!mapsLoaded || !mapRef.current) return;
@@ -68,7 +80,7 @@ export function MapModal({ ar, car, showAll, onClose }: { ar: boolean; car?: Car
           targetLatLng.lat,
           targetLatLng.lng,
           "var(--color-mk-danger)", // theme color for target / warning
-          car.name.split(" ")[0],
+          car.name?.split(" ")[0] || car.makeName || "Car",
           true,
           () => {}
         );
@@ -76,8 +88,8 @@ export function MapModal({ ar, car, showAll, onClose }: { ar: boolean; car?: Car
       }
     } else {
       // Show all active fleet vehicles on the map
-      const mapCars = CARS.filter(c => c.mapX > 0);
-      mapCars.forEach(c => {
+      const mapCars = allCars.filter((c: any) => c.mapX > 0);
+      mapCars.forEach((c: any) => {
         const { lat, lng } = getCarLatLng(c.mapX, c.mapY);
         const color = c.status === "available" ? "var(--color-mk-mint-600)" : c.status === "overdue" ? "var(--color-mk-danger)" : "var(--color-mk-blue-500)";
         const marker = createCustomMarker(
@@ -85,7 +97,7 @@ export function MapModal({ ar, car, showAll, onClose }: { ar: boolean; car?: Car
           lat,
           lng,
           color,
-          c.name.split(" ")[0],
+          c.name?.split(" ")[0] || c.makeName || "Car",
           false,
           () => {
             setSelectedMarkerCar(c);
@@ -115,8 +127,8 @@ export function MapModal({ ar, car, showAll, onClose }: { ar: boolean; car?: Car
     : T("Vehicle Location Map", "خريطة موقع المركبة", ar);
     
   const subtitleText = showAll
-    ? `${CARS.length} ${T("vehicles in garage", "مركبة في الكراج", ar)}`
-    : car ? `${car.make} ${car.model} · ${car.plate}` : "";
+    ? `${allCars.length} ${T("vehicles in garage", "مركبة في الكراج", ar)}`
+    : car ? `${car.make || car.makeName || ""} ${car.model || car.modelName || ""} · ${car.plate || car.plateNumber || ""}` : "";
 
   const titleNode = (
     <div>

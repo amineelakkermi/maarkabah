@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, Printer, Check, KeyRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import type { DriverProfile, Car } from "@/lib/data";
 import { TAJEER_LOOKUPS, type TajeerRentStatus, type SketchItem, type TajeerIdType, type TajeerContractType } from "@/lib/tajeer";
@@ -28,6 +29,7 @@ export type StepIssueProps = {
   // Renter & drivers
   selectedCustomer: DriverProfile | null;
   idTypeCode: TajeerIdType;
+  contractId?: number | null;
   renterIdentityFields: RenterIdentityField[];
   isRenterDriver: boolean;
   authDriverIdNumber: string;
@@ -74,7 +76,9 @@ export function StepIssue({
   branches, rentPolicies, receiveBranchId, returnBranchId, rentPolicyId, contractTypeCode, addons, additionalServices,
   unlimitedKm, allowedKmPerDay, allowedKmPerHour, allowedLateHours, lateFeePerHour,
   pricing, fullFuelCost, discountType, discountPercent, payMethod, payType,
+  contractId,
 }: StepIssueProps) {
+  const router = useRouter();
   const { base, addonPrices, extraDriverFare, transferFare, authorizationFare, coverageFare, discountAmount, subtotal, vat, total, advanceAmount, remaining } = pricing;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -191,10 +195,7 @@ export function StepIssue({
                   <span className="mk-overline text-mk-ink-400 uppercase">{T("Registration type", "نوع التسجيل", ar)}</span>
                   <span className="mk-label-muted text-mk-ink-700 mt-1">{car?.registrationTypeCode === 3 ? T("Private transport", "نقل خاص", ar) : T("Private", "خصوصي", ar)}</span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="mk-overline text-mk-ink-400 uppercase">{T("Operation card", "بطاقة التشغيل", ar)}</span>
-                  <span className="mk-label-muted text-mk-ink-700 mt-1">{car?.operationCardNumber || "—"}{car?.operationCardExpiryDate ? ` (${T("exp. ", "تنتهي ", ar)}${car.operationCardExpiryDate})` : ""}</span>
-                </div>
+              
                 <div className="flex flex-col">
                   <span className="mk-overline text-mk-ink-400 uppercase">{T("Next oil change due", "موعد استدعاء الزيت القادم", ar)}</span>
                   <span className="mk-label-muted text-mk-ink-700 mt-1">{rentStatus.oilChangeDate || "—"}</span>
@@ -433,15 +434,15 @@ export function StepIssue({
             <p className="mk-label text-mk-ink-500 mb-2">{T("Contract no.", "رقم العقد", ar)}: <strong dir="ltr" className="font-mono text-mk-blue-500 mk-body inline-block" style={{ unicodeBidi: "isolate" }}>{tajeerResponse.contractNumber}</strong></p>
             <p className="mk-caption text-mk-ink-400 mb-6">{T("The contract is now active on the system.", "العقد الآن نشط على النظام.", ar)}</p>
             <div className="flex flex-col gap-2">
-              <Button variant="primary" className="shadow-[var(--shadow-glow-blue)]">
+              <Button variant="primary" className="shadow-[var(--shadow-glow-blue)]" onClick={onOpenPreview}>
                 <Printer size={14} />
                 {T("Print full contract", "طباعة العقد كامل", ar)}
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={onOpenPreview}>
                 <FileText size={14} />
                 {T("Print summary (QR)", "طباعة الملخص (QR)", ar)}
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => contractId ? router.push(`/contracts/${contractId}`) : router.push("/contracts")}>
                 {T("View in contracts list", "عرض في قائمة العقود", ar)}
               </Button>
             </div>

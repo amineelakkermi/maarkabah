@@ -1,5 +1,5 @@
 import type { DriverProfile, ClientProfile, Car } from "@/lib/data";
-import { mapStatusFromBackend } from "@/lib/fleet";
+import { mapStatusFromBackend, mapDamagePointsToSketchItems } from "@/lib/fleet";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import { ID_TYPE_CODES } from "./constants";
 
@@ -56,9 +56,43 @@ export function mapBackendCustomerToDriver(item: any): DriverProfile {
 }
 
 /* ── Backend → Car mapper (vehicle search/getById results) ───────────── */
+// The getById response is nested: { plate, info, insurancePricing,
+// tajeerStatus } — flat fields only appear on search-summary items, so read
+// nested first with flat fallbacks.
+export type VehicleLookupContext = {
+  insuranceCompanies?: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  insuranceTypes?: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function mapBackendVehicleToCar(item: any): Car {
-  console.log("[DEBUG] Vehicle raw:", { id: item.id, plate: item.plateNumber, status: item.status, tajeerStatus: item.tajeerStatus, branchId: item.branchId, currentBranchId: item.currentBranchId });
+export function mapBackendVehicleToCar(item: any, lookups?: VehicleLookupContext): Car {
+  const asObj = (v: any) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  const plate = asObj(item.plate ?? item.plateDocs);
+  const info = asObj(item.info ?? item.vehicleInfo);
+  const pricing = asObj(item.insurancePricing ?? item.pricing);
+  const tajeer = asObj(item.tajeerStatus);
+  const pick = (...vals: any[]) => vals.find((v) => v !== undefined && v !== null && v !== "");
+
+  const insuranceCompanyId = pick(pricing.insuranceCompanyId, item.insuranceCompanyId);
+  const insuranceCompanyName = (() => {
+    const direct = pick(item.insuranceCompanyName, item.insuranceCompany, pricing.insuranceCompanyName);
+    if (direct) return String(direct);
+    if (insuranceCompanyId == null || insuranceCompanyId === "") return "";
+    const found = lookups?.insuranceCompanies?.find((c) => Number(c.id) === Number(insuranceCompanyId));
+    return found ? String(found.nameAr || found.nameEn || found.name || "") : "";
+  })();
+  const insuranceTypeId = pick(pricing.insuranceTypeId, item.insuranceTypeId);
+  const insuranceTypeName = (() => {
+    const direct = pick(item.insuranceTypeName, item.insuranceTypeNameEn);
+    if (direct) return String(direct);
+    const found = lookups?.insuranceTypes?.find((t) => Number(t.id) === Number(insuranceTypeId));
+    return found ? String(found.nameAr || found.nameEn || found.name || "") : "";
+  })();
+  const insuranceType: Car["insuranceType"] =
+    insuranceTypeName
+      ? (/شامل|comprehens/i.test(insuranceTypeName) ? "شامل" : "ضد الغير")
+      : (item.insuranceType === "ضد الغير" ? "ضد الغير" : "شامل");
+
   const imageUrls = item.images?.length
     ? item.images
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,63 +106,70 @@ export function mapBackendVehicleToCar(item: any): Car {
         .map((img: any) => `/api/attachments/${img.fileId ?? img.id ?? img.attachmentId}/download`)
     : undefined;
 
+  const vin = pick(info.vin, item.vin, item.chassisNumber);
+  const insuranceExpiry = pick(pricing.insuranceExpiryDate, item.insuranceExpiryDate, item.insuranceExpiry);
+
   return {
     id: item.id,
-    name: `${item.makeName || ""} ${item.modelName || ""} ${item.year || ""}`.trim(),
-    plate: formatPlate(item),
+    name: `${item.makeName || ""} ${item.modelName || ""} ${pick(info.year, item.year) || ""}`.trim(),
+    plate: formatPlate({ ...item, plate }),
     make: item.makeName || "",
     model: item.modelName || "",
-    type: BODY_TYPE_LABELS[Number(item.bodyType)] || "",
-    categoryLabel: CATEGORY_LABELS[Number(item.category)] || "",
-    color: item.color || "",
-    year: item.year || 0,
-    status: mapStatusFromBackend(item.status),
+    type: BODY_TYPE_LABELS[Number(pick(info.bodyType, item.bodyType))] || "",
+    categoryLabel: CATEGORY_LABELS[Number(pick(info.category, item.category))] || "",
+    color: pick(info.color, item.color) || "",
+    year: Number(pick(info.year, item.year)) || 0,
+    status: mapStatusFromBackend(pick(tajeer.status, item.status)),
     customer: item.customerName,
     returnTime: item.returnTime,
     speed: item.speed,
     location: item.location,
     mapX: item.mapX || 0,
     mapY: item.mapY || 0,
-    dailyRate: item.dailyRate || 0,
-    kmCap: item.kmCap ?? 0,
+    dailyRate: Number(pick(pricing.dailyRate, item.dailyRate)) || 0,
+    kmCap: item.kmCap ?? (pick(pricing.isKilometerLimitEnabled, item.isKilometerLimitEnabled) === false
+      ? "Unlimited"
+      : (Number(pick(pricing.dailyKilometerLimit, item.dailyKilometerLimit)) || 0)),
     utilization: item.utilization || 0,
-    plateNumber: item.plateNumber || 0,
-    plateChar1: item.plateFirstLetter ?? item.plateChar1 ?? "",
-    plateChar2: item.plateSecondLetter ?? item.plateChar2 ?? "",
-    plateChar3: item.plateThirdLetter ?? item.plateChar3 ?? "",
-    chassisNumber: item.chassisNumber === "UNKNOWN" ? "" : (item.chassisNumber || ""),
-    fuelTypeCode: item.fuelTypeCode || 1,
+    plateNumber: Number(pick(plate.plateNumber, item.plateNumber)) || 0,
+    plateChar1: pick(plate.plateFirstLetter, item.plateFirstLetter, item.plateChar1) ?? "",
+    plateChar2: pick(plate.plateSecondLetter, item.plateSecondLetter, item.plateChar2) ?? "",
+    plateChar3: pick(plate.plateThirdLetter, item.plateThirdLetter, item.plateChar3) ?? "",
+    chassisNumber: vin === "UNKNOWN" ? "" : (vin || ""),
+    fuelTypeCode: (Number(pick(info.fuelType, item.fuelType, item.fuelTypeCode)) || 1) as Car["fuelTypeCode"],
     // Backend field names: extraKilometerRate / fullFuelRate / lateHourRate.
     // Those are the vehicle-owned rates shown/editable on the vehicle page —
     // they win over the contract-side aliases (extraKmCost, …) which may carry
     // a tenant-level default and diverge from the registered rate.
-    extraKmCost: item.extraKilometerRate ?? item.extraKmCost ?? 0,
-    fullFuelCost: item.fullFuelRate ?? item.fullFuelCost ?? 0,
-    lateFeePerHour: item.lateHourRate ?? item.lateFeePerHour ?? 0,
-    enduranceAmount: item.enduranceAmount || 0,
-    bodyType: item.bodyType || "",
-    seats: item.seats || 0,
+    extraKmCost: Number(pick(pricing.extraKilometerRate, item.extraKilometerRate, item.extraKmCost)) || 0,
+    fullFuelCost: Number(pick(pricing.fullFuelRate, item.fullFuelRate, item.fullFuelCost)) || 0,
+    lateFeePerHour: Number(pick(pricing.lateHourRate, item.lateHourRate, item.lateFeePerHour)) || 0,
+    enduranceAmount: Number(pick(tajeer.enduranceAmount, item.enduranceAmount)) || 0,
+    bodyType: String(pick(info.bodyType, item.bodyType) ?? ""),
+    seats: Number(pick(info.seats, item.seats)) || 0,
     transmission: item.transmission || "Automatic",
-    istamaraNumber: item.istamaraNumber ?? item.registrationNumber ?? "",
-    istamaraExpiry: item.istamaraExpiry ?? item.registrationExpiryDate ?? "",
-    periodicInspectionExpiry: item.periodicInspectionExpiry ?? item.inspectionExpiryDate ?? "",
-    insuranceCompany: item.insuranceCompany || "",
-    insurancePolicyNumber: item.insurancePolicyNumber || "",
-    insuranceExpiry: /^(0001|2001)-01-01/.test(String(item.insuranceExpiry ?? "")) ? "" : (item.insuranceExpiry || ""),
-    insuranceType: item.insuranceType || "شامل",
+    istamaraNumber: pick(plate.registrationNumber, item.istamaraNumber, item.registrationNumber) ?? "",
+    istamaraExpiry: pick(plate.registrationExpiryDate, item.istamaraExpiry, item.registrationExpiryDate) ?? "",
+    periodicInspectionExpiry: pick(plate.inspectionExpiryDate, item.periodicInspectionExpiry, item.inspectionExpiryDate) ?? "",
+    insuranceCompany: insuranceCompanyName,
+    insurancePolicyNumber: pick(pricing.insurancePolicyNumber, item.insurancePolicyNumber) || "",
+    insuranceExpiry: /^(0001|2001)-01-01/.test(String(insuranceExpiry ?? "")) ? "" : (insuranceExpiry || ""),
+    insuranceType,
     registrationTypeCode: item.registrationTypeCode,
-    operationCardNumber: item.operationCardNumber,
-    operationCardExpiryDate: item.operationCardExpiryDate,
-    oilChangeDate: item.oilChangeDate,
-    insuranceAmount: item.insuranceAmount,
-    otherNotes: item.otherNotes,
+    operationCardNumber: pick(plate.operationCardNumber, item.operationCardNumber),
+    operationCardExpiryDate: pick(plate.operationCardExpiryDate, item.operationCardExpiryDate),
+    oilChangeDate: pick(item.oilChangeDate, item.nextOilChangeDate),
+    oilChangeDistance: Number(pick(tajeer.oilChangeDistance, item.oilChangeDistance)) || undefined,
+    insuranceAmount: Number(pick(pricing.insuranceAmount, item.insuranceAmount)) || undefined,
+    otherNotes: pick(plate.otherNotes, item.otherNotes),
     imageUrls,
-    fuelLevel: item.fuelLevel,
-    odometerReading: item.odometerReading,
-    dailyKilometerLimit: item.dailyKilometerLimit,
-    isKilometerLimitEnabled: item.isKilometerLimitEnabled,
-    isListingActive: item.isListingActive,
-    branchId: item.branchId,
+    fuelLevel: Number(pick(tajeer.fuelLevel, item.fuelLevel)) || undefined,
+    odometerReading: Number(pick(tajeer.odometerReading, item.odometerReading)) || undefined,
+    dailyKilometerLimit: Number(pick(pricing.dailyKilometerLimit, item.dailyKilometerLimit)) || undefined,
+    isKilometerLimitEnabled: pick(pricing.isKilometerLimitEnabled, item.isKilometerLimitEnabled),
+    isListingActive: pick(tajeer.isListingActive, item.isListingActive),
+    branchId: pick(pricing.branchId, item.branchId),
+    sketchItems: mapDamagePointsToSketchItems(item.damagePoints),
   };
 }
 

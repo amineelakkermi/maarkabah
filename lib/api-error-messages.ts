@@ -285,6 +285,14 @@ const RULES: { pattern: RegExp; message: (ar: boolean, m?: RegExpMatchArray | nu
     ),
   },
   {
+    pattern: /ExtendedCoverage\.TajeerSyncFailed|coverage.*sync.*fail/i,
+    message: (ar) => T(
+      "Tajeer coverage sync failed — make sure the Elm/Tajeer integration is connected in Settings.",
+      "فشلت مزامنة التغطيات من تاجير — تأكد أن تكامل علم/تاجير متصل من الإعدادات.",
+      ar,
+    ),
+  },
+  {
     pattern: /PaidExceedsTotal|paid amount cannot exceed/i,
     message: (ar) => T(
       "The paid amount cannot exceed the contract total — lower the payment or check the totals.",

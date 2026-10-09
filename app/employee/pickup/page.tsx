@@ -17,7 +17,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { contractService, vehicleService, attachmentService } from "@/lib/api-services";
 import * as Types from "@/lib/api-types";
-import { extractVehicleImageFileIds } from "@/lib/fleet";
+import { extractVehicleImageFileIds, mapDamagePointsToSketchItems } from "@/lib/fleet";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import type { Booking } from "@/lib/data";
 
@@ -347,6 +347,9 @@ function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
             const v = vRes?.data ?? vRes;
             if (cancelled) return;
             setVehicle(v);
+            // Same sketch as the vehicle detail page — damage points registered
+            // on the vehicle record show up as the delivery baseline.
+            setSketchItems(mapDamagePointsToSketchItems(v?.damagePoints));
             const st = v?.tajeerStatus ?? v ?? {};
             if (odo == null && st.odometerReading != null) setOdometer(String(st.odometerReading));
             if (c.fuelLevel == null && st.fuelLevel != null) setFuel(Number(st.fuelLevel) as Types.FuelLevel);

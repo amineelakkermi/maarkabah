@@ -2,6 +2,8 @@
 //  Maarkbh · مركبة — Mock data & type definitions
 // ─────────────────────────────────────────────────────────────
 
+import type { SketchItem } from "./tajeer";
+
 export type CarStatus = "available" | "rented" | "overdue" | "maintenance" | "reserved" | "inactive" | "draft";
 export type BookingStatus = "confirmed" | "pending" | "late" | "on-time" | "active" | "completed" | "cancelled";
 export type KycStatus = "pending" | "verified" | "rejected";
@@ -15,6 +17,8 @@ export interface Car {
   plate: string; // display plate, e.g. "ABC 1234"
   make: string;
   model: string;
+  makeName?: string; // backend alias for make
+  modelName?: string; // backend alias for model
   type: string;
   categoryLabel?: string; // backend VehicleCategory label — also filterable by the type chips
   color: string;
@@ -33,6 +37,7 @@ export interface Car {
   operationCardNumber?: string;
   operationCardExpiryDate?: string;
   oilChangeDate?: string; // next oil-change due date, yyyy-mm-dd
+  oilChangeDistance?: number; // oil change interval in km
   insuranceAmount?: number;
   otherNotes?: string;
 
@@ -63,6 +68,9 @@ export interface Car {
 
   // Real attachment image URLs from the backend (optional, overrides mock CAR_IMAGES)
   imageUrls?: string[];
+
+  // Registered damage marks from the vehicle record (damagePoints → sketch coords)
+  sketchItems?: SketchItem[];
 
   // Backend-specific fields used by the contract flow
   fuelLevel?: number;
@@ -196,7 +204,7 @@ export function getOilChangeStatus(car: Car, today: Date = new Date()): OilChang
 // =============================================================
 
 export const CARS: Car[] = [
-  { id: 1, name: "Toyota Camry 2024",        plate: "ABC 1234", make: "Toyota",   model: "Camry",       type: "Sedan",   color: "أبيض",  year: 2024, status: "rented",      customer: "Ahmed Al-Otaibi",   returnTime: "Sun 18:00", speed: 64,   location: "King Fahd Road",    mapX: 28, mapY: 42, dailyRate: 360,  kmCap: 250,         utilization: 78, registrationTypeCode: 1, operationCardNumber: "OPC-100234", operationCardExpiryDate: "2026-11-30", oilChangeDate: "2026-09-15", insuranceAmount: 80000,
+  { id: 1, name: "Toyota Camry 2024",        plate: "ABC 1234", make: "Toyota",   model: "Camry",       type: "Sedan",   color: "أبيض",  year: 2024, status: "rented",      customer: "Ahmed Al-Otaibi",   returnTime: "Sun 18:00", speed: 64,   location: "King Fahd Road",    mapX: 28, mapY: 42, dailyRate: 360,  kmCap: 250,         utilization: 78, registrationTypeCode: 1, operationCardNumber: "OPC-100234", operationCardExpiryDate: "2026-11-30", oilChangeDate: "2026-09-15", oilChangeDistance: 8000, insuranceAmount: 80000,
     plateNumber: 1234, plateChar1: "ا", plateChar2: "ب", plateChar3: "ج", chassisNumber: "JTNBE46K003123451", fuelTypeCode: 1, extraKmCost: 1.5, fullFuelCost: 200, lateFeePerHour: 45, enduranceAmount: 1500, bodyType: "سيدان", seats: 5, transmission: "Automatic", istamaraNumber: "1100234511", istamaraExpiry: "2027-03-10", periodicInspectionExpiry: "2027-01-15", insuranceCompany: "الراجحي تكافل", insurancePolicyNumber: "POL-10023451", insuranceExpiry: "2027-02-01", insuranceType: "شامل" },
   { id: 2, name: "Hyundai Sonata 2023",       plate: "DEF 5678", make: "Hyundai", model: "Sonata",      type: "Sedan",   color: "رمادي", year: 2023, status: "overdue",     customer: "Fahad Al-Qahtani",  returnTime: "Thu 09:30", speed: 0,    location: "Olaya Street",      mapX: 71, mapY: 56, dailyRate: 280,  kmCap: 250,         utilization: 84, registrationTypeCode: 1, operationCardNumber: "OPC-100235", operationCardExpiryDate: "2026-08-12", oilChangeDate: "2026-07-30", insuranceAmount: 60000, otherNotes: "Overdue return — follow up with customer.",
     plateNumber: 5678, plateChar1: "د", plateChar2: "ه", plateChar3: "و", chassisNumber: "KMHL14JA1PA567802", fuelTypeCode: 1, extraKmCost: 1.5, fullFuelCost: 200, lateFeePerHour: 35, enduranceAmount: 1500, bodyType: "سيدان", seats: 5, transmission: "Automatic", istamaraNumber: "1100235678", istamaraExpiry: "2026-12-20", periodicInspectionExpiry: "2026-11-05", insuranceCompany: "ولاء", insurancePolicyNumber: "POL-10023567", insuranceExpiry: "2026-10-18", insuranceType: "شامل" },

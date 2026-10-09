@@ -1041,11 +1041,20 @@ export function VehicleDetailsPage({
                         required
                       />
                     </FL>
-                    <FL label={T("Oil change distance", "مسافة تغيير الزيت", ar)}>
+                    <FL label={T("Oil change interval (km)", "فترة تغيير الزيت (كم)", ar)}>
                       <FI
                         type="number"
                         value={form.oilChangeDistance}
                         onChange={(v) => setForm((f: any) => ({ ...f, oilChangeDistance: v }))}
+                      />
+                    </FL>
+                    <FL label={T("Next oil change at (km)", "موعد تغيير الزيت القادم (كم)", ar)}>
+                      <FI
+                        type="number"
+                        value={form.odometerReading && form.oilChangeDistance ? String(Number(form.odometerReading) + Number(form.oilChangeDistance)) : ""}
+                        disabled
+                        placeholder="—"
+                        onChange={() => {}}
                       />
                     </FL>
                   </div>

@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
-import { CARS, type Booking } from "@/lib/data";
+import { vehicleService } from "@/lib/api-services";
+import { type Booking } from "@/lib/data";
 import { loadGoogleMapsScript, getGoogleMapsStyle, getCarLatLng, createCustomMarker } from "@/lib/maps";
 import { IconButton, Modal } from "@/components/ui";
 
@@ -26,7 +27,7 @@ const ACT_STYLE: Record<string, { border: string; bg: string; color: string }> =
 // ── Vehicle Map Panel — split map/control-panel view, shared across the pickup, return, and contract-detail screens ──
 export function VehicleMapPanel({ ar, contract, onClose }: { ar: boolean; contract: Booking; onClose: () => void }) {
   const { isDark } = useAdmin();
-  const carObj = CARS.find(c => c.plate === contract.plate) || null;
+  const [carObj, setCarObj] = useState<any>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [engineOn, setEngineOn] = useState(true);
 
@@ -42,9 +43,21 @@ export function VehicleMapPanel({ ar, contract, onClose }: { ar: boolean; contra
   }, []);
 
   useEffect(() => {
+    if (!contract.plate) return;
+    vehicleService.search({ search: contract.plate, pageNumber: 1, pageSize: 1 })
+      .then((res) => {
+        const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? [];
+        if (items.length > 0) setCarObj(items[0]);
+      })
+      .catch(() => setCarObj(null));
+  }, [contract.plate]);
+
+  useEffect(() => {
     if (!mapsLoaded || !mapRef.current) return;
 
-    const targetLatLng = carObj ? getCarLatLng(carObj.mapX, carObj.mapY) : { lat: 24.7136, lng: 46.6753 };
+    const targetLatLng = (carObj && carObj.mapX != null && carObj.mapY != null)
+      ? getCarLatLng(carObj.mapX, carObj.mapY)
+      : { lat: 24.7136, lng: 46.6753 };
 
     const mapOptions = {
       center: targetLatLng,
@@ -58,14 +71,14 @@ export function VehicleMapPanel({ ar, contract, onClose }: { ar: boolean; contra
     mapInstanceRef.current = map;
 
     if (carObj) {
-      markerRef.current = createCustomMarker(map, targetLatLng.lat, targetLatLng.lng, "var(--color-mk-blue-500)", carObj.name.split(" ")[0], true, () => { });
+      markerRef.current = createCustomMarker(map, targetLatLng.lat, targetLatLng.lng, "var(--color-mk-blue-500)", carObj.name?.split(" ")[0] || carObj.makeName || "Car", true, () => { });
     }
 
     return () => {
       if (markerRef.current) { markerRef.current.setMap(null); markerRef.current = null; }
       mapInstanceRef.current = null;
     };
-  }, [mapsLoaded]);
+  }, [mapsLoaded, carObj]);
 
   useEffect(() => {
     if (mapInstanceRef.current) {
@@ -75,17 +88,18 @@ export function VehicleMapPanel({ ar, contract, onClose }: { ar: boolean; contra
 
   function doAction(key: string) {
     if (!carObj) return;
+    const carName = carObj.name || `${carObj.makeName || ""} ${carObj.modelName || ""}`.trim() || "Vehicle";
     const now = new Date().toLocaleTimeString(ar ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit" });
     const msgs: Record<string, string> = ar ? {
-      engine: engineOn ? `🔴 تم إيقاف محرك ${carObj.name}` : `🟢 تم تشغيل محرك ${carObj.name}`,
-      geofence: `🛡️ تم قفل النطاق — ${carObj.name}`,
+      engine: engineOn ? `🔴 تم إيقاف محرك ${carName}` : `🟢 تم تشغيل محرك ${carName}`,
+      geofence: `🛡️ تم قفل النطاق — ${carName}`,
       notify: `📳 تم إرسال SMS — ${contract.customer}`,
-      track: `📡 تم تفعيل التتبع — ${carObj.name}`,
+      track: `📡 تم تفعيل التتبع — ${carName}`,
     } : {
-      engine: engineOn ? `🔴 Engine stopped — ${carObj.name}` : `🟢 Engine started — ${carObj.name}`,
-      geofence: `🛡️ Geofence locked — ${carObj.name}`,
+      engine: engineOn ? `🔴 Engine stopped — ${carName}` : `🟢 Engine started — ${carName}`,
+      geofence: `🛡️ Geofence locked — ${carName}`,
       notify: `📳 SMS sent — ${contract.customer}`,
-      track: `📡 Tracking enabled — ${carObj.name}`,
+      track: `📡 Tracking enabled — ${carName}`,
     };
     if (key === "engine") setEngineOn(p => !p);
     setLogs(p => [`${now}  ${msgs[key]}`, ...p].slice(0, 5));
@@ -93,8 +107,8 @@ export function VehicleMapPanel({ ar, contract, onClose }: { ar: boolean; contra
 
   const titleNode = carObj ? (
     <div className="flex items-center gap-3">
-      <span>{carObj.name}</span>
-      <span className="mk-caption text-mk-fg-3 font-mono">({carObj.plate})</span>
+      <span>{carObj.name || `${carObj.makeName || ""} ${carObj.modelName || ""}`.trim() || "Vehicle"}</span>
+      <span className="mk-caption text-mk-fg-3 font-mono">({carObj.plate || carObj.plateNumber || "—"})</span>
     </div>
   ) : T("Vehicle Location & Tracking", "موقع وتتبع المركبة", ar);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Car, CarStatus } from "@/lib/data";
 import { Loader2 } from "lucide-react";
 import { useToast, Modal, Button } from "@/components/ui";
@@ -20,6 +20,7 @@ import { describeApiError } from "@/lib/api-error-messages";
 import { useVehicleLookups } from "@/hooks/useVehicleLookups";
 import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
 import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
+import { fleetAlertSeverity } from "@/components/employee/FleetAlertBadges";
 
 export default function FleetPage() {
   const { dir } = useAdmin();
@@ -30,6 +31,9 @@ export default function FleetPage() {
   const [search, setSearch] = useState("");
   const [vehicles, setVehicles] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
+  // Raw getById payloads — kept so we can re-map once insurance lookups load.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawVehiclesRef = useRef<any[]>([]);
 
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
@@ -67,6 +71,14 @@ export default function FleetPage() {
     loadVehicles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-map once insurance lookups arrive so resolved names appear.
+  useEffect(() => {
+    if (!rawVehiclesRef.current.length) return;
+    if (!insuranceCompanies.length && !insuranceTypes.length) return;
+    setVehicles(rawVehiclesRef.current.map((raw) => mapBackendVehicleToCar(raw, { insuranceCompanies, insuranceTypes })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insuranceCompanies, insuranceTypes]);
 
   const resetForm = () => {
     setFieldErrors({});
@@ -246,7 +258,9 @@ export default function FleetPage() {
       );
 
       console.log("Vehicles detail responses:", detailedVehicles);
-      const transformedVehicles = detailedVehicles.map((item: any) => mapBackendVehicleToCar(item?.data ?? item));
+      const rawList = detailedVehicles.map((item: any) => item?.data ?? item);
+      rawVehiclesRef.current = rawList;
+      const transformedVehicles = rawList.map((item: any) => mapBackendVehicleToCar(item, { insuranceCompanies, insuranceTypes }));
       setVehicles(transformedVehicles);
     } catch (error) {
       console.error("Error loading vehicles:", error);
@@ -256,8 +270,15 @@ export default function FleetPage() {
     }
   };
 
+  // A vehicle isn't rentable while a blocking document/maintenance alert is
+  // active (expired istamara/inspection, overdue oil change) — those cars keep
+  // their backend status but don't count as "available" anymore.
+  const isBlocked = (c: Car) => fleetAlertSeverity(c, ar) === "danger";
+  const effectiveStatus = (c: Car): CarStatus =>
+    c.status === "available" && isBlocked(c) ? "maintenance" : c.status;
+
   const visible = vehicles.filter((c) => {
-    const matchTab = tab === "all" || c.status === tab;
+    const matchTab = tab === "all" || effectiveStatus(c) === tab;
     const needle = search.trim().toLowerCase();
     const haystack = [
       c.name,
@@ -275,13 +296,13 @@ export default function FleetPage() {
 
   const counts: Record<string, number> = {
     total: vehicles.length,
-    draft: vehicles.filter((c) => c.status === "draft").length,
-    available: vehicles.filter((c) => c.status === "available").length,
-    rented: vehicles.filter((c) => c.status === "rented").length,
-    overdue: vehicles.filter((c) => c.status === "overdue").length,
-    maintenance: vehicles.filter((c) => c.status === "maintenance").length,
-    reserved: vehicles.filter((c) => c.status === "reserved").length,
-    inactive: vehicles.filter((c) => c.status === "inactive").length,
+    draft: vehicles.filter((c) => effectiveStatus(c) === "draft").length,
+    available: vehicles.filter((c) => effectiveStatus(c) === "available").length,
+    rented: vehicles.filter((c) => effectiveStatus(c) === "rented").length,
+    overdue: vehicles.filter((c) => effectiveStatus(c) === "overdue").length,
+    maintenance: vehicles.filter((c) => effectiveStatus(c) === "maintenance").length,
+    reserved: vehicles.filter((c) => effectiveStatus(c) === "reserved").length,
+    inactive: vehicles.filter((c) => effectiveStatus(c) === "inactive").length,
   };
 
   if (isDetailsOpen) {

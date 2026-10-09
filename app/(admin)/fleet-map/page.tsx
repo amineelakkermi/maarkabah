@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CARS, Car } from "@/lib/data";
+import { Car } from "@/lib/data";
+import { vehicleService } from "@/lib/api-services";
 import { X } from "lucide-react";
 import { Tabs, IconButton } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { loadGoogleMapsScript, getGoogleMapsStyle, getCarLatLng, createCustomMarker } from "@/lib/maps";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
-
-const mapCars = CARS.filter((c) => c.mapX > 0);
 
 const STATUS_COLOR: Record<string, string> = {
   rented: "var(--color-mk-mint-600)",
@@ -52,11 +51,10 @@ export default function FleetMapPage() {
     ? [["var(--color-mk-mint-600)", "نشطة"], ["var(--color-mk-danger)", "متأخر"], ["var(--color-mk-warning)", "تحذير"], ["var(--color-mk-ink-400)", "بدون GPS"]]
     : [["var(--color-mk-mint-600)", "Active"], ["var(--color-mk-danger)", "Overdue"], ["var(--color-mk-warning)", "Warning"], ["var(--color-mk-ink-400)", "No GPS"]];
 
+  const [mapCars, setMapCars] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<Car | null>(null);
-  const [engines, setEngines] = useState<Record<number, boolean>>(
-    Object.fromEntries(mapCars.map((c) => [c.id, true]))
-  );
+  const [engines, setEngines] = useState<Record<number, boolean>>({});
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   // Google Maps State & Refs
@@ -69,6 +67,20 @@ export default function FleetMapPage() {
     loadGoogleMapsScript()
       .then(() => setMapsLoaded(true))
       .catch(err => console.error("Error loading Google Maps SDK:", err));
+  }, []);
+
+  useEffect(() => {
+    vehicleService.search({ pageNumber: 1, pageSize: 100 })
+      .then((res) => {
+        const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? [];
+        const cars = Array.isArray(items) ? items : [];
+        setMapCars(cars.filter((c: any) => c.mapX > 0));
+        setEngines(Object.fromEntries(cars.map((c: any) => [c.id, true])));
+      })
+      .catch(() => {
+        setMapCars([]);
+        setEngines({});
+      });
   }, []);
 
   useEffect(() => {
@@ -125,7 +137,7 @@ export default function FleetMapPage() {
         lat,
         lng,
         color,
-        car.name.split(" ")[0],
+        car.name?.split(" ")[0] || car.makeName || "Car",
         isSelected,
         () => {
           setSelected(car);
@@ -149,24 +161,25 @@ export default function FleetMapPage() {
 
   function handleAction(key: string) {
     if (!selected) return;
+    const carName = selected.name || `${selected.makeName || ""} ${selected.modelName || ""}`.trim() || "Vehicle";
     if (key === "engine") {
       const next = !engines[selected.id];
       setEngines((p) => ({ ...p, [selected.id]: next }));
       addLog(ar
-        ? `${next ? "🟢 تم تشغيل" : "🔴 تم إيقاف"} محرك ${selected.name}`
-        : `${next ? "🟢 Started" : "🔴 Stopped"} engine — ${selected.name}`
+        ? `${next ? "🟢 تم تشغيل" : "🔴 تم إيقاف"} محرك ${carName}`
+        : `${next ? "🟢 Started" : "🔴 Stopped"} engine — ${carName}`
       );
     } else {
       const labels: Record<string, string> = ar ? {
-        geofence: `🛡️ تم قفل النطاق — ${selected.name}`,
+        geofence: `🛡️ تم قفل النطاق — ${carName}`,
         notify: `📳 تم إرسال SMS — ${selected.customer}`,
-        track: `📡 تم تفعيل التتبع — ${selected.name}`,
-        wrench: `🔧 وضع صيانة — ${selected.name}`,
+        track: `📡 تم تفعيل التتبع — ${carName}`,
+        wrench: `🔧 وضع صيانة — ${carName}`,
       } : {
-        geofence: `🛡️ Geofence locked — ${selected.name}`,
+        geofence: `🛡️ Geofence locked — ${carName}`,
         notify: `📳 SMS sent — ${selected.customer}`,
-        track: `📡 Tracking enabled — ${selected.name}`,
-        wrench: `🔧 Maintenance mode — ${selected.name}`,
+        track: `📡 Tracking enabled — ${carName}`,
+        wrench: `🔧 Maintenance mode — ${carName}`,
       };
       addLog(labels[key] ?? key);
     }
@@ -235,8 +248,8 @@ export default function FleetMapPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="mk-body text-mk-fg-1">{selected.name}</div>
-                <div className="mk-overline text-mk-fg-3">{selected.plate}</div>
+                <div className="mk-body text-mk-fg-1">{selected.name || `${selected.makeName || ""} ${selected.modelName || ""}`.trim() || "Vehicle"}</div>
+                <div className="mk-overline text-mk-fg-3">{selected.plate || selected.plateNumber || "—"}</div>
               </div>
               <span
                 className="mk-overline px-2 py-1 rounded-full"

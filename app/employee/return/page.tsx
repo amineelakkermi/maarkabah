@@ -17,8 +17,9 @@ import { VehicleMapPanel } from "@/components/employee/VehicleMapPanel";
 import type { SketchItem } from "@/lib/tajeer";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { contractService, attachmentService } from "@/lib/api-services";
+import { contractService, attachmentService, vehicleService } from "@/lib/api-services";
 import * as Types from "@/lib/api-types";
+import { mapDamagePointsToSketchItems } from "@/lib/fleet";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import type { Booking } from "@/lib/data";
 
@@ -181,9 +182,9 @@ function ReadonlyCarCarousel({ images, ar }: { images: string[]; ar: boolean }) 
 }
 
 // ── Vehicle Condition Panel ────────────────────────────────────────
-function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, damageNotes, onDamageNotesChange }: {
+function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, baselineSketch, damageNotes, onDamageNotesChange }: {
   ar: boolean; carImages: string[]; sketchItems: SketchItem[]; onSketchChange: (items: SketchItem[]) => void;
-  damageNotes: string; onDamageNotesChange: (v: string) => void;
+  baselineSketch: SketchItem[]; damageNotes: string; onDamageNotesChange: (v: string) => void;
 }) {
   const [view, setView] = useState<"diagram" | "photos">("diagram");
   const hasDamage = sketchItems.length > 0;
@@ -203,7 +204,7 @@ function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, dam
         />
       </div>
       {view === "diagram"
-        ? <div className="rounded-lg flex items-center justify-center w-full"><SketchComponent value={sketchItems} onChange={onSketchChange} ar={ar} /></div>
+        ? <div className="rounded-lg flex items-center justify-center w-full"><SketchComponent value={sketchItems} onChange={onSketchChange} baseline={baselineSketch} ar={ar} /></div>
         : <ReadonlyCarCarousel images={carImages} ar={ar} />
       }
       {view === "diagram" && hasDamage && (
@@ -369,6 +370,9 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
   const router = useRouter();
   const [showMap, setShowMap] = useState(false);
   const [sketchItems, setSketchItems] = useState<SketchItem[]>([]);
+  // Vehicle's registered damage points — shown read-only on the diagram so new
+  // return marks can be compared against the same sketch as the vehicle detail.
+  const [baselineSketch, setBaselineSketch] = useState<SketchItem[]>([]);
   const [returnOdometer, setReturnOdometer] = useState("");
   const [fuel, setFuel] = useState<Types.FuelLevel | "">("");
   const [manualLateFee, setManualLateFee] = useState("");
@@ -413,6 +417,18 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
         contractService.getDelivery(id)
           .then((d) => { if (!cancelled) setDelivery(d?.data ?? d); })
           .catch(() => {});
+
+        // Vehicle record gives the registered damage sketch (non-blocking).
+        const vehicleId = Number(c.vehicleId ?? c.vehicle?.id ?? 0);
+        if (vehicleId) {
+          vehicleService.getById(vehicleId)
+            .then((vRes) => {
+              if (cancelled) return;
+              const v = vRes?.data ?? vRes;
+              setBaselineSketch(mapDamagePointsToSketchItems(v?.damagePoints));
+            })
+            .catch(() => {});
+        }
       } catch {
         if (!cancelled) setNotFound(true);
       } finally {
@@ -526,7 +542,7 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
       await contractService.recordReturn(id, {
         odometerAtReturn: odometerNum,
         fuelLevelAtReturn: fuel as Types.FuelLevel,
-        sketchInfoAtReturn: sketchItems.map((s) => ({ type: s.type, x: s.x, y: s.y })),
+        sketchInfoAtReturn: [...baselineSketch, ...sketchItems].map((s) => ({ type: s.type, x: s.x, y: s.y })),
         condition,
         conditionNotes: damageNotes.trim() || null,
         lateFeeAmount: lateFeeNum,
@@ -802,6 +818,7 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
               carImages={carImages}
               sketchItems={sketchItems}
               onSketchChange={setSketchItems}
+              baselineSketch={baselineSketch}
               damageNotes={damageNotes}
               onDamageNotesChange={setDamageNotes}
             />

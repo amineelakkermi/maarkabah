@@ -4,7 +4,7 @@ import { Info, Lock, CreditCard, Wallet, Banknote } from "lucide-react";
 import { Badge, Select } from "@/components/ui";
 import type { Car } from "@/lib/data";
 import type { TajeerContractType } from "@/lib/tajeer";
-import type { ContractDiscountRate } from "./useContractLookups";
+import type { ContractDiscountRate, ContractExtendedCoverage } from "./useContractLookups";
 import {
   T, ADD_ONS,
   SYSTEM_DRIVER_FARE_PER_DAY, SYSTEM_DRIVER_FARE_PER_HOUR,
@@ -23,7 +23,11 @@ export type StepPricingPaymentProps = {
   unlimitedKm: boolean;
   receiveBranchId: number;
   returnBranchId: number;
+  // Extended coverage — picked from the backend picker; its registered cost is
+  // snapshotted onto the contract, so it isn't editable here.
+  extendedCoverage: ContractExtendedCoverage[];
   extendedCoverageId: number | undefined;
+  onExtendedCoverageChange: (id: number | null) => void;
   // Editable rates
   rentDayCost: number; setRentDayCost: (v: number) => void;
   rentHourCost: number; setRentHourCost: (v: number) => void;
@@ -33,7 +37,6 @@ export type StepPricingPaymentProps = {
   driverFarePerHour: number; setDriverFarePerHour: (v: number) => void;
   vehicleTransferCost: number; setVehicleTransferCost: (v: number) => void;
   internationalAuthorizationCost: number; setInternationalAuthorizationCost: (v: number) => void;
-  additionalCoverageCost: number; setAdditionalCoverageCost: (v: number) => void;
   allowedKmPerDay: number; setAllowedKmPerDay: (v: number) => void;
   allowedLateHours: number; setAllowedLateHours: (v: number) => void;
   lateFeePerHour: number; setLateFeePerHour: (v: number) => void;
@@ -51,10 +54,11 @@ export type StepPricingPaymentProps = {
 };
 
 export function StepPricingPayment({
-  ar, car, contractTypeCode, days, totalHours, addons, unlimitedKm, receiveBranchId, returnBranchId, extendedCoverageId,
+  ar, car, contractTypeCode, days, totalHours, addons, unlimitedKm, receiveBranchId, returnBranchId,
+  extendedCoverage, extendedCoverageId, onExtendedCoverageChange,
   rentDayCost, setRentDayCost, rentHourCost, setRentHourCost, extraKmCost, setExtraKmCost, fullFuelCost, setFullFuelCost,
   driverFarePerDay, setDriverFarePerDay, driverFarePerHour, setDriverFarePerHour, vehicleTransferCost, setVehicleTransferCost,
-  internationalAuthorizationCost, setInternationalAuthorizationCost, additionalCoverageCost, setAdditionalCoverageCost,
+  internationalAuthorizationCost, setInternationalAuthorizationCost,
   allowedKmPerDay, setAllowedKmPerDay, allowedLateHours, setAllowedLateHours, lateFeePerHour, setLateFeePerHour,
   discountType, discountPercent, discountRates, discountRateId, onDiscountRateChange, payType, setPayType, payMethod, setPayMethod, pricing,
 }: StepPricingPaymentProps) {
@@ -163,15 +167,38 @@ export function StepPricingPayment({
               onChange={setInternationalAuthorizationCost}
               ar={ar}
             />
-            {extendedCoverageId && (
-              <PriceInput
-                label={T("Additional coverage cost (SAR)", "تكلفة التغطية الإضافية", ar)}
-                value={additionalCoverageCost || 100}
-                defaultValue={100}
-                onChange={setAdditionalCoverageCost}
-                ar={ar}
-                helpText={T(`Max = day rate × 2`, "الحد الأقصى = سعر اليوم × ٢", ar)}
-              />
+          </div>
+
+          {/* Extended coverage — picked from the backend picker; the registered
+              cost is snapshotted onto the contract (managed in Pricing settings). */}
+          <div className="pt-6 mt-6 border-t border-mk-ink-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="mk-label text-mk-ink-900">{T("Extended coverage", "التغطية الإضافية", ar)}</div>
+              <span className="flex items-center gap-1 mk-overline text-mk-ink-400">
+                <Lock size={11} />{T("Cost managed in Pricing settings", "التكلفة تُدار من إعدادات الأسعار", ar)}
+              </span>
+            </div>
+            <Select
+              value={extendedCoverageId != null ? String(extendedCoverageId) : ""}
+              onChange={(e) => onExtendedCoverageChange(e.target.value ? Number(e.target.value) : null)}
+              className="w-full"
+            >
+              <option value="">{T("No additional coverage", "بدون تغطية إضافية", ar)}</option>
+              {extendedCoverage.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {(ar ? (c.nameAr || c.nameEn) : (c.nameEn || c.nameAr)) || `—`} ({c.cost.toLocaleString()} {T("SAR", "ريال", ar)})
+                </option>
+              ))}
+            </Select>
+            {coverageFare > 0 && (
+              <p className="mk-caption text-mk-blue-500 mt-2">
+                {T(`+${coverageFare.toLocaleString()} SAR`, `+${coverageFare.toLocaleString()} ريال`, ar)}
+              </p>
+            )}
+            {extendedCoverage.length === 0 && (
+              <p className="mk-caption text-mk-ink-400 mt-2">
+                {T("No coverage packages available.", "لا توجد باقات تغطية متاحة.", ar)}
+              </p>
             )}
           </div>
 
@@ -383,10 +410,6 @@ export function StepPricingPayment({
                 </div>
               </div>
             )}
-          </div>
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-mk-ink-100">
-            <span className="mk-caption text-mk-ink-500 flex-1">+ {T("Refundable security deposit", "تأمين قابل للاسترداد", ar)}</span>
-            <strong className="mk-caption text-mk-ink-700">1,500 {T("SAR", "ريال", ar)}</strong>
           </div>
         </div>
       </div>

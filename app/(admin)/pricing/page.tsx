@@ -2,10 +2,11 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import { Banknote, CalendarDays, Check, Clock, Pencil, Plus, Trash2, Scale, type LucideIcon } from "lucide-react";
-import { CARS } from "@/lib/data";
+import { vehicleService } from "@/lib/api-services";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Button, Badge, Table, Th, Td, Tabs, Input, Modal, IconButton } from "@/components/ui";
 import AdditionalServicesSection from "@/components/shared/additional-services/AdditionalServicesSection";
+import ExtendedCoveragesSection from "@/components/shared/extended-coverages/ExtendedCoveragesSection";
 import RentPoliciesSection from "@/components/shared/rent-policies/RentPoliciesSection";
 import CancellationPoliciesSection from "@/components/shared/cancellation-policies/CancellationPoliciesSection";
 import { pricingService } from "@/lib/api-services";
@@ -222,7 +223,7 @@ function DisputePolicyCard({ ar }: { ar: boolean }) {
 export default function PricingPage() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
-  const pricingCars = CARS.filter((c) => c.status !== "draft").slice(0, 6);
+  const [pricingCars, setPricingCars] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<PricingTab>("policies");
   const [discounts, setDiscounts] = useState<DiscountItem[]>([]);
   const [discountsLoading, setDiscountsLoading] = useState(true);
@@ -244,9 +245,19 @@ export default function PricingPage() {
       .finally(() => setDiscountsLoading(false));
   };
 
+  const loadVehicles = () => {
+    vehicleService.search({ pageNumber: 1, pageSize: 6 })
+      .then((res) => {
+        const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? [];
+        setPricingCars(Array.isArray(items) ? items : []);
+      })
+      .catch(() => setPricingCars([]));
+  };
+
   useEffect(() => {
     const t = setTimeout(loadDiscounts, 0);
-    return () => clearTimeout(t);
+    const t2 = setTimeout(loadVehicles, 0);
+    return () => { clearTimeout(t); clearTimeout(t2); };
   }, []);
 
   function openAddDiscount() {
@@ -330,15 +341,15 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {pricingCars.map((car) => (
-                  <tr key={car.plate} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50">
+                  <tr key={car.id} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50">
                     <Td>
-                      <div className="mk-label text-mk-ink-900">{car.make} {car.model}</div>
-                      <div className="font-mono mk-overline mt-1 text-mk-ink-500">{car.plate}</div>
+                      <div className="mk-label text-mk-ink-900">{car.makeName || car.make} {car.modelName || car.model}</div>
+                      <div className="font-mono mk-overline mt-1 text-mk-ink-500">{car.plateNumber || car.plate}</div>
                     </Td>
-                    <Td><span className="mk-body-sm text-mk-ink-900">{car.dailyRate}</span><span className="mk-caption ms-1 text-mk-ink-500 normal-case tracking-normal">{T("SAR", "ريال", ar)}</span></Td>
-                    <Td>{car.kmCap === "Unlimited" ? <Badge variant="neutral" className="normal-case tracking-normal">{T("Unlimited", "غير محدود", ar)}</Badge> : <span className="mk-label text-mk-ink-700">{car.kmCap} {T("km", "كم", ar)}</span>}</Td>
-                    <Td className="mk-label text-mk-ink-700">{T("2 SAR/km", "٢ ريال/كم", ar)}</Td>
-                    <Td className="mk-label text-mk-ink-700">{T("1,500 SAR", "١٬٥٠٠ ريال", ar)}</Td>
+                    <Td><span className="mk-body-sm text-mk-ink-900">{car.dailyRate || 0}</span><span className="mk-caption ms-1 text-mk-ink-500 normal-case tracking-normal">{T("SAR", "ريال", ar)}</span></Td>
+                    <Td>{car.dailyKilometerLimit == null ? <Badge variant="neutral" className="normal-case tracking-normal">{T("Unlimited", "غير محدود", ar)}</Badge> : <span className="mk-label text-mk-ink-700">{car.dailyKilometerLimit} {T("km", "كم", ar)}</span>}</Td>
+                    <Td className="mk-label text-mk-ink-700">{car.extraKilometerRate ? `${car.extraKilometerRate} SAR/km` : T("2 SAR/km", "٢ ريال/كم", ar)}</Td>
+                    <Td className="mk-label text-mk-ink-700">{car.enduranceAmount ? `${car.enduranceAmount} SAR` : T("1,500 SAR", "١٬٥٠٠ ريال", ar)}</Td>
                   </tr>
                 ))}
               </tbody>
@@ -389,8 +400,13 @@ export default function PricingPage() {
         </SectionCard>
       )}
 
-      {/* Add-on services pricing table */}
-      {activeTab === "addons" && <AdditionalServicesSection />}
+      {/* Add-on services pricing table + Tajeer coverage packages */}
+      {activeTab === "addons" && (
+        <div className="flex flex-col gap-4">
+          <AdditionalServicesSection />
+          <ExtendedCoveragesSection />
+        </div>
+      )}
 
       <Modal open={discountModalOpen} onClose={() => setDiscountModalOpen(false)} variant="centered" size="sm" title={editingDiscount ? T("Edit discount", "تعديل الخصم", ar) : T("Add discount", "إضافة خصم", ar)}>
         <div className="p-5">

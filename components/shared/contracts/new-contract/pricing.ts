@@ -76,7 +76,9 @@ export function computePricing(p: PricingInput) {
   // (only relevant when the authorization is actually international), so its
   // real registered default is "no fee" until the employee enters one.
   const authorizationFare = p.internationalAuthorizationCost;
-  const coverageFare = p.extendedCoverageId ? (p.additionalCoverageCost || 100) : 0;
+  // Backend snapshots the coverage's registered Cost onto the contract — the
+  // picker value is mirrored into additionalCoverageCost on selection.
+  const coverageFare = p.extendedCoverageId ? p.additionalCoverageCost : 0;
   // fullFuelCost is sent in the payload as the vehicle's fuel rate, but the
   // backend doesn't bill it in the contract total — adding it here makes
   // paidAmount exceed the backend total (Contract.PaidExceedsTotal).

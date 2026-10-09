@@ -185,7 +185,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [renterLicenseIssuePlace, setRenterLicenseIssuePlace] = useState("");
   const [renterBorderNumber, setRenterBorderNumber] = useState("");
   const [pickupDateTime, setPickupDateTime] = useState(() => toLocalDateTimeValue(new Date()));
-  const [returnDateTime, setReturnDateTime] = useState(() => toLocalDateTimeValue(new Date(Date.now() + 4 * 24 * 60 * 60 * 1000)));
+  const [returnDateTime, setReturnDateTime] = useState(() => toLocalDateTimeValue(new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)));
   const { pickupDate, returnDate, rentalWholeDays, rentalExtraHours, days, totalHours, isHourlyRental } = computeRental(pickupDateTime, returnDateTime);
 
   // ── Insurance ────────────────────────────────────────────────
@@ -307,8 +307,10 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         unlimited_km: isUnlimited ? true : s.unlimited_km,
       }));
 
-      // No pre-existing sketch items from backend — start empty
-      setSketchItems([]);
+      // Same sketch as the vehicle detail page — the vehicle's registered
+      // damagePoints become the pickup-condition sketch shown in the drawer
+      // and on the contract preview.
+      setSketchItems(selectedCar.sketchItems ?? []);
 
     }
   }, [pickedPlate, backendCars]);
@@ -912,7 +914,14 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             unlimitedKm={unlimitedKm}
             receiveBranchId={receiveBranchId}
             returnBranchId={returnBranchId}
+            extendedCoverage={extendedCoverage}
             extendedCoverageId={extendedCoverageId}
+            onExtendedCoverageChange={(id) => {
+              setExtendedCoverageId(id ?? undefined);
+              // Backend snapshots its own registered cost — mirror it in the
+              // preview so the computed total matches the contract total.
+              setAdditionalCoverageCost(extendedCoverage.find((c) => c.id === id)?.cost ?? 0);
+            }}
             rentDayCost={rentDayCost} setRentDayCost={setRentDayCost}
             rentHourCost={rentHourCost} setRentHourCost={setRentHourCost}
             extraKmCost={extraKmCost} setExtraKmCost={setExtraKmCost}
@@ -921,7 +930,6 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             driverFarePerHour={driverFarePerHour} setDriverFarePerHour={setDriverFarePerHour}
             vehicleTransferCost={vehicleTransferCost} setVehicleTransferCost={setVehicleTransferCost}
             internationalAuthorizationCost={internationalAuthorizationCost} setInternationalAuthorizationCost={setInternationalAuthorizationCost}
-            additionalCoverageCost={additionalCoverageCost} setAdditionalCoverageCost={setAdditionalCoverageCost}
             allowedKmPerDay={allowedKmPerDay} setAllowedKmPerDay={setAllowedKmPerDay}
             allowedLateHours={allowedLateHours} setAllowedLateHours={setAllowedLateHours}
             lateFeePerHour={lateFeePerHour} setLateFeePerHour={setLateFeePerHour}
@@ -954,6 +962,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             onCancelContract={handleCancelContract}
             selectedCustomer={selectedCustomer}
             idTypeCode={idTypeCode}
+            contractId={createdContractId}
             renterIdentityFields={getRenterIdentityFields()}
             isRenterDriver={isRenterDriver}
             authDriverIdNumber={authDriverIdNumber}

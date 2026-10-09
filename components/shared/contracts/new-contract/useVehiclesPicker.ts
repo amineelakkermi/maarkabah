@@ -1,8 +1,23 @@
 import { useEffect, useState } from "react";
 import type { Car } from "@/lib/data";
-import { vehicleService } from "@/lib/api-services";
+import { vehicleService, lookupService, insuranceTypeService } from "@/lib/api-services";
 import { T } from "./constants";
-import { mapBackendVehicleToCar } from "./mappers";
+import { mapBackendVehicleToCar, type VehicleLookupContext } from "./mappers";
+
+// The vehicle detail response only stores insuranceCompanyId / insuranceTypeId —
+// the contract preview needs the resolved names, so load both lookup lists once.
+async function fetchInsuranceLookups(): Promise<VehicleLookupContext> {
+  const [ctxResult, typesResult] = await Promise.allSettled([
+    lookupService.getContext({ sections: ["InsuranceCompanies"] }),
+    insuranceTypeService.search({ pageNumber: 1, pageSize: 100 }),
+  ]);
+  const ctxRoot = ctxResult.status === "fulfilled" ? (ctxResult.value?.data ?? ctxResult.value ?? {}) : {};
+  const insuranceCompanies = ctxRoot.insuranceCompanies ?? ctxRoot.InsuranceCompanies ?? [];
+  const insuranceTypes = typesResult.status === "fulfilled"
+    ? (typesResult.value?.items ?? typesResult.value?.data ?? [])
+    : [];
+  return { insuranceCompanies, insuranceTypes };
+}
 
 /* ── Backend: load vehicles (POST /api/vehicles/search + GET /api/vehicles/{id}) ── */
 // `onLoaded` receives the mapped list once so the page can auto-pick the first plate, as before.
@@ -17,7 +32,10 @@ export function useVehiclesPicker(ar: boolean, onLoaded?: (cars: Car[]) => void)
       setVehiclesLoading(true);
       setVehiclesError("");
       try {
-        const response = await vehicleService.search({ pageNumber: 1, pageSize: 100 });
+        const [response, lookups] = await Promise.all([
+          vehicleService.search({ pageNumber: 1, pageSize: 100 }),
+          fetchInsuranceLookups(),
+        ]);
         if (cancelled) return;
         const searchItems = response.items || response.data || [];
         const detailedVehicles = await Promise.all(
@@ -32,7 +50,7 @@ export function useVehiclesPicker(ar: boolean, onLoaded?: (cars: Car[]) => void)
         );
         if (cancelled) return;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped: Car[] = detailedVehicles.map((raw: any) => mapBackendVehicleToCar(raw?.data ?? raw));
+        const mapped: Car[] = detailedVehicles.map((raw: any) => mapBackendVehicleToCar(raw?.data ?? raw, lookups));
         setBackendCars(mapped);
         onLoaded?.(mapped);
       } catch (err) {

@@ -23,6 +23,9 @@ export function isTajeerSyncedPolicy(p: { tajeerId?: number | null; source?: num
   return p.tajeerId != null || Number(p.source) === 1;
 }
 export type ContractCancellationPolicy = LookupItem & CancellationPolicyDto;
+// Extended coverage package — the backend registers a fixed `cost` (managed in
+// Pricing settings) that it snapshots onto the contract when selected.
+export type ContractExtendedCoverage = LookupItem & { cost: number };
 // Named discount rate from /pricing/discount-rates/picker — only `percent`
 // goes onto the contract (discountPercent); no rate id is persisted.
 export type ContractDiscountRate = { id: number; nameAr: string; nameEn: string; percent: number };
@@ -51,7 +54,7 @@ export function useContractLookups(
   const [branches, setBranches] = useState<LookupItem[]>([]);
   const [rentPolicies, setRentPolicies] = useState<ContractRentPolicy[]>([]);
   const [cancellationPolicies, setCancellationPolicies] = useState<ContractCancellationPolicy[]>([]);
-  const [extendedCoverage, setExtendedCoverage] = useState<LookupItem[]>([]);
+  const [extendedCoverage, setExtendedCoverage] = useState<ContractExtendedCoverage[]>([]);
   const [additionalServices, setAdditionalServices] = useState<ContractAdditionalService[]>([]);
   const [discountRates, setDiscountRates] = useState<ContractDiscountRate[]>([]);
 
@@ -79,8 +82,8 @@ export function useContractLookups(
           .map((item) => ({ ...item, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))
         : [];
       const loadedCoverage = coverageResult.status === "fulfilled"
-        ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string }>(coverageResult.value)
-          .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))
+        ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string; cost?: number }>(coverageResult.value)
+          .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "", cost: Number(item.cost ?? 0) }))
         : [];
       const loadedDiscountRates = discountResult.status === "fulfilled"
         ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string; percent?: number }>(discountResult.value)

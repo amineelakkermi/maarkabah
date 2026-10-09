@@ -11,6 +11,10 @@ interface SketchComponentProps {
   ar?: boolean;
   /** Overrides the car body fill (defaults to the app's --bg-elevated theme color). Use a light color for print/paper contexts. */
   bodyColor?: string;
+  /** Pre-existing damage marks rendered read-only underneath `value` (e.g. the
+   * vehicle's registered damagePoints). They aren't editable and don't count
+   * toward `value` — used by the return flow to show the pickup baseline. */
+  baseline?: SketchItem[];
 }
 
 interface Popup {
@@ -44,10 +48,11 @@ function DamageIcon({ type, size = 14 }: { type: DamageType; size?: number }) {
   );
 }
 
-export function SketchComponent({ value, onChange, disabled, ar, bodyColor }: SketchComponentProps) {
+export function SketchComponent({ value, onChange, disabled, ar, bodyColor, baseline }: SketchComponentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [popup, setPopup] = useState<Popup | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [hoveredBaseline, setHoveredBaseline] = useState<number | null>(null);
 
   const [selectedType, setSelectedType] = useState<DamageType>("small-scratch");
   const [damageNote, setDamageNote] = useState("");
@@ -202,6 +207,79 @@ export function SketchComponent({ value, onChange, disabled, ar, bodyColor }: Sk
                 <path d="M561.6 40.28C607.5 35.99 648.2 69.67 652.5 115.5C656.8 161.4 623.2 202.1 577.3 206.4C531.4 210.8 490.7 177.1 486.3 131.2C482 85.29 515.7 44.57 561.6 40.28Z" fill="var(--bg-elevated)" />
           </svg>
         </div>
+
+        {/* Baseline damage markers — registered on the vehicle record / pickup report.
+            Always read-only so staff can see existing damage without editing it. */}
+        {(baseline ?? []).map((item, i) => {
+          const pctLeft = (item.x / CAR_W) * 100;
+          const pctTop  = (item.y / CAR_H) * 100;
+          const isHovered = hoveredBaseline === i;
+          const flipDown = pctTop < 40;
+          return (
+            <div
+              key={`base-${i}`}
+              onMouseEnter={() => setHoveredBaseline(i)}
+              onMouseLeave={() => setHoveredBaseline(null)}
+              onClick={(e) => { e.stopPropagation(); }}
+              style={{
+                position: "absolute",
+                left: `${pctLeft}%`,
+                top: `${pctTop}%`,
+                transform: "translate(-50%, -50%)",
+                zIndex: isHovered ? 24 : 9,
+                width: 26,
+                height: 26,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "default",
+              }}
+            >
+              <div style={{ position: "relative", transform: isHovered ? "scale(1.35)" : "scale(1)", transition: "transform 0.15s ease" }}>
+                <DamageIcon type={item.type} size={14} />
+                <div
+                  role="tooltip"
+                  style={{
+                    position: "absolute",
+                    ...(flipDown ? { top: "150%" } : { bottom: "150%" }),
+                    left: "50%",
+                    transform: isHovered
+                      ? "translate(-50%, 0) scale(1)"
+                      : `translate(-50%, ${flipDown ? "-4px" : "4px"}) scale(0.96)`,
+                    opacity: isHovered ? 1 : 0,
+                    visibility: isHovered ? "visible" : "hidden",
+                    transition: "opacity 0.15s ease, transform 0.15s ease",
+                    background: "var(--color-mk-bg-elevated)",
+                    border: "1px solid var(--color-mk-border)",
+                    color: "var(--color-mk-ink-900)",
+                    padding: "7px 11px",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    minWidth: "max-content",
+                    maxWidth: "150px",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    textAlign: "center",
+                    zIndex: 30,
+                    pointerEvents: "none",
+                    boxShadow: "var(--shadow-lg)",
+                  }}
+                >
+                  <span style={{ fontWeight: "var(--fw-bold)" }}>
+                    {ar
+                      ? DAMAGE_TYPES.find(dt => dt.type === item.type)?.labelAr
+                      : DAMAGE_TYPES.find(dt => dt.type === item.type)?.labelEn}
+                  </span>
+                  {item.note && (
+                    <span style={{ opacity: 0.9, fontSize: "10px", borderTop: "1px solid var(--color-mk-border)", paddingTop: "3px", marginTop: "1px" }}>
+                      {item.note}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Damage markers */}
         {value.map((item, i) => {
