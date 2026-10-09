@@ -12,6 +12,8 @@ import {
   Badge, RiyalSymbol, DatePicker, useToast,
 } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import { Permission } from "@/lib/permissions";
 import { vehicleService } from "@/lib/api-services";
 import { describeApiError } from "@/lib/api-error-messages";
 import { SketchComponent } from "@/components/employee/SketchComponent";
@@ -243,6 +245,10 @@ export function VehicleDetailsPage({
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const { showToast } = useToast();
+  // Every vehicle mutation (save, status, activate/deactivate, transfer) is
+  // gated on Vehicles.Save — viewers get a read-only form instead of a 403.
+  const { hasPermission } = usePermissions();
+  const canEdit = hasPermission(Permission.Vehicles.Save);
 
   const [openPanels, setOpenPanels] = useState<Record<VehicleFieldPanel, boolean>>({
     basic: true,
@@ -429,8 +435,9 @@ export function VehicleDetailsPage({
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
           <Button variant="outline" onClick={onBack} className="flex-1 sm:flex-initial">
-            <X size={14} />{T("Cancel", "إلغاء", ar)}
+            <X size={14} />{canEdit ? T("Cancel", "إلغاء", ar) : T("Back", "رجوع", ar)}
           </Button>
+          {canEdit && (
           <Button
             variant="primary"
             type="submit"
@@ -446,6 +453,7 @@ export function VehicleDetailsPage({
               T("Add vehicle", "إضافة مركبة", ar)
             )}
           </Button>
+          )}
         </div>
       </div>
 
@@ -454,6 +462,11 @@ export function VehicleDetailsPage({
         <CompletionBar pct={pct} missing={missing} ar={ar} />
       </div>
 
+      {/* Read-only mode: a single disabled fieldset turns every native control
+          (selects, inputs, toggles, pills, upload, transfer…) inert without
+          touching each field. SketchComponent is div-based, so it gets
+          `disabled` explicitly. */}
+      <fieldset disabled={!canEdit} className="contents">
       {/* ── Fleet status — quick access at the top of the page ── */}
       <div className="rounded-xl p-4 sm:px-5 mb-4 mk-surface mk-shadow-10">
         <div className="flex flex-wrap items-center gap-2">
@@ -467,7 +480,7 @@ export function VehicleDetailsPage({
                 key={value}
                 type="button"
                 onClick={() => setForm((f: any) => ({ ...f, status: String(value) }))}
-                className={`flex items-center gap-2 px-3 py-2 rounded-pill mk-caption border cursor-pointer transition-all duration-150 ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-pill mk-caption border cursor-pointer transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
                   isActive
                     ? `${STATUS_PILL_ACTIVE[variant]} border-transparent`
                     : "bg-transparent text-mk-ink-400 border-mk-ink-100"
@@ -1198,6 +1211,7 @@ export function VehicleDetailsPage({
                     <SketchComponent
                       value={sketchItems}
                       onChange={(items) => setForm((f: any) => ({ ...f, sketchItems: items }))}
+                      disabled={!canEdit}
                       ar={ar}
                     />
                   </div>
@@ -1342,6 +1356,7 @@ export function VehicleDetailsPage({
           </div>
         </div>
       </form>
+      </fieldset>
 
       {/* Transfer vehicle to another branch */}
       {showTransfer && (

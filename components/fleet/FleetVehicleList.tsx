@@ -5,6 +5,8 @@ import { Car, CarStatus } from "@/lib/data";
 import { Car as CarIcon, LayoutGrid, List as ListIcon, Loader2, Plus, Search, X } from "lucide-react";
 import { Button, IconButton, Input, Table, Tabs, Th, Tr } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import { Permission } from "@/lib/permissions";
 import { STATUS_TABS, T } from "@/lib/fleet";
 import { CarCard, CarListRow } from "@/components/fleet/CarCard";
 
@@ -41,6 +43,11 @@ export function FleetVehicleList({
 }: FleetVehicleListProps) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
+  const { hasPermission } = usePermissions();
+  // Save covers create; Delete gates the trash action. Edit stays available —
+  // it opens the vehicle details, which render read-only for viewers.
+  const canSave = hasPermission(Permission.Vehicles.Save);
+  const canDelete = hasPermission(Permission.Vehicles.Delete);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
@@ -52,7 +59,7 @@ export function FleetVehicleList({
         </div>
         <IconButton size="md" className="sm:hidden" aria-label={T("Search", "بحث", ar)} onClick={() => setMobileSearchOpen((open) => !open)}><Search size={16} /></IconButton>
         <div className="flex-1" />
-        <Button variant="primary" className="shadow-[0_4px_14px_-4px_rgba(65,113,226,0.4)]" onClick={onAdd}><Plus size={15} />{T("Add vehicle", "إضافة مركبة", ar)}</Button>
+        {canSave && <Button variant="primary" className="shadow-[0_4px_14px_-4px_rgba(65,113,226,0.4)]" onClick={onAdd}><Plus size={15} />{T("Add vehicle", "إضافة مركبة", ar)}</Button>}
       </div>
 
       {mobileSearchOpen && <div className="sm:hidden mb-3"><Input variant="search" icon={<Search size={14} />} placeholder={T("Search make, model, plate…", "بحث عن ماركة، طراز، لوحة…", ar)} value={search} onChange={(event) => onSearchChange(event.target.value)} suffix={search && <IconButton size="sm" variant="ghost" onClick={() => onSearchChange("")}><X size={13} /></IconButton>} autoFocus /></div>}
@@ -77,12 +84,12 @@ export function FleetVehicleList({
       ) : visibleVehicles.length === 0 ? (
         <div className="py-16 text-center text-mk-ink-400 rounded-xl mk-surface"><CarIcon size={32} className="mx-auto mb-3 opacity-30" /><p className="mk-body-sm">{T("No vehicles found", "لا توجد مركبات", ar)}</p></div>
       ) : view === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{visibleVehicles.map((car) => <CarCard key={car.id} car={car} onEdit={onEdit} onDelete={onDelete} />)}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{visibleVehicles.map((car) => <CarCard key={car.id} car={car} onEdit={onEdit} onDelete={onDelete} canDelete={canDelete} />)}</div>
       ) : (
         <div className="rounded-xl overflow-hidden mk-surface mk-shadow-12">
           <Table>
             <thead><Tr><Th>{T("Vehicle", "المركبة", ar)}</Th><Th>{T("Daily rate", "السعر اليومي", ar)}</Th><Th>{T("Utilization", "الاستخدام", ar)}</Th><Th /><Th>{T("Status", "الحالة", ar)}</Th><Th /></Tr></thead>
-            <tbody>{visibleVehicles.map((car) => <CarListRow key={car.id} car={car} onEdit={onEdit} onDelete={onDelete} onMapClick={onShowVehicleMap} />)}</tbody>
+            <tbody>{visibleVehicles.map((car) => <CarListRow key={car.id} car={car} onEdit={onEdit} onDelete={onDelete} canDelete={canDelete} onMapClick={onShowVehicleMap} />)}</tbody>
           </Table>
         </div>
       )}

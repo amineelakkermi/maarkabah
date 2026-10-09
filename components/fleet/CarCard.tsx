@@ -13,6 +13,8 @@ interface CarCardProps {
   car: Car;
   onEdit: (car: Car) => void;
   onDelete: (car: Car) => void;
+  /** Vehicles.Delete — hide the trash action for viewers. Defaults to true. */
+  canDelete?: boolean;
   onMapClick?: (car: Car) => void;
 }
 
@@ -50,7 +52,7 @@ export function CarImage({ car, compact = false }: { car: Car; compact?: boolean
   );
 }
 
-export function CarCard({ car, onEdit, onDelete }: CarCardProps) {
+export function CarCard({ car, onEdit, onDelete, canDelete = true }: CarCardProps) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
 
@@ -61,7 +63,7 @@ export function CarCard({ car, onEdit, onDelete }: CarCardProps) {
         <FleetAlertImageOverlay car={car} ar={ar} corner="top-start" />
         <div className="absolute top-2 end-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <IconButton size="sm" variant="surface" aria-label={T("Edit", "تعديل", ar)} onClick={(event) => { event.stopPropagation(); onEdit(car); }}><Edit size={13} /></IconButton>
-          <IconButton size="sm" variant="surface" aria-label={T("Delete", "حذف", ar)} onClick={(event) => { event.stopPropagation(); onDelete(car); }}><Trash2 size={13} className="text-mk-danger" /></IconButton>
+          {canDelete && <IconButton size="sm" variant="surface" aria-label={T("Delete", "حذف", ar)} onClick={(event) => { event.stopPropagation(); onDelete(car); }}><Trash2 size={13} className="text-mk-danger" /></IconButton>}
         </div>
       </div>
       <div className="p-4">
@@ -82,7 +84,7 @@ export function CarCard({ car, onEdit, onDelete }: CarCardProps) {
   );
 }
 
-export function CarListRow({ car, onEdit, onDelete, onMapClick }: CarCardProps) {
+export function CarListRow({ car, onEdit, onDelete, canDelete = true, onMapClick }: CarCardProps) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
 
@@ -93,7 +95,7 @@ export function CarListRow({ car, onEdit, onDelete, onMapClick }: CarCardProps) 
       <Td><span className="mk-caption text-mk-ink-900">{car.utilization}%</span><div className="w-12 h-1 rounded-full bg-mk-ink-100 mt-1 overflow-hidden"><div className="h-full rounded-full bg-mk-blue-500" style={{ width: `${Math.min(car.utilization, 100)}%` }} /></div></Td>
       <Td onClick={(event) => event.stopPropagation()}>{onMapClick && <Button variant="outline" size="sm" className="rounded-full whitespace-nowrap" onClick={() => onMapClick(car)}><MapPin size={12} className="text-mk-blue-500" />{T("Show on map", "عرض على الخريطة", ar)}</Button>}</Td>
       <Td><Badge variant={STATUS_BADGE_VARIANT[car.status]} dot>{statusLabel(car, ar)}</Badge></Td>
-      <Td onClick={(event) => event.stopPropagation()}><div className="flex justify-end gap-1"><IconButton size="sm" variant="ghost" aria-label={T("Edit", "تعديل", ar)} onClick={() => onEdit(car)}><Edit size={14} /></IconButton><IconButton size="sm" variant="ghost" aria-label={T("Delete", "حذف", ar)} onClick={() => onDelete(car)}><Trash2 size={14} className="text-mk-danger" /></IconButton><ChevronRight size={16} className="text-mk-ink-300 self-center" /></div></Td>
+      <Td onClick={(event) => event.stopPropagation()}><div className="flex justify-end gap-1"><IconButton size="sm" variant="ghost" aria-label={T("Edit", "تعديل", ar)} onClick={() => onEdit(car)}><Edit size={14} /></IconButton>{canDelete && <IconButton size="sm" variant="ghost" aria-label={T("Delete", "حذف", ar)} onClick={() => onDelete(car)}><Trash2 size={14} className="text-mk-danger" /></IconButton>}<ChevronRight size={16} className="text-mk-ink-300 self-center" /></div></Td>
     </Tr>
   );
 }
