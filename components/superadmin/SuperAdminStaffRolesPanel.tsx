@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Loader2, Edit, Power, PowerOff, KeyRound, Lock, Search, X, Eye, EyeOff } from "lucide-react";
-import { Avatar, Badge, Button, Table, Th, Td, type BadgeVariant, Drawer, DrawerHeader, DrawerFooter, useToast, Input, Select, Modal } from "@/components/ui";
+import { Avatar, Badge, Button, Table, Th, Td, type BadgeVariant, Drawer, DrawerHeader, DrawerFooter, useToast, Input, Select, Modal, DatePicker } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { adminTenantService, branchService } from "@/lib/api-services";
 
@@ -466,20 +466,24 @@ export function SuperAdminStaffRolesPanel({ tenantId }: { tenantId: number }) {
         value={nationalId}
         onChange={(e) => setNationalId(e.target.value)}
       />
-      <Input
-        variant="muted"
-        type="date"
-        label={T("Identity expiry", "انتهاء الهوية", ar)}
-        value={identityExpiryDate}
-        onChange={(e) => setIdentityExpiryDate(e.target.value)}
-      />
-      <Input
-        variant="muted"
-        type="date"
-        label={T("Birth date", "تاريخ الميلاد", ar)}
-        value={birthDate}
-        onChange={(e) => setBirthDate(e.target.value)}
-      />
+      <div className="col-span-2">
+        <DatePicker
+          variant="muted"
+          label={T("Identity expiry", "انتهاء الهوية", ar)}
+          value={identityExpiryDate}
+          onChange={setIdentityExpiryDate}
+          ar={ar}
+        />
+      </div>
+      <div className="col-span-2">
+        <DatePicker
+          variant="muted"
+          label={T("Birth date", "تاريخ الميلاد", ar)}
+          value={birthDate}
+          onChange={setBirthDate}
+          ar={ar}
+        />
+      </div>
     </div>
   );
 

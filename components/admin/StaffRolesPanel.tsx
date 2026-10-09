@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import {
   Avatar, Badge, Button, Input, Select, IconButton, Drawer, DrawerHeader,
-  DrawerFooter, Toggle, Table, Tr, Th, Td, Modal, useToast, type BadgeVariant,
+  DrawerFooter, Toggle, Table, Tr, Th, Td, Modal, useToast, DatePicker,
+  type BadgeVariant,
 } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { tenantUserService, tenantRoleService, branchService } from "@/lib/api-services";
@@ -494,20 +495,24 @@ export function StaffRolesPanel() {
         value={nationalId}
         onChange={(e) => setNationalId(e.target.value)}
       />
-      <Input
-        variant="muted"
-        type="date"
-        label={T("Identity expiry", "انتهاء الهوية", ar)}
-        value={identityExpiryDate}
-        onChange={(e) => setIdentityExpiryDate(e.target.value)}
-      />
-      <Input
-        variant="muted"
-        type="date"
-        label={T("Birth date", "تاريخ الميلاد", ar)}
-        value={birthDate}
-        onChange={(e) => setBirthDate(e.target.value)}
-      />
+      <div className="col-span-2">
+        <DatePicker
+          variant="muted"
+          label={T("Identity expiry", "انتهاء الهوية", ar)}
+          value={identityExpiryDate}
+          onChange={setIdentityExpiryDate}
+          ar={ar}
+        />
+      </div>
+      <div className="col-span-2">
+        <DatePicker
+          variant="muted"
+          label={T("Birth date", "تاريخ الميلاد", ar)}
+          value={birthDate}
+          onChange={setBirthDate}
+          ar={ar}
+        />
+      </div>
     </div>
   );
 
