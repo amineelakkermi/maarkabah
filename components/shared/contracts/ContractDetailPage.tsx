@@ -1362,9 +1362,9 @@ export default function ContractDetailPage({
           {/* Customer */}
           <div className="flex items-center gap-3 mb-3">
             <Avatar name={contract.customer} size="md" />
-            <div>
+            <div className="flex flex-col gap-2">
               <div className="mk-body-sm text-mk-ink-900">{contract.customer}</div>
-              <div className="mk-caption text-mk-ink-500">{contract.phone}</div>
+              <div className="mk-caption text-mk-ink-500"><span dir="ltr">{contract.phone}</span></div>
             </div>
           </div>
           <Row label={T("KYC", "التحقق", ar)} value={

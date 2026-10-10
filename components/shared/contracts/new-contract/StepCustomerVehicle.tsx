@@ -212,7 +212,7 @@ export function StepCustomerVehicle({
                           </span>
                         </div>
                         <div className="mk-caption text-mk-ink-500">
-                          {selectedCustomer.phone} · {selectedCustomer.bookings} {T("past contracts · ★", "عقود سابقة · ★", ar)} {selectedCustomer.rating}
+                         <span dir="ltr" className={`${ar ? 'ml-3' : 'mr-3'}`}> {selectedCustomer.phone} </span>· {selectedCustomer.bookings} {T("past contracts · ★", "عقود سابقة · ★", ar)} {selectedCustomer.rating}
                         </div>
                       </div>
                       <span className={`mk-overline px-2 py-1 rounded-full shrink-0 ${meta.className}`}>

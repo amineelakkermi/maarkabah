@@ -114,7 +114,7 @@ export function StepIssue({
                 <div className="mk-overline text-mk-ink-400 uppercase">{T("Renter (Client)", "المستأجر (العميل)", ar)}</div>
                 <div>
                   <div className="mk-label text-mk-ink-900">{ar ? selectedCustomer?.nameAr : selectedCustomer?.name}</div>
-                  <div className="mk-overline text-mk-ink-500">{selectedCustomer?.phone}</div>
+                  <div className="mk-overline text-mk-ink-500"><span dir="ltr">{selectedCustomer?.phone}</span></div>
                 </div>
 
                 {/* ID type — set from the customer's registered record; drives the required field set below */}
