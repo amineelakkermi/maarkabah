@@ -102,6 +102,8 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [otpDigits, setOtpDigits] = useState(["1", "2", "3", "4", "", ""]);
   const [payMethod, setPayMethod] = useState("pos");
   const [payType, setPayType] = useState<"full" | "advance">("full");
+  // Employee-entered advance — 0 means "no advance collected now".
+  const [advanceCost, setAdvanceCost] = useState(0);
   const [signed, setSigned] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [signOtpDigits, setSignOtpDigits] = useState(["", "", "", ""]);
@@ -546,6 +548,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
     receiveBranchId, returnBranchId, vehicleTransferCost,
     internationalAuthorizationCost, extendedCoverageId, additionalCoverageCost, fullFuelCost,
     discountType, discountPercent, discountFlatAmount,
+    advanceAmount: advanceCost,
   });
   const {
     base, addonPrices, grossSubtotal, discountAmount, subtotal, vat, total, advanceAmount, remaining,
@@ -954,6 +957,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
               setDiscountPercent(rate?.percent ?? 0);
             }}
             payType={payType} setPayType={setPayType}
+            setAdvanceCost={setAdvanceCost}
             payMethod={payMethod} setPayMethod={setPayMethod}
             pricing={pricing}
           />
@@ -1132,7 +1136,12 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         onStepChange={setStep}
         contractStep={contractStep}
         otpComplete={otpDigits.every(d => d !== "")}
-        canContinueFromStep0={selectedCustomer !== null && !CUSTOMER_STATUS_META[getCustomerStatusTag(selectedCustomer)].blocking}
+        canContinueFromStep0={
+          selectedCustomer !== null
+          && !CUSTOMER_STATUS_META[getCustomerStatusTag(selectedCustomer)].blocking
+          && car != null
+          && effectiveCarStatus(car, ar) === "available"
+        }
         payType={payType}
         advanceAmount={advanceAmount}
         total={total}

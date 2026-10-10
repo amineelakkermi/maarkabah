@@ -518,7 +518,7 @@ export function StepCustomerVehicle({
             <div className="flex-1 min-w-[160px]">
               <div className="mk-h4 text-mk-ink-900">{T("Vehicle Selection", "اختيار المركبة", ar)}</div>
               <div className="mk-caption mt-1 text-mk-ink-500">
-                {availCars.length} {T("vehicles available for selected dates", "مركبة متاحة للتواريخ المحددة", ar)}
+                {availCars.filter(c => effectiveCarStatus(c, ar) === "available").length} {T("vehicles available for selected dates", "مركبة متاحة للتواريخ المحددة", ar)}
               </div>
             </div>
 

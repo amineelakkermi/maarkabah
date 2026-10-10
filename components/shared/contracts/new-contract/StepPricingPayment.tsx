@@ -50,6 +50,7 @@ export type StepPricingPaymentProps = {
   // Payment
   payType: "full" | "advance"; setPayType: (v: "full" | "advance") => void;
   payMethod: string; setPayMethod: (v: string) => void;
+  setAdvanceCost: (v: number) => void;
   pricing: Pricing;
 };
 
@@ -60,7 +61,7 @@ export function StepPricingPayment({
   driverFarePerDay, setDriverFarePerDay, driverFarePerHour, setDriverFarePerHour, vehicleTransferCost, setVehicleTransferCost,
   internationalAuthorizationCost, setInternationalAuthorizationCost,
   allowedKmPerDay, setAllowedKmPerDay, allowedLateHours, setAllowedLateHours, lateFeePerHour, setLateFeePerHour,
-  discountType, discountPercent, discountRates, discountRateId, onDiscountRateChange, payType, setPayType, payMethod, setPayMethod, pricing,
+  discountType, discountPercent, discountRates, discountRateId, onDiscountRateChange, payType, setPayType, payMethod, setPayMethod, setAdvanceCost, pricing,
 }: StepPricingPaymentProps) {
   const {
     base, addonPrices, extraDriverFare, transferFare, authorizationFare, coverageFare,
@@ -286,7 +287,7 @@ export function StepPricingPayment({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
             {([
               { k: "full", titleEn: "Full payment", titleAr: "الدفع الكامل", descEn: "Total captured now", descAr: "يُخصم الإجمالي كاملاً الآن", Icon: CreditCard },
-              { k: "advance", titleEn: "Advance payment", titleAr: "دفع مقدم", descEn: "50% now · rest on return", descAr: "٥٠٪ الآن · الباقي عند الإرجاع", Icon: Wallet },
+              { k: "advance", titleEn: "Advance payment", titleAr: "دفع مقدم", descEn: "Custom amount · rest on return", descAr: "مبلغ مخصص · الباقي عند الإرجاع", Icon: Wallet },
             ] as const).map((pt) => {
               const on = payType === pt.k;
               return (
@@ -301,6 +302,21 @@ export function StepPricingPayment({
               );
             })}
           </div>
+
+          {payType === "advance" && (
+            <div className="mb-4">
+              <PriceInput
+                label={T("Advance amount (SAR)", "مبلغ الدفع المقدم", ar)}
+                min={0}
+                max={total}
+                value={advanceAmount}
+                defaultValue={0}
+                onChange={setAdvanceCost}
+                ar={ar}
+                helpText={T("0 = no advance — type any amount up to the total, the rest is collected on return.", "٠ = بدون دفعة مقدمة — أدخل أي مبلغ حتى الإجمالي، والباقي يُحصَّل عند الإرجاع.", ar)}
+              />
+            </div>
+          )}
 
           <div className="mk-caption mb-3 text-mk-ink-600">
             {T("Payment method", "طريقة الدفع", ar)}
@@ -401,7 +417,7 @@ export function StepPricingPayment({
             {payType === "advance" && (
               <div className="border-t border-dashed border-mk-ink-100 pt-2.5 mt-1 flex flex-col gap-2">
                 <div className="flex justify-between">
-                  <span className="mk-label text-mk-blue-500">{T("Advance now (50%)", "مقدّم الآن (٥٠٪)", ar)}</span>
+                  <span className="mk-label text-mk-blue-500">{T("Advance now", "مقدّم الآن", ar)}</span>
                   <strong className="text-mk-blue-500">{advanceAmount.toLocaleString()} {T("SAR", "ريال", ar)}</strong>
                 </div>
                 <div className="flex justify-between text-mk-ink-400 mk-overline">

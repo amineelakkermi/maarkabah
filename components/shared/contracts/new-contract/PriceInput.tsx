@@ -28,16 +28,23 @@ export function PriceInputField({
       value={value}
       onChange={(e) => onChange(Number(e.target.value) || defaultValue)}
       helpText={helpText}
-      suffix={changed ? (
-        <button
-          type="button"
-          onClick={() => onChange(defaultValue)}
-          title={T("Reset to system default", "استعادة القيمة الافتراضية", ar)}
-          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-mk-ink-400 hover:text-mk-blue-500 hover:bg-mk-ink-100 transition-colors cursor-pointer"
-        >
-          <RotateCcw size={12} />
-        </button>
-      ) : undefined}
+      // The slot must always exist — passing a conditionally-undefined suffix
+      // flips Input between two DOM shapes (bare <input> vs wrapped), which
+      // remounts the input on first keystroke and drops focus mid-typing.
+      suffix={
+        <span className="inline-flex items-center justify-center w-5 h-5">
+          {changed && (
+            <button
+              type="button"
+              onClick={() => onChange(defaultValue)}
+              title={T("Reset to system default", "استعادة القيمة الافتراضية", ar)}
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-mk-ink-400 hover:text-mk-blue-500 hover:bg-mk-ink-100 transition-colors cursor-pointer"
+            >
+              <RotateCcw size={12} />
+            </button>
+          )}
+        </span>
+      }
     />
   );
 }

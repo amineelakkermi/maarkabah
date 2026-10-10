@@ -181,6 +181,14 @@ const RULES: { pattern: RegExp; message: (ar: boolean, m?: RegExpMatchArray | nu
     ),
   },
   {
+    pattern: /VehicleUnavailable|vehicle.*(not.?available|unavailable|already.?rented)/i,
+    message: (ar) => T(
+      "This vehicle isn't available — it's already rented or otherwise reserved.",
+      "المركبة غير متاحة — مؤجرة حالياً أو محجوزة لعقد آخر.",
+      ar,
+    ),
+  },
+  {
     pattern: /Customer\.InUse|customer.*linked to other/i,
     message: (ar) => T(
       "Cannot delete this customer — contracts or drivers still reference it. Remove the linked records first.",

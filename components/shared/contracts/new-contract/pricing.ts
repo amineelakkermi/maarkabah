@@ -43,6 +43,8 @@ export type PricingInput = {
   discountType: "percent" | "amount";
   discountPercent: number;
   discountFlatAmount: number;
+  /** Employee-entered advance — undefined falls back to the 50% suggestion. */
+  advanceAmount?: number;
 };
 
 export type Pricing = ReturnType<typeof computePricing>;
@@ -92,7 +94,13 @@ export function computePricing(p: PricingInput) {
   // paidAmount above it means rounding up here would exceed the backend total.
   const vat = Math.round(Math.max(0, subtotal - addonVatExempt) * 0.15 * 100) / 100;
   const total = subtotal + vat;
-  const advanceAmount = Math.round(total * 0.5 * 100) / 100;
+  // Advance is fully employee-entered — defaults to 0, remaining carries the
+  // whole total until the employee types an amount. Clamp to [0, total]: the
+  // backend rejects paidAmount above the total (Contract.PaidExceedsTotal)
+  // and a negative advance is meaningless.
+  const advanceAmount = p.advanceAmount != null && Number.isFinite(p.advanceAmount)
+    ? Math.min(Math.max(0, p.advanceAmount), total)
+    : 0;
   const remaining = total - advanceAmount;
 
   return {
