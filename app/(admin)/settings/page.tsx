@@ -259,24 +259,12 @@ function SettingsContent() {
     }
   }
 
-  // Secrets come back masked (has*Key) so verify with empty secret inputs
-  // lets the backend use the stored credentials; a *partially* filled set is
-  // ambiguous — require all three or none.
-  const tajeerSecretsMissing = !tajeerGatewayKey || !tajeerAppKey || !tajeerAuthorization;
-  const tajeerSecretsPartial = tajeerSecretsMissing && Boolean(tajeerGatewayKey || tajeerAppKey || tajeerAuthorization);
-  const MISSING_SECRETS_MSG = "Enter all three secrets together, or leave them empty to use the saved credentials.";
-  const MISSING_SECRETS_MSG_AR = "أدخل المفاتيح الثلاثة معاً، أو اتركها فارغة لاستخدام المحفوظة.";
-  const REQUIRED_SECRETS_MSG = "To change the Tajeer connection, re-enter the Gateway Key, App Key and Authorization.";
-  const REQUIRED_SECRETS_MSG_AR = "لتغيير ربط تاجير، أعد إدخال مفتاح البوابة ومفتاح التطبيق ورمز التفويض.";
-
+  // Documented: "omit or leave secret fields empty to keep stored values" —
+  // empty inputs merge with the stored credentials server-side, so verify
+  // works in read mode and any subset can be changed.
   async function handleVerifyTajeer() {
     setTajeerVerifyStatus("verifying");
     setTajeerVerifyError(null);
-    if (tajeerSecretsPartial) {
-      setTajeerVerifyStatus("error");
-      setTajeerVerifyError(ar ? MISSING_SECRETS_MSG_AR : MISSING_SECRETS_MSG);
-      return false;
-    }
     try {
       const res = await tenantSettingsService.verifyTajeer({
         gatewayUrl: tajeerGatewayUrl || undefined,
@@ -338,15 +326,7 @@ function SettingsContent() {
         tajeerGatewayUrl !== tajeerLoaded.gatewayUrl ||
         tajeerAppId !== tajeerLoaded.appId ||
         Boolean(tajeerAppKey || tajeerAuthorization || tajeerGatewayKey);
-      const extCoverageDirty = extCoverageTajeerId !== extCoverageLoaded;
       if (tajeerDirty) {
-        // The PUT re-verifies changed Tajeer fields server-side — re-entering
-        // all three secrets keeps the new credential set unambiguous.
-        if (tajeerSecretsMissing) {
-          setSystemError(T(REQUIRED_SECRETS_MSG, REQUIRED_SECRETS_MSG_AR, ar));
-          setSystemSaving(false);
-          return;
-        }
         // Abort before the PUT when verification already failed — it would
         // just surface the same upstream error a second time.
         if (!(await handleVerifyTajeer())) {
@@ -370,7 +350,9 @@ function SettingsContent() {
         appId: tajeerDirty && tajeerAppId ? tajeerAppId : undefined,
         appKey: tajeerDirty && tajeerAppKey ? tajeerAppKey : undefined,
         authorization: tajeerDirty && tajeerAuthorization ? tajeerAuthorization : undefined,
-        extendedCoverageTajeerId: extCoverageDirty ? extCoverageTajeerId : undefined,
+        // Documented: "null or omitted clears it — send the current value
+        // from GET to keep it." Always send the current selection.
+        extendedCoverageTajeerId: extCoverageTajeerId,
       });
       // Credentials are now stored server-side — clear the secret inputs so
       // they aren't resent on a later save.

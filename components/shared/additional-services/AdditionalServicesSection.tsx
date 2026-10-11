@@ -35,6 +35,15 @@ const BILLING_UNIT_LABELS: Record<Types.AdditionalServiceBillingUnit, [string, s
   [Types.AdditionalServiceBillingUnit.PerKm]: ["Per km", "كم"],
 };
 
+// Backend-assigned (not in create/update bodies): 1 = basic — billed as a
+// regular add-on line; 2 = supplementary — summed into the Tajeer
+// additional-coverage cost under tenant extendedCoverageTajeerId.
+function serviceTypeBadge(type: number | undefined, ar: boolean) {
+  return type === 1
+    ? { label: ar ? "أساسية" : "Basic", variant: "neutral" as const }
+    : { label: ar ? "تكميلية" : "Supplementary", variant: "info" as const };
+}
+
 function getIcon(iconKey?: string): LucideIcon {
   return ICON_MAP[iconKey || ""] || CircleDot;
 }
@@ -52,17 +61,17 @@ export default function AdditionalServicesSection() {
   const { showToast } = useToast();
 
   const [services, setServices] = useState<Types.AdditionalServiceDto[]>([]);
-  const [snapshot, setSnapshot] = useState<Types.AdditionalServiceDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  // Set while the drawer is in edit mode (prefilled from the row/detail).
+  const [editingService, setEditingService] = useState<Types.AdditionalServiceDto | null>(null);
   const [serviceToDelete, setServiceToDelete] = useState<Types.AdditionalServiceDto | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   // Create form state
   const [newNameAr, setNewNameAr] = useState("");
@@ -85,7 +94,6 @@ export default function AdditionalServicesSection() {
       const items = response?.items ?? response?.data?.items ?? response?.data ?? response ?? [];
       const list = Array.isArray(items) ? items : [];
       setServices(list);
-      setSnapshot(list.map((s: Types.AdditionalServiceDto) => ({ ...s })));
     } catch (err) {
       console.error("Error loading additional services:", err);
       setError(err instanceof Error ? err.message : T("Failed to load add-on services", "فشل تحميل الخدمات الإضافية", ar));
@@ -128,71 +136,59 @@ export default function AdditionalServicesSection() {
     );
   }, [services, search]);
 
-  const changed = useMemo(() => {
-    return services.filter((s) => {
-      const orig = snapshot.find((x) => x.id === s.id);
-      if (!orig) return false;
-      return (
-        s.unitPrice !== orig.unitPrice ||
-        s.isActive !== orig.isActive ||
-        s.includeInVat !== orig.includeInVat ||
-        s.nameEn !== orig.nameEn ||
-        s.nameAr !== orig.nameAr ||
-        s.descriptionEn !== orig.descriptionEn ||
-        s.descriptionAr !== orig.descriptionAr
-      );
-    });
-  }, [services, snapshot]);
-
-  const handlePriceChange = (id: number, value: string) => {
-    const price = Math.max(0, Number(value) || 0);
-    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, unitPrice: price } : s)));
+  // Search rows carry branchCount, not branchIds — the PUT treats empty
+  // branchIds as tenant-wide, so any save must be built on the detail
+  // response to avoid wiping a service's branch scope.
+  const fetchFullService = async (id: number): Promise<Types.AdditionalServiceDto> => {
+    const res = await additionalServiceService.getById(id);
+    return res?.data ?? res;
   };
 
-  const handleActiveChange = (id: number, active: boolean) => {
-    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, isActive: active } : s)));
-  };
-
-  const handleFieldChange = (
-    id: number,
-    field: keyof Types.AdditionalServiceDto,
-    value: any
-  ) => {
-    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
-  };
-
-  const handleSave = async () => {
-    if (changed.length === 0) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
+  // Immediate toggle — no edit mode. Optimistic flip, reverted on failure.
+  const handleToggleActive = async (s: Types.AdditionalServiceDto) => {
+    const next = !(s.isActive ?? true);
+    setTogglingId(s.id);
+    setServices((prev) => prev.map((x) => (x.id === s.id ? { ...x, isActive: next } : x)));
     try {
-      await Promise.all(
-        changed.map((s) =>
-          additionalServiceService.update(s.id, {
-            nameAr: s.nameAr,
-            nameEn: s.nameEn,
-            descriptionAr: s.descriptionAr,
-            descriptionEn: s.descriptionEn,
-            billingUnit: s.billingUnit,
-            unitPrice: s.unitPrice,
-            sortOrder: s.sortOrder,
-            iconKey: s.iconKey,
-            isActive: s.isActive,
-            includeInVat: s.includeInVat,
-            branchIds: s.branchIds,
-          })
-        )
-      );
-      showToast(T("Add-on services updated", "تم تحديث الخدمات الإضافية", ar));
-      await loadServices();
-      setEditing(false);
+      const d = await fetchFullService(s.id);
+      await additionalServiceService.update(s.id, {
+        nameAr: d.nameAr, nameEn: d.nameEn,
+        descriptionAr: d.descriptionAr, descriptionEn: d.descriptionEn,
+        billingUnit: d.billingUnit, unitPrice: d.unitPrice, sortOrder: d.sortOrder,
+        iconKey: d.iconKey, isActive: next, includeInVat: d.includeInVat,
+        branchIds: d.branchIds ?? [],
+      });
     } catch (err) {
-      console.error("Error saving additional services:", err);
-      alert(err instanceof Error ? err.message : T("Failed to save changes", "فشل حفظ التغييرات", ar));
+      setServices((prev) => prev.map((x) => (x.id === s.id ? { ...x, isActive: s.isActive } : x)));
+      showToast(err instanceof Error ? err.message : T("Failed to update service", "فشل تحديث الخدمة", ar), "error");
     } finally {
-      setSaving(false);
+      setTogglingId(null);
+    }
+  };
+
+  const openCreateDrawer = () => {
+    setEditingService(null);
+    resetAddForm();
+    setShowAdd(true);
+  };
+
+  const openEditDrawer = async (s: Types.AdditionalServiceDto) => {
+    try {
+      const d = await fetchFullService(s.id);
+      setEditingService(d);
+      setNewNameAr(d.nameAr ?? "");
+      setNewNameEn(d.nameEn ?? "");
+      setNewDescAr(d.descriptionAr ?? "");
+      setNewDescEn(d.descriptionEn ?? "");
+      setNewBillingUnit(d.billingUnit ?? Types.AdditionalServiceBillingUnit.Once);
+      setNewUnitPrice(String(d.unitPrice ?? 0));
+      setNewSortOrder(String(d.sortOrder ?? 0));
+      setNewIconKey(d.iconKey ?? "");
+      setNewIncludeInVat(d.includeInVat !== false);
+      setSelectedBranchIds(d.branchIds ?? []);
+      setShowAdd(true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : T("Failed to load service", "فشل تحميل الخدمة", ar), "error");
     }
   };
 
@@ -242,32 +238,50 @@ export default function AdditionalServicesSection() {
     setSelectedBranchIds([]);
   };
 
-  const handleAdd = async () => {
+  const handleSubmit = async () => {
     if (ar ? !newNameAr.trim() : !newNameEn.trim()) {
       alert(T("English name is required", "الاسم العربي مطلوب", ar));
       return;
     }
     setCreating(true);
     try {
-      await additionalServiceService.create({
-        nameAr: newNameAr || undefined,
-        nameEn: newNameEn || undefined,
-        descriptionAr: newDescAr || undefined,
-        descriptionEn: newDescEn || undefined,
-        billingUnit: newBillingUnit,
-        unitPrice: Number(newUnitPrice) || 0,
-        sortOrder: Number(newSortOrder) || 0,
-        iconKey: newIconKey || undefined,
-        includeInVat: newIncludeInVat,
-        branchIds: selectedBranchIds.length > 0 ? selectedBranchIds : [],
-      });
-      showToast(T("Add-on service created", "تم إنشاء الخدمة الإضافية", ar));
+      if (editingService) {
+        await additionalServiceService.update(editingService.id, {
+          nameAr: newNameAr || undefined,
+          nameEn: newNameEn || undefined,
+          descriptionAr: newDescAr || undefined,
+          descriptionEn: newDescEn || undefined,
+          billingUnit: newBillingUnit,
+          unitPrice: Number(newUnitPrice) || 0,
+          sortOrder: Number(newSortOrder) || 0,
+          iconKey: newIconKey || undefined,
+          isActive: editingService.isActive,
+          includeInVat: newIncludeInVat,
+          branchIds: selectedBranchIds,
+        });
+        showToast(T("Add-on service updated", "تم تحديث الخدمة الإضافية", ar));
+      } else {
+        await additionalServiceService.create({
+          nameAr: newNameAr || undefined,
+          nameEn: newNameEn || undefined,
+          descriptionAr: newDescAr || undefined,
+          descriptionEn: newDescEn || undefined,
+          billingUnit: newBillingUnit,
+          unitPrice: Number(newUnitPrice) || 0,
+          sortOrder: Number(newSortOrder) || 0,
+          iconKey: newIconKey || undefined,
+          includeInVat: newIncludeInVat,
+          branchIds: selectedBranchIds,
+        });
+        showToast(T("Add-on service created", "تم إنشاء الخدمة الإضافية", ar));
+      }
       resetAddForm();
+      setEditingService(null);
       setShowAdd(false);
       await loadServices();
     } catch (err) {
-      console.error("Error creating additional service:", err);
-      alert(err instanceof Error ? err.message : T("Failed to create service", "فشل إنشاء الخدمة", ar));
+      console.error("Error saving additional service:", err);
+      alert(err instanceof Error ? err.message : T("Failed to save service", "فشل حفظ الخدمة", ar));
     } finally {
       setCreating(false);
     }
@@ -285,31 +299,11 @@ export default function AdditionalServicesSection() {
         <div className="mk-h4 flex-1 text-mk-ink-900">
           {T("Add-on services pricing", "جدول تسعير الخدمات الإضافية", ar)}
         </div>
-        {editing ? (
-          <div className="flex items-center gap-2">
-            <Button variant="outline"  onClick={() => { setServices(snapshot.map(s => ({ ...s }))); setEditing(false); }} disabled={saving}>
-              {T("Cancel", "إلغاء", ar)}
-            </Button>
-            <Button variant="primary"  onClick={handleSave} disabled={saving || changed.length === 0}>
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-              {T("Save", "حفظ", ar)}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Button variant="outline"  onClick={() => setEditing(true)}>
-              <Pencil size={13} />{T("Edit", "تعديل", ar)}
-            </Button>
-            <Button variant="primary"  onClick={() => setShowAdd(true)}>
-              <Plus size={13} />{T("Add service", "إضافة خدمة", ar)}
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="rounded-xl overflow-hidden mk-surface">
-        <div className="px-5 py-3 border-b border-mk-ink-100 bg-mk-ink-50">
-          <div className="max-w-[320px]">
+        <div className="px-5 py-3 border-b border-mk-ink-100 bg-mk-ink-50 flex justify-between items-center gap-3">
+          <div className="flex-1 max-w-[320px]">
             <Input
               variant="search"
               icon={<Search size={14} />}
@@ -325,6 +319,10 @@ export default function AdditionalServicesSection() {
               }
             />
           </div>
+        
+          <Button variant="outline" onClick={openCreateDrawer} className="shrink-0">
+            <Plus size={13} />{T("Add supplementary service", "إضافة خدمة تكميلية", ar)}
+          </Button>
         </div>
 
         <Table>
@@ -332,19 +330,20 @@ export default function AdditionalServicesSection() {
             <tr>
               {[
                 T("Service", "الخدمة", ar),
+                T("Type", "النوع", ar),
                 T("Description", "الوصف", ar),
                 T("Unit", "الوحدة", ar),
                 T("Price", "السعر", ar),
                 T("VAT", "الضريبة", ar),
                 T("Active", "نشط", ar),
-                ...(editing ? [""] : []),
+                "",
               ].map((h, i) => <Th key={i}>{h}</Th>)}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <Td colSpan={editing ? 7 : 6} className="text-center py-14">
+                <Td colSpan={8} className="text-center py-14">
                   <div className="flex flex-col items-center justify-center gap-3 text-mk-ink-400">
                     <Loader2 size={32} className="animate-spin" />
                     <span className="mk-label">{T("Loading add-on services…", "جاري تحميل الخدمات الإضافية…", ar)}</span>
@@ -353,7 +352,7 @@ export default function AdditionalServicesSection() {
               </tr>
             ) : error ? (
               <tr>
-                <Td colSpan={editing ? 7 : 6} className="text-center py-14">
+                <Td colSpan={8} className="text-center py-14">
                   <div className="flex flex-col items-center justify-center gap-3 text-mk-danger">
                     <span className="mk-label">{error}</span>
                     <Button variant="outline"  onClick={loadServices}>{T("Retry", "إعادة المحاولة", ar)}</Button>
@@ -362,7 +361,7 @@ export default function AdditionalServicesSection() {
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <Td colSpan={editing ? 7 : 6} className="text-center py-14">
+                <Td colSpan={8} className="text-center py-14">
                   <span className="mk-label text-mk-ink-400">{T("No add-on services found", "لا توجد خدمات إضافية", ar)}</span>
                 </Td>
               </tr>
@@ -375,51 +374,22 @@ export default function AdditionalServicesSection() {
                     <Td>
                       <div className="flex items-center gap-3">
                         <Icon size={16} className="text-mk-blue-500 shrink-0" />
-                        {editing ? (
-                          <div className="flex flex-col gap-2 min-w-[180px]">
-                            <Input
-                              variant="muted"
-                              
-                              placeholder={T("English name", "الاسم الإنجليزي", ar)}
-                              value={s.nameEn || ""}
-                              onChange={(e) => handleFieldChange(s.id, "nameEn", e.target.value)}
-                            />
-                            <Input
-                              variant="muted"
-                              
-                              dir="rtl"
-                              placeholder={T("Arabic name", "الاسم العربي", ar)}
-                              value={s.nameAr || ""}
-                              onChange={(e) => handleFieldChange(s.id, "nameAr", e.target.value)}
-                            />
-                          </div>
-                        ) : (
-                          <span className="mk-label text-mk-ink-900">{ar ? s.nameAr || s.nameEn : s.nameEn || s.nameAr}</span>
-                        )}
+                        <span className="mk-label text-mk-ink-900">{ar ? s.nameAr || s.nameEn : s.nameEn || s.nameAr}</span>
                       </div>
                     </Td>
+                    <Td>
+                      <Badge
+                        variant={serviceTypeBadge(s.type, ar).variant}
+                        className="normal-case tracking-normal"
+                        title={s.type === 1
+                          ? T("Basic service — billed as a regular add-on line", "خدمة أساسية — تُحتسب كسطر إضافي عادي", ar)
+                          : T("Supplementary — grouped into the Tajeer additional coverage", "تكميلية — تُجمّع ضمن التغطية الإضافية في تاجير", ar)}
+                      >
+                        {serviceTypeBadge(s.type, ar).label}
+                      </Badge>
+                    </Td>
                     <Td className="max-w-[260px]">
-                      {editing ? (
-                        <div className="flex flex-col gap-2">
-                          <Input
-                            variant="muted"
-                            
-                            placeholder={T("English description", "الوصف الإنجليزي", ar)}
-                            value={s.descriptionEn || ""}
-                            onChange={(e) => handleFieldChange(s.id, "descriptionEn", e.target.value)}
-                          />
-                          <Input
-                            variant="muted"
-                            
-                            dir="rtl"
-                            placeholder={T("Arabic description", "الوصف العربي", ar)}
-                            value={s.descriptionAr || ""}
-                            onChange={(e) => handleFieldChange(s.id, "descriptionAr", e.target.value)}
-                          />
-                        </div>
-                      ) : (
-                        <span className="mk-caption text-mk-ink-500 line-clamp-2">{ar ? s.descriptionAr || s.descriptionEn : s.descriptionEn || s.descriptionAr}</span>
-                      )}
+                      <span className="mk-caption text-mk-ink-500 line-clamp-2">{ar ? s.descriptionAr || s.descriptionEn : s.descriptionEn || s.descriptionAr}</span>
                     </Td>
                     <Td>
                       <Badge variant="neutral" className="normal-case tracking-normal">
@@ -427,50 +397,34 @@ export default function AdditionalServicesSection() {
                       </Badge>
                     </Td>
                     <Td>
-                      {editing ? (
-                        <div className="max-w-[140px]">
-                          <Input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            
-                            value={s.unitPrice ?? 0}
-                            onChange={(e) => handlePriceChange(s.id, e.target.value)}
-                          />
-                        </div>
-                      ) : (
-                        <>
-                          <span className="mk-body-sm text-mk-ink-900">{(s.unitPrice ?? 0).toLocaleString()}</span>
-                          <span className="mk-caption ms-1 text-mk-ink-500 uppercase-none normal-case tracking-normal">{T("SAR", "ريال", ar)}</span>
-                        </>
-                      )}
+                      <span className="mk-body-sm text-mk-ink-900">{(s.unitPrice ?? 0).toLocaleString()}</span>
+                      <span className="mk-caption ms-1 text-mk-ink-500 uppercase-none normal-case tracking-normal">{T("SAR", "ريال", ar)}</span>
                     </Td>
                     <Td>
-                      {editing ? (
-                        <Toggle
-                          checked={s.includeInVat ?? true}
-                          onChange={(v) => handleFieldChange(s.id, "includeInVat", v)}
-                        />
-                      ) : (
-                        <Badge variant={s.includeInVat === false ? "neutral" : "success"} className="normal-case tracking-normal">
-                          {s.includeInVat === false ? T("Excluded", "خارج الضريبة", ar) : T("Included", "مشمولة", ar)}
-                        </Badge>
-                      )}
+                      <Badge variant={s.includeInVat === false ? "neutral" : "success"} className="normal-case tracking-normal">
+                        {s.includeInVat === false ? T("Excluded", "خارج الضريبة", ar) : T("Included", "مشمولة", ar)}
+                      </Badge>
                     </Td>
                     <Td>
-                      {editing ? (
+                      {togglingId === s.id ? (
+                        <Loader2 size={16} className="animate-spin text-mk-ink-400" />
+                      ) : (
                         <Toggle
                           checked={s.isActive ?? true}
-                          onChange={(v) => handleActiveChange(s.id, v)}
+                          onChange={() => handleToggleActive(s)}
+                          size="sm"
                         />
-                      ) : (
-                        <Badge variant={s.isActive === false ? "neutral" : "success"}>
-                          {s.isActive === false ? T("Inactive", "غير نشط", ar) : T("Active", "نشط", ar)}
-                        </Badge>
                       )}
                     </Td>
-                    {editing && (
-                      <Td>
+                    <Td>
+                      <div className="flex items-center gap-1">
+                        <IconButton
+                          variant="ghost"
+                          onClick={() => openEditDrawer(s)}
+                          aria-label={T("Edit", "تعديل", ar)}
+                        >
+                          <Pencil size={14} className="text-mk-ink-500" />
+                        </IconButton>
                         {s.isSystem ? (
                           <span
                             title={T("System service — cannot be deleted", "خدمة نظام — لا يمكن الحذف", ar)}
@@ -487,8 +441,8 @@ export default function AdditionalServicesSection() {
                             <Trash2 size={14} className="text-mk-danger" />
                           </IconButton>
                         )}
-                      </Td>
-                    )}
+                      </div>
+                    </Td>
                   </tr>
                 );
               })
@@ -535,12 +489,14 @@ export default function AdditionalServicesSection() {
       </Modal>
 
       {/* ── DRAWER: Add new add-on service ───────────────────────── */}
-      <Drawer open={showAdd} onClose={() => { setShowAdd(false); resetAddForm(); }}>
+      <Drawer open={showAdd} onClose={() => { setShowAdd(false); setEditingService(null); resetAddForm(); }}>
         <div className="flex flex-col justify-between h-full max-w-[480px]">
           <div className="flex-1 min-h-0 overflow-y-auto mk-scrollbar pe-2">
             <DrawerHeader
-              title={T("Add add-on service", "إضافة خدمة إضافية", ar)}
-              onClose={() => { setShowAdd(false); resetAddForm(); }}
+              title={editingService
+                ? T("Edit add-on service", "تعديل الخدمة الإضافية", ar)
+                : T("Add add-on service", "إضافة خدمة إضافية", ar)}
+              onClose={() => { setShowAdd(false); setEditingService(null); resetAddForm(); }}
               className="mb-0 pb-4 border-b border-mk-border"
             />
             <div className="flex flex-col gap-4 mt-5">
@@ -603,45 +559,47 @@ export default function AdditionalServicesSection() {
                   />
                 </>
               )}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="mk-caption text-mk-ink-700">{T("Billing unit", "وحدة الفوترة", ar)}</label>
-                  <Select
-                    value={String(newBillingUnit)}
-                    onChange={(e) => setNewBillingUnit(Number(e.target.value) as Types.AdditionalServiceBillingUnit)}
-                  >
-                    {billingUnitOptions.map((o) => (
-                      <option key={o.value} value={o.value}>{ar ? o.labelAr : o.labelEn}</option>
-                    ))}
-                  </Select>
-                </div>
-                <Input
-                  variant="muted"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  label={<>{T("Unit price", "سعر الوحدة", ar)} <span className="text-mk-danger">*</span></>}
-                  value={newUnitPrice}
-                  onChange={(e) => setNewUnitPrice(e.target.value)}
-                />
+              <div className="flex flex-col gap-2">
+                <label className="mk-caption text-mk-ink-700">
+                  {T("Billing unit", "وحدة الفوترة", ar)}
+                  {editingService?.isSystem && (
+                    <span className="text-mk-ink-400 ms-1">{T("(locked on system services)", "(مقفلة في خدمات النظام)", ar)}</span>
+                  )}
+                </label>
+                <Select
+                  value={String(newBillingUnit)}
+                  onChange={(e) => setNewBillingUnit(Number(e.target.value) as Types.AdditionalServiceBillingUnit)}
+                  disabled={editingService?.isSystem}
+                >
+                  {billingUnitOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{ar ? o.labelAr : o.labelEn}</option>
+                  ))}
+                </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  variant="muted"
-                  type="number"
-                  min={0}
-                  label={T("Sort order", "ترتيب العرض", ar)}
-                  value={newSortOrder}
-                  onChange={(e) => setNewSortOrder(e.target.value)}
-                />
-                <Input
-                  variant="muted"
-                  label={T("Icon key", "مفتاح الأيقونة", ar)}
-                  placeholder="e.g. insurance, child, gps"
-                  value={newIconKey}
-                  onChange={(e) => setNewIconKey(e.target.value)}
-                />
-              </div>
+              <Input
+                variant="muted"
+                type="number"
+                min={0}
+                step="0.01"
+                label={<>{T("Unit price", "سعر الوحدة", ar)} <span className="text-mk-danger">*</span></>}
+                value={newUnitPrice}
+                onChange={(e) => setNewUnitPrice(e.target.value)}
+              />
+              <Input
+                variant="muted"
+                type="number"
+                min={0}
+                label={T("Sort order", "ترتيب العرض", ar)}
+                value={newSortOrder}
+                onChange={(e) => setNewSortOrder(e.target.value)}
+              />
+              <Input
+                variant="muted"
+                label={T("Icon key", "مفتاح الأيقونة", ar)}
+                placeholder="e.g. insurance, child, gps"
+                value={newIconKey}
+                onChange={(e) => setNewIconKey(e.target.value)}
+              />
 
               <Checkbox
                 label={T("Include in VAT (15%)", "مشمولة في ضريبة القيمة المضافة (١٥٪)", ar)}
@@ -660,7 +618,7 @@ export default function AdditionalServicesSection() {
                     {T("Offered at branches", "متوفرة في الفروع", ar)}
                     <span className="text-mk-ink-400 ms-1">{T("(empty = tenant-wide)", "(فارغ = جميع الفروع)", ar)}</span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto mk-scrollbar p-3 rounded-lg border border-mk-ink-100 bg-mk-ink-50">
+                  <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto mk-scrollbar p-3 rounded-lg border border-mk-ink-100 bg-mk-ink-50">
                     {branches.map((b) => (
                       <Checkbox
                         key={b.id}
@@ -679,17 +637,17 @@ export default function AdditionalServicesSection() {
             </div>
           </div>
           <DrawerFooter className="mt-4 pt-4 border-t border-mk-border justify-stretch">
-            <Button variant="outline" onClick={() => { setShowAdd(false); resetAddForm(); }}>
+            <Button variant="outline" onClick={() => { setShowAdd(false); setEditingService(null); resetAddForm(); }}>
               {T("Cancel", "إلغاء", ar)}
             </Button>
             <Button
               variant="primary"
               disabled={(ar ? !newNameAr.trim() : !newNameEn.trim()) || creating}
-              onClick={handleAdd}
+              onClick={handleSubmit}
               className="flex-1"
             >
-              {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              {T("Add service", "إضافة خدمة", ar)}
+              {creating ? <Loader2 size={16} className="animate-spin" /> : (editingService ? <Check size={16} /> : <Plus size={16} />)}
+              {editingService ? T("Save changes", "حفظ التعديلات", ar) : T("Add service", "إضافة خدمة", ar)}
             </Button>
           </DrawerFooter>
         </div>

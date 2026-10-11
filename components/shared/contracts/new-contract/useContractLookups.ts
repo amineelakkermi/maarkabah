@@ -3,7 +3,6 @@ import {
   additionalServiceService,
   branchService,
   cancellationPolicyService,
-  extendedCoverageService,
   pricingService,
   rentPolicyService,
 } from "@/lib/api-services";
@@ -23,9 +22,6 @@ export function isTajeerSyncedPolicy(p: { tajeerId?: number | null; source?: num
   return p.tajeerId != null || Number(p.source) === 1;
 }
 export type ContractCancellationPolicy = LookupItem & CancellationPolicyDto;
-// Extended coverage package — the backend registers a fixed `cost` (managed in
-// Pricing settings) that it snapshots onto the contract when selected.
-export type ContractExtendedCoverage = LookupItem & { cost: number };
 // Named discount rate from /pricing/discount-rates/picker — only `percent`
 // goes onto the contract (discountPercent); no rate id is persisted.
 export type ContractDiscountRate = { id: number; nameAr: string; nameEn: string; percent: number };
@@ -54,7 +50,6 @@ export function useContractLookups(
   const [branches, setBranches] = useState<LookupItem[]>([]);
   const [rentPolicies, setRentPolicies] = useState<ContractRentPolicy[]>([]);
   const [cancellationPolicies, setCancellationPolicies] = useState<ContractCancellationPolicy[]>([]);
-  const [extendedCoverage, setExtendedCoverage] = useState<ContractExtendedCoverage[]>([]);
   const [additionalServices, setAdditionalServices] = useState<ContractAdditionalService[]>([]);
   const [discountRates, setDiscountRates] = useState<ContractDiscountRate[]>([]);
 
@@ -63,9 +58,8 @@ export function useContractLookups(
       branchService.search({ search: "", isActive: true, pageNumber: 1, pageSize: 200 }),
       rentPolicyService.picker(),
       cancellationPolicyService.picker(),
-      extendedCoverageService.picker(),
       pricingService.pickDiscountRates(),
-    ]).then(([branchResult, rentPolicyResult, cancellationPolicyResult, coverageResult, discountResult]) => {
+    ]).then(([branchResult, rentPolicyResult, cancellationPolicyResult, discountResult]) => {
       const loadedBranches = branchResult.status === "fulfilled"
         ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string }>(branchResult.value)
           .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))
@@ -81,10 +75,6 @@ export function useContractLookups(
         ? itemsFrom<CancellationPolicyDto>(cancellationPolicyResult.value)
           .map((item) => ({ ...item, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "" }))
         : [];
-      const loadedCoverage = coverageResult.status === "fulfilled"
-        ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string; cost?: number }>(coverageResult.value)
-          .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "", cost: Number(item.cost ?? 0) }))
-        : [];
       const loadedDiscountRates = discountResult.status === "fulfilled"
         ? itemsFrom<{ id: number; nameAr?: string; nameEn?: string; percent?: number }>(discountResult.value)
           .map((item) => ({ id: item.id, nameAr: item.nameAr ?? "", nameEn: item.nameEn ?? "", percent: Number(item.percent ?? 0) }))
@@ -96,8 +86,6 @@ export function useContractLookups(
       else console.error("Error loading rental policies:", rentPolicyResult.reason);
       if (cancellationPolicyResult.status === "fulfilled") setCancellationPolicies(loadedCancellationPolicies);
       else console.error("Error loading cancellation policies:", cancellationPolicyResult.reason);
-      if (coverageResult.status === "fulfilled") setExtendedCoverage(loadedCoverage);
-      else console.error("Error loading extended coverages:", coverageResult.reason);
       if (discountResult.status === "fulfilled") setDiscountRates(loadedDiscountRates);
       else console.error("Error loading discount rates:", discountResult.reason);
 
@@ -127,5 +115,5 @@ export function useContractLookups(
     });
   }, [branchId]);
 
-  return { branches, rentPolicies, cancellationPolicies, extendedCoverage, additionalServices, discountRates };
+  return { branches, rentPolicies, cancellationPolicies, additionalServices, discountRates };
 }

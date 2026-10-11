@@ -135,7 +135,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   const [breakdownReportPolicy, setBreakdownReportPolicy] = useState("call_office");
 
   // ── Tajeer: pre-required data ──────────────────────────────────
-  const { branches, rentPolicies, cancellationPolicies, extendedCoverage, additionalServices, discountRates } = useContractLookups(workingBranchId, (b, p, c) => {
+  const { branches, rentPolicies, cancellationPolicies, additionalServices, discountRates } = useContractLookups(workingBranchId, (b, p, c) => {
     if (b.length > 0) {
       setWorkingBranchId(b[0].id);
       setReceiveBranchId(b[0].id);
@@ -239,8 +239,6 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   // Selected named discount rate — its percent is copied to discountPercent
   // (the contract only persists discountPercent, never the rate id).
   const [discountRateId, setDiscountRateId] = useState<number | null>(null);
-  const [extendedCoverageId, setExtendedCoverageId] = useState<number | undefined>();
-  const [additionalCoverageCost, setAdditionalCoverageCost] = useState<number>(0);
   const [driverFarePerDay, setDriverFarePerDay] = useState<number>(0);
   const [driverFarePerHour, setDriverFarePerHour] = useState<number>(0);
   const [vehicleTransferCost, setVehicleTransferCost] = useState<number>(0);
@@ -306,11 +304,6 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
       if (selectedCar.insuranceAmount) {
         setInsuranceAmount(selectedCar.insuranceAmount);
       }
-
-      setAddons((s) => ({
-        ...s,
-        unlimited_km: isUnlimited ? true : s.unlimited_km,
-      }));
 
       // Same sketch as the vehicle detail page — the vehicle's registered
       // damagePoints become the pickup-condition sketch shown in the drawer
@@ -441,7 +434,6 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         deliveryKm,
         pricing,
         internationalAuthorizationCost,
-        extendedCoverageId,
         payMethod: payMethod as "cash" | "pos",
         payType,
         odometerReading: rentStatus.odometerReading ?? 0,
@@ -546,7 +538,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
     hasExtraDriver: Boolean(addons.driver && selectedExtraDriver),
     driverFarePerDay, driverFarePerHour,
     receiveBranchId, returnBranchId, vehicleTransferCost,
-    internationalAuthorizationCost, extendedCoverageId, additionalCoverageCost, fullFuelCost,
+    internationalAuthorizationCost, fullFuelCost,
     discountType, discountPercent, discountFlatAmount,
     advanceAmount: advanceCost,
   });
@@ -927,14 +919,6 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             unlimitedKm={unlimitedKm}
             receiveBranchId={receiveBranchId}
             returnBranchId={returnBranchId}
-            extendedCoverage={extendedCoverage}
-            extendedCoverageId={extendedCoverageId}
-            onExtendedCoverageChange={(id) => {
-              setExtendedCoverageId(id ?? undefined);
-              // Backend snapshots its own registered cost — mirror it in the
-              // preview so the computed total matches the contract total.
-              setAdditionalCoverageCost(extendedCoverage.find((c) => c.id === id)?.cost ?? 0);
-            }}
             rentDayCost={rentDayCost} setRentDayCost={setRentDayCost}
             rentHourCost={rentHourCost} setRentHourCost={setRentHourCost}
             extraKmCost={extraKmCost} setExtraKmCost={setExtraKmCost}

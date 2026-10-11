@@ -540,9 +540,16 @@ export interface AdditionalServiceDto {
   code?: string;
   nameAr?: string;
   nameEn?: string;
+  /** Present on search/picker rows — display label (falls back to nameAr/nameEn). */
+  label?: string;
   descriptionAr?: string;
   descriptionEn?: string;
   billingUnit?: AdditionalServiceBillingUnit;
+  /** 1 = Basic (billed line item) / 2 = Non-basic — non-basic services are
+   *  summed into the contract's additional-coverage cost and their names
+   *  concatenated for Tajeer (sent under tenant extendedCoverageTajeerId,
+   *  or the first active extended-coverage catalog row when unset). */
+  type?: number;
   unitPrice?: number;
   sortOrder?: number;
   iconKey?: string;

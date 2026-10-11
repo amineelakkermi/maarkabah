@@ -37,8 +37,6 @@ export type PricingInput = {
   returnBranchId: number;
   vehicleTransferCost: number;
   internationalAuthorizationCost: number;
-  extendedCoverageId: number | undefined;
-  additionalCoverageCost: number;
   fullFuelCost: number;
   discountType: "percent" | "amount";
   discountPercent: number;
@@ -78,13 +76,10 @@ export function computePricing(p: PricingInput) {
   // (only relevant when the authorization is actually international), so its
   // real registered default is "no fee" until the employee enters one.
   const authorizationFare = p.internationalAuthorizationCost;
-  // Backend snapshots the coverage's registered Cost onto the contract — the
-  // picker value is mirrored into additionalCoverageCost on selection.
-  const coverageFare = p.extendedCoverageId ? p.additionalCoverageCost : 0;
   // fullFuelCost is sent in the payload as the vehicle's fuel rate, but the
   // backend doesn't bill it in the contract total — adding it here makes
   // paidAmount exceed the backend total (Contract.PaidExceedsTotal).
-  const grossSubtotal = base + addonTotal + extraDriverFare + transferFare + authorizationFare + coverageFare;
+  const grossSubtotal = base + addonTotal + extraDriverFare + transferFare + authorizationFare;
   const discountAmount = p.discountType === "percent"
     ? Math.round(grossSubtotal * (p.discountPercent / 100))
     : Math.min(p.discountFlatAmount, grossSubtotal);
@@ -104,7 +99,7 @@ export function computePricing(p: PricingInput) {
   const remaining = total - advanceAmount;
 
   return {
-    base, addonPrices, addonTotal, extraDriverFare, transferFare, authorizationFare, coverageFare,
+    base, addonPrices, addonTotal, extraDriverFare, transferFare, authorizationFare,
     grossSubtotal, discountAmount, subtotal, vat, total, advanceAmount, remaining,
   };
 }

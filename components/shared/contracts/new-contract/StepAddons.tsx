@@ -64,8 +64,46 @@ export function StepAddons({
       perDay,
     };
   });
-  const unlimitedKmService = resolvedAdditionalServices.find((service) => service.k === "unlimited_km");
-  const otherServiceKeys = new Set(["fuel", "return_agent"]);
+  // Backend `type`: 1 = basic, 2 = supplementary (same split as the pricing
+  // admin badge). Rows without a type fall back to the legacy key list.
+  const legacySupplementaryKeys = new Set(["fuel", "return_agent"]);
+  const isBasic = (service: { type?: number; k: string }) =>
+    service.type != null ? service.type === 1 : !legacySupplementaryKeys.has(service.k);
+  // The extra-driver choice lives on step 1 (drivers card) — the picker needs
+  // the driver list anyway, so no duplicate card here.
+  const pickable = resolvedAdditionalServices.filter((service) => service.k !== "driver");
+  const serviceGroups = [
+    { key: "basic", labelEn: "Basic services", labelAr: "الخدمات الأساسية", items: pickable.filter(isBasic) },
+    { key: "supplementary", labelEn: "Supplementary services", labelAr: "الخدمات التكميلية", items: pickable.filter((service) => !isBasic(service)) },
+  ].filter((group) => group.items.length > 0);
+
+  function renderService(a: (typeof resolvedAdditionalServices)[number]) {
+    const on = !!addons[a.k];
+    const Icon = a.k === "unlimited_km" ? Gauge : a.Icon;
+    return (
+      <button
+        key={a.k}
+        type="button"
+        onClick={() => setAddons((s) => ({ ...s, [a.k]: !s[a.k] }))}
+        className={`mk-option ${on ? "mk-option--on" : ""} flex items-center gap-3 p-3 rounded-lg text-start w-full cursor-pointer border-0`}
+      >
+        <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
+          <Icon size={16} className="text-mk-blue-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="mk-label text-mk-ink-900">{ar ? a.nameAr : a.nameEn}</div>
+          <div className="mk-caption text-mk-ink-400">{ar ? a.descAr : a.descEn}</div>
+        </div>
+        <div className="text-end shrink-0">
+          <div className={`mk-label ${on ? "text-mk-blue-500" : "text-mk-ink-900"}`}>{a.price} {T("SAR", "ريال", ar)}</div>
+          <div className="mk-overline text-mk-ink-400">{ar ? a.unitAr : a.unit}</div>
+        </div>
+        <div className={`w-5 h-5 rounded-xs flex items-center justify-center shrink-0 ${on ? "bg-mk-blue-500 border-0" : "bg-white border border-mk-ink-200"}`}>
+          {on && <Check size={11} className="text-white" />}
+        </div>
+      </button>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-4">
@@ -248,104 +286,14 @@ export function StepAddons({
           </div>
           <div className="flex flex-col gap-2">
 
-            {/* ── Essential services ── */}
-            <div className="mk-overline uppercase mb-1 text-mk-ink-400 mk-tracking-wide">
-              {T("Essential services", "خدمات أساسية", ar)}
-            </div>
-
-            {/* The extra-driver choice lives on step 1 (drivers card) — the
-                picker needs the driver list anyway, so no duplicate card here. */}
-
-            {resolvedAdditionalServices.filter((a) => a.k !== "unlimited_km" && a.k !== "driver" && !otherServiceKeys.has(a.k)).map((a) => {
-              const on = addons[a.k as keyof typeof addons];
-              return (
-                <div key={a.k} className="flex flex-col gap-2 w-full">
-                  <button
-                    type="button"
-                    onClick={() => setAddons((s) => ({ ...s, [a.k]: !s[a.k as keyof typeof s] }))}
-                    className={`mk-option ${on ? "mk-option--on" : ""} flex items-center gap-3 p-3 rounded-lg text-start w-full cursor-pointer border-0`}
-                  >
-                    <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
-                      <a.Icon size={16} className="text-mk-blue-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="mk-label text-mk-ink-900">{ar ? a.nameAr : a.nameEn}</div>
-                      <div className="mk-caption text-mk-ink-400">{ar ? a.descAr : a.descEn}</div>
-                    </div>
-                    <div className="text-end shrink-0">
-                      <div className={`mk-label ${on ? "text-mk-blue-500" : "text-mk-ink-900"}`}>{a.price} {T("SAR", "ريال", ar)}</div>
-                      <div className="mk-overline text-mk-ink-400">{ar ? a.unitAr : a.unit}</div>
-                    </div>
-                    <div className={`w-5 h-5 rounded-xs flex items-center justify-center shrink-0 ${on ? "bg-mk-blue-500 border-0" : "bg-white border border-mk-ink-200"}`}>
-                      {on && <Check size={11} className="text-white" />}
-                    </div>
-                  </button>
+            {serviceGroups.map((group, i) => (
+              <div key={group.key} className="flex flex-col gap-2">
+                <div className={`mk-overline uppercase mb-1 text-mk-ink-400 mk-tracking-wide ${i > 0 ? "mt-3" : ""}`}>
+                  {T(group.labelEn, group.labelAr, ar)}
                 </div>
-              );
-            })}
-
-            {/* Unlimited km toggle */}
-            {(() => {
-              const a = unlimitedKmService;
-              if (!a) return null;
-              const on = addons.unlimited_km;
-              return (
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setAddons((s) => ({ ...s, unlimited_km: !s.unlimited_km }))}
-                    className={`mk-option ${on ? "mk-option--on" : ""} flex items-center gap-3 p-3 rounded-lg text-start w-full border-0`}
-                  >
-                    <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
-                      <Gauge size={16} className="text-mk-blue-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="mk-label text-mk-ink-900">{ar ? a.nameAr : a.nameEn}</div>
-                      <div className="mk-caption text-mk-ink-400">{ar ? a.descAr : a.descEn}</div>
-                    </div>
-                    <div className="text-end shrink-0">
-                      <div className={`mk-label ${on ? "text-mk-blue-500" : "text-mk-ink-900"}`}>{a.price} {T("SAR", "ريال", ar)}</div>
-                      <div className="mk-overline text-mk-ink-400">{ar ? a.unitAr : a.unit}</div>
-                    </div>
-                    <div className={`w-5 h-5 rounded-xs flex items-center justify-center shrink-0 ${on ? "bg-mk-blue-500 border-0" : "bg-white border border-mk-ink-200"}`}>
-                      {on && <Check size={11} className="text-white" />}
-                    </div>
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* ── Other services ── */}
-            <div className="mk-overline uppercase mt-3 mb-1 text-mk-ink-400 mk-tracking-wide">
-              {T("Other services", "خدمات أخرى", ar)}
-            </div>
-            {resolvedAdditionalServices.filter((a) => otherServiceKeys.has(a.k)).map((a) => {
-              const on = addons[a.k as keyof typeof addons];
-              return (
-                <div key={a.k} className="flex flex-col gap-2 w-full">
-                  <button
-                    type="button"
-                    onClick={() => setAddons((s) => ({ ...s, [a.k]: !s[a.k as keyof typeof s] }))}
-                    className={`mk-option ${on ? "mk-option--on" : ""} flex items-center gap-3 p-3 rounded-lg text-start w-full cursor-pointer border-0`}
-                  >
-                    <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-mk-blue-50">
-                      <a.Icon size={16} className="text-mk-blue-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="mk-label text-mk-ink-900">{ar ? a.nameAr : a.nameEn}</div>
-                      <div className="mk-caption text-mk-ink-400">{ar ? a.descAr : a.descEn}</div>
-                    </div>
-                    <div className="text-end shrink-0">
-                      <div className={`mk-label ${on ? "text-mk-blue-500" : "text-mk-ink-900"}`}>{a.price} {T("SAR", "ريال", ar)}</div>
-                      <div className="mk-overline text-mk-ink-400">{ar ? a.unitAr : a.unit}</div>
-                    </div>
-                    <div className={`w-5 h-5 rounded-xs flex items-center justify-center shrink-0 ${on ? "bg-mk-blue-500 border-0" : "bg-white border border-mk-ink-200"}`}>
-                      {on && <Check size={11} className="text-white" />}
-                    </div>
-                  </button>
-                </div>
-              );
-            })}
+                {group.items.map(renderService)}
+              </div>
+            ))}
 
           </div>
         </div>

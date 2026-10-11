@@ -79,7 +79,7 @@ export function StepIssue({
   contractId,
 }: StepIssueProps) {
   const router = useRouter();
-  const { base, addonPrices, extraDriverFare, transferFare, authorizationFare, coverageFare, discountAmount, subtotal, vat, total, advanceAmount, remaining } = pricing;
+  const { base, addonPrices, extraDriverFare, transferFare, authorizationFare, discountAmount, subtotal, vat, total, advanceAmount, remaining } = pricing;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
@@ -500,12 +500,6 @@ export function StepIssue({
               <div className="flex justify-between text-mk-ink-600">
                 <span>+ {T("International authorization", "التفويض الدولي", ar)}</span>
                 <span>{authorizationFare.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-              </div>
-            )}
-            {coverageFare > 0 && (
-              <div className="flex justify-between text-mk-ink-600">
-                <span>+ {T("Additional coverage", "التغطية الإضافية", ar)}</span>
-                <span>{coverageFare.toLocaleString()} {T("SAR", "ريال", ar)}</span>
               </div>
             )}
             {fullFuelCost > 0 && (

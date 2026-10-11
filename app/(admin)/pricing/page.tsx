@@ -2,9 +2,8 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import { Banknote, CalendarDays, Check, Clock, Pencil, Plus, Trash2, Scale, type LucideIcon } from "lucide-react";
-import { vehicleService } from "@/lib/api-services";
 import { useAdmin } from "@/contexts/AdminContext";
-import { Button, Badge, Table, Th, Td, Tabs, Input, Modal, IconButton } from "@/components/ui";
+import { Button, Tabs, Input, Modal, IconButton } from "@/components/ui";
 import AdditionalServicesSection from "@/components/shared/additional-services/AdditionalServicesSection";
 import ExtendedCoveragesSection from "@/components/shared/extended-coverages/ExtendedCoveragesSection";
 import RentPoliciesSection from "@/components/shared/rent-policies/RentPoliciesSection";
@@ -50,7 +49,7 @@ function PolicyRow({ icon, tone, children }: { icon: LucideIcon; tone?: keyof ty
   );
 }
 
-type PricingTab = "vehicles" | "policies" | "discounts" | "addons";
+type PricingTab = "policies" | "discounts" | "addons";
 type DiscountItem = { id: number; nameEn: string; nameAr: string; pct: number; sortOrder: number; isActive: boolean };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -223,7 +222,6 @@ function DisputePolicyCard({ ar }: { ar: boolean }) {
 export default function PricingPage() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
-  const [pricingCars, setPricingCars] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<PricingTab>("policies");
   const [discounts, setDiscounts] = useState<DiscountItem[]>([]);
   const [discountsLoading, setDiscountsLoading] = useState(true);
@@ -245,19 +243,9 @@ export default function PricingPage() {
       .finally(() => setDiscountsLoading(false));
   };
 
-  const loadVehicles = () => {
-    vehicleService.search({ pageNumber: 1, pageSize: 6 })
-      .then((res) => {
-        const items: any[] = res?.items ?? res?.data?.items ?? res?.data ?? [];
-        setPricingCars(Array.isArray(items) ? items : []);
-      })
-      .catch(() => setPricingCars([]));
-  };
-
   useEffect(() => {
     const t = setTimeout(loadDiscounts, 0);
-    const t2 = setTimeout(loadVehicles, 0);
-    return () => { clearTimeout(t); clearTimeout(t2); };
+    return () => clearTimeout(t);
   }, []);
 
   function openAddDiscount() {
@@ -315,61 +303,37 @@ export default function PricingPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Tabs
-        variant="default"
-        rounded="full"
-        className="w-fit mk-view-toggle--reversed"
-        value={activeTab}
-        onChange={(value) => setActiveTab(value as PricingTab)}
-        items={[
-          { value: "policies", label: T("Policies", "السياسات", ar) },
-          { value: "discounts", label: T("Discounts", "الخصومات", ar), count: discounts.length },
-          { value: "addons", label: T("Add-on services", "الخدمات الإضافية", ar) },
-          { value: "vehicles", label: T("Vehicle pricing", "أسعار المركبات", ar), count: pricingCars.length },
-        ]}
-      />
-
-      {activeTab === "vehicles" && (
-        <SectionCard title={T("Per-car pricing", "الأسعار لكل مركبة", ar)} action={<Button variant="outline" size="sm">{T("Bulk edit", "تعديل جماعي", ar)}</Button>}>
-          {/* Per-car pricing table */}
-          <div className="rounded-xl overflow-hidden border border-mk-border">
-            <Table>
-              <thead>
-                <tr>
-                  {[T("Car", "المركبة", ar), T("Daily rate", "السعر اليومي", ar), T("KM cap", "حد الكيلومترات", ar), T("Overage", "التجاوز", ar), T("Deposit", "التأمين", ar)].map((heading) => <Th key={heading}>{heading}</Th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {pricingCars.map((car) => (
-                  <tr key={car.id} className="cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50">
-                    <Td>
-                      <div className="mk-label text-mk-ink-900">{car.makeName || car.make} {car.modelName || car.model}</div>
-                      <div className="font-mono mk-overline mt-1 text-mk-ink-500">{car.plateNumber || car.plate}</div>
-                    </Td>
-                    <Td><span className="mk-body-sm text-mk-ink-900">{car.dailyRate || 0}</span><span className="mk-caption ms-1 text-mk-ink-500 normal-case tracking-normal">{T("SAR", "ريال", ar)}</span></Td>
-                    <Td>{car.dailyKilometerLimit == null ? <Badge variant="neutral" className="normal-case tracking-normal">{T("Unlimited", "غير محدود", ar)}</Badge> : <span className="mk-label text-mk-ink-700">{car.dailyKilometerLimit} {T("km", "كم", ar)}</span>}</Td>
-                    <Td className="mk-label text-mk-ink-700">{car.extraKilometerRate ? `${car.extraKilometerRate} SAR/km` : T("2 SAR/km", "٢ ريال/كم", ar)}</Td>
-                    <Td className="mk-label text-mk-ink-700">{car.enduranceAmount ? `${car.enduranceAmount} SAR` : T("1,500 SAR", "١٬٥٠٠ ريال", ar)}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        </SectionCard>
-      )}
+      <div className="overflow-x-auto mk-scrollbar-none">
+        <Tabs
+          variant="default"
+          rounded="full"
+          className="w-max mk-view-toggle--reversed flex-nowrap! [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+          value={activeTab}
+          onChange={(value) => setActiveTab(value as PricingTab)}
+          items={[
+            { value: "policies", label: T("Policies", "السياسات", ar) },
+            { value: "discounts", label: T("Discounts", "الخصومات", ar), count: discounts.length },
+            { value: "addons", label: T("Add-on services", "الخدمات الإضافية", ar) },
+          ]}
+        />
+      </div>
 
       {activeTab === "policies" && (
         <div className="flex flex-col gap-4">
           <RentPoliciesSection />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          {/* Cancellation policies — live catalog (POST /cancellation-policies) */}
-          <CancellationPoliciesSection />
+            <div className="flex flex-col gap-4 min-w-0">
+              {/* Cancellation policies — live catalog (POST /cancellation-policies) */}
+              <CancellationPoliciesSection />
 
-          {/* Late return rules — live settings (GET/PUT /pricing/late-return-penalty) */}
-          <LateReturnPenaltyCard ar={ar} />
+              {/* Dispute policy — live settings (GET/PUT /pricing/dispute-policy) */}
+              <DisputePolicyCard ar={ar} />
+            </div>
 
-          {/* Dispute policy — live settings (GET/PUT /pricing/dispute-policy) */}
-          <DisputePolicyCard ar={ar} />
+            {/* Late return rules — live settings (GET/PUT /pricing/late-return-penalty) */}
+            <div className="min-w-0">
+              <LateReturnPenaltyCard ar={ar} />
+            </div>
           </div>
         </div>
       )}

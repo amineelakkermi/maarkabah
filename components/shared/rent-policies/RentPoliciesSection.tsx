@@ -195,19 +195,21 @@ export default function RentPoliciesSection() {
 
   return (
     <div className="rounded-xl overflow-hidden mk-surface">
-      <div className="flex flex-wrap items-center gap-3 p-5">
-        <div className="flex-1 mk-h4 text-mk-ink-900">{T("Rent policies", "سياسات التأجير", ar)}</div>
-        <Button variant="outline" size="sm" onClick={syncPolicies} disabled={syncing}>
-          <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-          {T("Sync Tajeer", "مزامنة تاجير", ar)}
-        </Button>
-        <Button variant="outline" size="sm" onClick={openAdd}>
-          <Plus size={14} />
-          {T("Create policy", "إنشاء سياسة", ar)}
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-5">
+        <div className="flex-1 min-w-0 mk-h4 text-mk-ink-900">{T("Rent policies", "سياسات التأجير", ar)}</div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-none whitespace-nowrap" onClick={syncPolicies} disabled={syncing}>
+            <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+            {T("Sync Tajeer", "مزامنة تاجير", ar)}
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-none whitespace-nowrap" onClick={openAdd}>
+            <Plus size={14} />
+            {T("Create policy", "إنشاء سياسة", ar)}
+          </Button>
+        </div>
       </div>
 
-      <div className="px-5 pb-5">
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-10 text-mk-ink-500"><Loader2 size={20} className="animate-spin" />{T("Loading policies...", "جاري تحميل السياسات...", ar)}</div>
         ) : policies.length === 0 ? (
@@ -219,15 +221,15 @@ export default function RentPoliciesSection() {
               const open = expanded === policy.id;
               return (
                 <div key={policy.id} className="rounded-lg bg-mk-ink-50 border border-mk-border overflow-hidden">
-                  <div role="button" tabIndex={0} className="flex items-center gap-3 p-3 cursor-pointer" onClick={() => setExpanded(open ? null : policy.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setExpanded(open ? null : policy.id); }}>
-                    <ChevronDown size={14} className={`text-mk-ink-400 transition-transform ${open ? "rotate-180" : ""}`} />
+                  <div role="button" tabIndex={0} className="flex items-start sm:items-center gap-2 sm:gap-3 p-3 cursor-pointer" onClick={() => setExpanded(open ? null : policy.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setExpanded(open ? null : policy.id); }}>
+                    <ChevronDown size={14} className={`shrink-0 mt-1 sm:mt-0 text-mk-ink-400 transition-transform ${open ? "rotate-180" : ""}`} />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2"><span className="mk-label text-mk-ink-900">{ar ? policy.nameAr || policy.nameEn : policy.nameEn || policy.nameAr}</span><Badge variant={isTajeer ? "info" : "violet"} size="sm">{isTajeer ? T("Tajeer", "تاجير", ar) : T("Custom", "مخصصة", ar)}</Badge>{policy.isActive === false && <Badge variant="neutral" size="sm">{T("Inactive", "غير مفعلة", ar)}</Badge>}</div>
-                      {policy.code && <div className="mk-overline text-mk-ink-400 mt-1">{policy.code}</div>}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1"><span className="mk-label text-mk-ink-900 break-words min-w-0">{ar ? policy.nameAr || policy.nameEn : policy.nameEn || policy.nameAr}</span><Badge variant={isTajeer ? "info" : "violet"} size="sm">{isTajeer ? T("Tajeer", "تاجير", ar) : T("Custom", "مخصصة", ar)}</Badge>{policy.isActive === false && <Badge variant="neutral" size="sm">{T("Inactive", "غير مفعلة", ar)}</Badge>}</div>
+                      {policy.code && <div className="mk-overline text-mk-ink-400 mt-1 break-all">{policy.code}</div>}
                     </div>
-                    {!isTajeer && <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}><IconButton size="sm" variant="ghost" aria-label={T("Edit", "تعديل", ar)} onClick={() => openEdit(policy)}><Pencil size={13} /></IconButton><IconButton size="sm" variant="ghost" className="text-mk-danger" aria-label={T("Delete", "حذف", ar)} onClick={() => deletePolicy(policy)}><Trash2 size={13} /></IconButton></div>}
+                    {!isTajeer && <div className="flex items-center gap-1 shrink-0" onClick={(event) => event.stopPropagation()}><IconButton size="sm" variant="ghost" aria-label={T("Edit", "تعديل", ar)} onClick={() => openEdit(policy)}><Pencil size={13} /></IconButton><IconButton size="sm" variant="ghost" className="text-mk-danger" aria-label={T("Delete", "حذف", ar)} onClick={() => deletePolicy(policy)}><Trash2 size={13} /></IconButton></div>}
                   </div>
-                  {open && <div className="px-3 pb-3"><p className="mk-caption text-mk-ink-500 mb-3">{ar ? policy.descriptionAr || policy.descriptionEn : policy.descriptionEn || policy.descriptionAr}</p><div className="flex flex-wrap gap-2">{POLICY_FIELDS.map((field) => <span key={field.key} className="mk-overline px-2.5 py-1 rounded-full bg-white text-mk-ink-600 normal-case tracking-normal">{T(field.labelEn, field.labelAr, ar)}: {optionLabel(field, policy[field.key])}</span>)}</div></div>}
+                  {open && <div className="px-3 pb-3"><p className="mk-caption text-mk-ink-500 mb-3 break-words">{ar ? policy.descriptionAr || policy.descriptionEn : policy.descriptionEn || policy.descriptionAr}</p><div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2">{POLICY_FIELDS.map((field) => <span key={field.key} className="mk-overline px-2.5 py-1.5 sm:py-1 rounded-lg sm:rounded-full bg-white text-mk-ink-600 normal-case tracking-normal break-words max-w-full">{T(field.labelEn, field.labelAr, ar)}: {optionLabel(field, policy[field.key])}</span>)}</div></div>}
                 </div>
               );
             })}

@@ -249,7 +249,6 @@ export type BuildCreateContractRequestInput = {
     extraDriverFare: number;
   };
   internationalAuthorizationCost: number;
-  extendedCoverageId: number | undefined;
   payMethod: "cash" | "pos";
   payType: "full" | "advance";
   odometerReading: number;
@@ -325,7 +324,8 @@ export function buildCreateContractRequest(
     paymentMethodId,
     otherPaymentMethodCode: null,
     internationalAuthorizationCost: input.internationalAuthorizationCost,
-    extendedCoverageId: input.extendedCoverageId ?? null,
+    // extendedCoverageId omitted — the backend ignores it; coverage comes
+    // from non-basic additional services + tenant extendedCoverageTajeerId.
     depositAmount: 0,
     odometerReading: input.vehicle?.odometerReading ?? input.odometerReading,
     fuelLevel: (input.vehicle?.fuelLevel ?? input.fuelLevel ?? 0) as FuelLevel,

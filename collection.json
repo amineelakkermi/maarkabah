@@ -395,7 +395,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/tenant/settings",
-            "description": "Requires Permissions.Settings.View. system.autoApproveCustomers / autoApproveDrivers control whether create sets VerificationStatus to Verified or Pending. tajeer.featureEnabled is the SuperAdmin license (ElmTajeer). tajeer.isConfigured / isActive is whether credentials are saved and verified. Saving credentials does not turn the feature on."
+            "description": "Requires Permissions.Settings.View. system.autoApproveCustomers / autoApproveDrivers control whether create sets VerificationStatus to Verified or Pending. tajeer.featureEnabled is the SuperAdmin license (ElmTajeer). tajeer.isConfigured / isActive is whether credentials are saved and verified. tajeer.extendedCoverageTajeerId is the single Tajeer extended-coverage id used for every additional service except the five basic ones. Saving credentials does not turn the feature on."
           }
         },
         {
@@ -428,10 +428,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionTimeoutMinutes\": 30,\n  \"contractAutoCancelHours\": 12,\n  \"lateFeeGraceHours\": 1,\n  \"otpResendLimit\": 3,\n  \"otpLockoutMinutes\": 15,\n  \"otpValidityMinutes\": 5,\n  \"smsEnabled\": false,\n  \"autoApproveCustomers\": false,\n  \"autoApproveDrivers\": false,\n  \"senderIds\": [{ \"id\": \"MAARKBH\", \"enabled\": true }],\n  \"gatewayUrl\": \"http://8.213.81.159:81\",\n  \"gatewayKey\": \"C91547D8-070F-45BA-9C77-DDB0B16E28D1\",\n  \"appId\": \"c49fda9f\",\n  \"appKey\": \"0a0ecdd133cbda8414c36b1d9f8f8f51\",\n  \"authorization\": \"Basic YXBpVXNlcjgyOTgzNzpBYUAxMjM0NTY=\"\n}"
+              "raw": "{\n  \"sessionTimeoutMinutes\": 30,\n  \"contractAutoCancelHours\": 12,\n  \"lateFeeGraceHours\": 1,\n  \"otpResendLimit\": 3,\n  \"otpLockoutMinutes\": 15,\n  \"otpValidityMinutes\": 5,\n  \"smsEnabled\": false,\n  \"autoApproveCustomers\": false,\n  \"autoApproveDrivers\": false,\n  \"senderIds\": [{ \"id\": \"MAARKBH\", \"enabled\": true }],\n  \"gatewayUrl\": \"http://8.213.81.159:81\",\n  \"gatewayKey\": \"C91547D8-070F-45BA-9C77-DDB0B16E28D1\",\n  \"appId\": \"c49fda9f\",\n  \"appKey\": \"0a0ecdd133cbda8414c36b1d9f8f8f51\",\n  \"authorization\": \"Basic YXBpVXNlcjgyOTgzNzpBYUAxMjM0NTY=\",\n  \"extendedCoverageTajeerId\": 20157\n}"
             },
             "url": "{{baseUrl}}/api/tenant/settings/system",
-            "description": "Requires Permissions.Settings.Edit. autoApproveCustomers / autoApproveDrivers: when true, new customers/drivers (including warehouse import) are Verified; when false they stay Pending until someone approves. Omit or leave secret fields empty to keep stored values. Saving Tajeer credentials requires the ElmTajeer feature to already be on; it does not enable the feature. Any Tajeer field present re-verifies via GET /rental-api/branch/all."
+            "description": "Requires Permissions.Settings.Edit. autoApproveCustomers / autoApproveDrivers: when true, new customers/drivers (including warehouse import) are Verified; when false they stay Pending until someone approves. Omit or leave secret fields empty to keep stored values. extendedCoverageTajeerId is the one Tajeer id sent for every non-basic additional service; null or omitted clears it. Send the current value from GET to keep it. Saving Tajeer credentials requires the ElmTajeer feature to already be on; it does not enable the feature. Any Tajeer field present re-verifies via GET /rental-api/branch/all."
           }
         },
         {
@@ -591,6 +591,24 @@
             },
             "url": "{{baseUrl}}/api/customers/search",
             "description": "Requires Permissions.Customers.View"
+          }
+        },
+        {
+          "name": "Customer inquiry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idNumber\": \"1064335704\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customers/inquiry",
+            "description": "Requires an authenticated user. Body is only { idNumber }. A 10-digit number starting with 1 is National, starting with 2 is Residence, any other 10-digit number is a visitor border number, and any other value is treated as a Gulf id. Looks up that id in the master warehouse. When the identity is missing, calls Dynamic GetClientInfo and inserts it, then reads the warehouse again. Response data: found, warehouseCustomerId, isRegisteredLocally, localCustomerId, fullNameAr, fullNameEn, identityType, idNumber, phoneNumber, licenseNumber, address, birthDate, verificationStatus, isBlacklisted, openContractsCount, previousContractsCount, outstandingDebt, openViolationsCount, debts[], claims[]. Profile fields prefer the tenant customer when one exists. Contract counts always come from warehouse office records. debts[]: { officeName, amount, date, contractNumber, note }. For someone who is not a local customer, debts are warehouse offices with outstanding debt and claims are offices with a circular; openViolationsCount is 0. For a local customer, debts also include each contract with a remaining balance (officeName is the working branch Arabic name) and outstandingDebt is the sum; claims include disputed contracts (officeName is the branch), warehouse circulars, and return charges named Damage, Late fee, Extra km, or Fuel difference; openViolationsCount is those return charges plus overdue contracts."
           }
         },
         {
@@ -985,7 +1003,7 @@
               "raw": "{\n  \"identityType\": 1,\n  \"idNumber\": \"1098002244\",\n  \"phoneNumber\": \"509876543\"\n}"
             },
             "url": "{{baseUrl}}/api/blacklist/check",
-            "description": "Requires authenticated user only. At least one of idNumber or phoneNumber is required. Used by create/contract flows. identityType: 1=National, 2=Residence, 3=Visitor, 4=Gulf."
+            "description": "Requires authenticated user only. At least one of idNumber or phoneNumber is required. Response is { isHit, isVerified, confirmationCount, maskedIdNumber, reason, warehouseCustomerId, currentTenantReported }. This check reads the warehouse only. Dynamic client lookup is POST /api/customers/inquiry. identityType: 1=National, 2=Residence, 3=Visitor, 4=Gulf."
           }
         },
         {
@@ -1064,7 +1082,7 @@
               "raw": "{\n  \"search\": \"\",\n  \"isActive\": null,\n  \"billingUnit\": null,\n  \"branchId\": null,\n  \"pageNumber\": 1,\n  \"pageSize\": 20\n}"
             },
             "url": "{{baseUrl}}/api/additional-services/search",
-            "description": "Requires Permissions.AdditionalServices.View. Flat paged rows (isTenantWide, branchCount). Restricted users see tenant-wide services plus those assigned to their branches."
+            "description": "Requires Permissions.AdditionalServices.View. Flat paged rows (isTenantWide, branchCount, type). type: 1=Basic (price only, cannot delete or deactivate), 2=ExtendedCoverage (full edit, activate, delete). Restricted users see tenant-wide services plus those assigned to their branches."
           }
         },
         {
@@ -1073,7 +1091,7 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/additional-services/{{additionalServiceId}}",
-            "description": "Requires Permissions.AdditionalServices.View. Returns detail including branchIds. 404 if missing or outside the user's branch scope."
+            "description": "Requires Permissions.AdditionalServices.View. Returns detail including branchIds and type (1=Basic, 2=ExtendedCoverage). 404 if missing or outside the user's branch scope."
           }
         },
         {
@@ -1091,7 +1109,7 @@
               "raw": "{\n  \"branchId\": {{branchId}}\n}"
             },
             "url": "{{baseUrl}}/api/additional-services/picker",
-            "description": "Requires Permissions.AdditionalServices.View. Not paged. Active services offered at the given branch (empty branch list = all branches). Omit branchId to use the caller's visibility rule. Inaccessible branchId returns []."
+            "description": "Requires Permissions.AdditionalServices.View. Not paged. Active services offered at the given branch (empty branch list = all branches). Each row includes type (1=Basic, 2=ExtendedCoverage). Omit branchId to use the caller's visibility rule. Inaccessible branchId returns []."
           }
         },
         {
@@ -1142,7 +1160,7 @@
               "raw": "{\n  \"nameAr\": \"تأمين · شامل\",\n  \"nameEn\": \"Insurance · Comprehensive\",\n  \"billingUnit\": 1,\n  \"unitPrice\": 1500,\n  \"sortOrder\": 1,\n  \"isActive\": true,\n  \"includeInVat\": true,\n  \"descriptionAr\": \"تغطية كاملة بدون تحمل شخصي\",\n  \"descriptionEn\": \"Full coverage, zero liability\",\n  \"iconKey\": \"insurance\",\n  \"branchIds\": []\n}"
             },
             "url": "{{baseUrl}}/api/additional-services/{{additionalServiceId}}",
-            "description": "Requires Permissions.AdditionalServices.Edit. System rows lock code and billing unit. includeInVat can be changed on system rows. Empty branchIds = all branches."
+            "description": "Requires Permissions.AdditionalServices.Edit. Basic rows (type 1) persist unitPrice only and reject isActive false. Other system rows lock code and billing unit. Empty branchIds = all branches."
           }
         },
         {
@@ -1541,7 +1559,7 @@
               "raw": "{\n  \"customerId\": {{customerId}},\n  \"vehicleId\": {{vehicleId}},\n  \"workingBranchId\": {{branchId}},\n  \"receiveBranchId\": {{branchId}},\n  \"returnBranchId\": {{branchId}},\n  \"contractType\": 1,\n  \"startAt\": \"2026-09-01T10:00:00Z\",\n  \"endAt\": \"2026-09-03T10:00:00Z\",\n  \"rentPolicyId\": {{rentPolicyId}},\n  \"cancellationPolicyId\": {{cancellationPolicyId}},\n  \"allowedKmPerDay\": 200,\n  \"unlimitedKm\": false,\n  \"allowedLateHours\": 2,\n  \"rentDayCost\": 200,\n  \"rentHourCost\": 0,\n  \"extraKmCost\": 1,\n  \"fullFuelCost\": 100,\n  \"driverFarePerDay\": 0,\n  \"driverFarePerHour\": 0,\n  \"vehicleTransferCost\": 0,\n  \"extraDriverCost\": 0,\n  \"internationalAuthorizationCost\": 0,\n  \"discountPercent\": 0,\n  \"paymentTypeId\": {{paymentTypeId}},\n  \"paymentMethodId\": {{paymentMethodId}},\n  \"otherPaymentMethodCode\": null,\n  \"paidAmount\": 230,\n  \"depositAmount\": 500,\n  \"extendedCoverageId\": null,\n  \"odometerReading\": 10000,\n  \"fuelLevel\": 1,\n  \"enduranceAmount\": 1500,\n  \"additionalServices\": []\n}"
             },
             "url": "{{baseUrl}}/api/contracts",
-            "description": "Creates Draft. paymentTypeId / paymentMethodId come from POST /api/lookups/context (PaymentTypes / PaymentMethods). Method is required when paidAmount > 0; codes stay FULL/ADVANCE and Tajeer 1=Cash / 2=POS. extendedCoverageId is optional (null = none). depositAmount is Maarkbh-only inside payment. Check integrations.tajeerEnabled before activate vs submit-tajeer."
+            "description": "Creates Draft. paymentTypeId / paymentMethodId come from POST /api/lookups/context (PaymentTypes / PaymentMethods). Method is required when paidAmount > 0; codes stay FULL/ADVANCE and Tajeer 1=Cash / 2=POS. extendedCoverageId is ignored. Non-basic additional services are summed into additional coverage cost and their names are concatenated; the Tajeer id comes from tenant settings extendedCoverageTajeerId, or the first active extended-coverage catalog row when that setting is empty. depositAmount is Maarkbh-only inside payment. Check integrations.tajeerEnabled before activate vs submit-tajeer."
           }
         },
         {
@@ -1796,16 +1814,25 @@
               }
             },
             {
+              "name": "Get delivery form",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/contracts/{{contractId}}/delivery-form",
+                "description": "Loads the delivery screen: customer, vehicle, labelled images, sketchInfoAtDelivery, basicInspection, vehicleEquipment. Odometer and fuel are read-only from the vehicle. Requires Permissions.Contracts.View."
+              }
+            },
+            {
               "name": "Record delivery (confirm handover)",
               "request": {
                 "method": "POST",
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"odometerAtDelivery\": 10000,\n  \"fuelLevelAtDelivery\": 4,\n  \"sketchInfoAtDelivery\": [\n    { \"type\": \"scratch\", \"x\": 42.5, \"y\": 18.0 }\n  ],\n  \"condition\": {\n    \"ac\": { \"isOk\": true },\n    \"radioStereo\": { \"isOk\": true },\n    \"screen\": { \"isOk\": true },\n    \"speedometer\": { \"isOk\": true },\n    \"keys\": { \"isOk\": true },\n    \"carSeats\": { \"isOk\": true },\n    \"tires\": { \"isOk\": false, \"note\": \"Left rear worn\", \"attachmentId\": 1 },\n    \"spareTire\": { \"isOk\": true },\n    \"safetyTriangle\": { \"isOk\": true },\n    \"fireExtinguisher\": { \"isOk\": true },\n    \"firstAidKit\": { \"isOk\": true },\n    \"spareTireTools\": { \"isOk\": true }\n  },\n  \"conditionNotes\": null,\n  \"checklist\": {\n    \"contractSigned\": true,\n    \"customerIdPhotographed\": true,\n    \"securityDepositCollected\": true,\n    \"walkAroundInspectionDone\": true,\n    \"fuelLevelRecorded\": true,\n    \"keysHandedOver\": true\n  }\n}"
+                  "raw": "{\n  \"sketchInfoAtDelivery\": [\n    { \"type\": \"small-scratch\", \"x\": 716, \"y\": 119.07 }\n  ],\n  \"basicInspection\": {\n    \"odometerReading\": { \"isOk\": true },\n    \"fuelLevel\": { \"isOk\": true },\n    \"tires\": { \"isOk\": true },\n    \"windshield\": { \"isOk\": true },\n    \"bodyDamage\": { \"isOk\": true },\n    \"keys\": { \"isOk\": true },\n    \"safetyTriangle\": { \"isOk\": true },\n    \"firstAidKit\": { \"isOk\": true },\n    \"fireExtinguisher\": { \"isOk\": true },\n    \"speedometer\": { \"isOk\": true }\n  },\n  \"vehicleEquipment\": {\n    \"spareKey\": { \"isOk\": true },\n    \"spareTire\": { \"isOk\": true },\n    \"spareTireTools\": { \"isOk\": true },\n    \"carSeats\": { \"isOk\": true },\n    \"ac\": { \"isOk\": true },\n    \"screen\": { \"isOk\": true },\n    \"radioStereo\": { \"isOk\": true },\n    \"powerOutlet\": { \"isOk\": true },\n    \"smokingOdor\": { \"isOk\": true }\n  },\n  \"photos\": [\n    { \"label\": \"front\", \"attachmentId\": 101 },\n    { \"label\": \"rear\", \"attachmentId\": 102 }\n  ],\n  \"conditionNotes\": null\n}"
                 },
                 "url": "{{baseUrl}}/api/contracts/{{contractId}}/deliver",
-                "description": "Records the physical key handover to customer. Send typed JSON (not stringified). checklist (قائمة التسليم) is required and all 6 items must be true. sketchInfoAtDelivery: [{ type, x, y }]. condition: 12 items { isOk, note?, attachmentId? }. Upload photos via /api/attachments first. fuelLevelAtDelivery: 0=Empty … 4=Full. Requires Permissions.Contracts.Deliver."
+                "description": "Records handover. Odometer and fuel are snapshotted from the vehicle. basicInspection + vehicleEquipment required. photos optional labelled list. Requires Permissions.Contracts.Deliver."
               }
             },
             {
@@ -1869,16 +1896,25 @@
               }
             },
             {
+              "name": "Get return form",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/contracts/{{contractId}}/return-form",
+                "description": "Loads the return screen: delivery readings, basicInspection + vehicleEquipment with atDeliveryValue, photo slots, invoice, fleet status suggestion. Requires Permissions.Contracts.View."
+              }
+            },
+            {
               "name": "Record return (close contract)",
               "request": {
                 "method": "POST",
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"odometerAtReturn\": 10500,\n  \"fuelLevelAtReturn\": 2,\n  \"sketchInfoAtReturn\": [\n    { \"type\": \"dent\", \"x\": 60.0, \"y\": 22.5 }\n  ],\n  \"condition\": {\n    \"ac\": { \"isOk\": true },\n    \"radioStereo\": { \"isOk\": true },\n    \"screen\": { \"isOk\": true },\n    \"speedometer\": { \"isOk\": true },\n    \"keys\": { \"isOk\": true },\n    \"carSeats\": { \"isOk\": true },\n    \"tires\": { \"isOk\": false, \"note\": \"Left rear worn\", \"attachmentId\": 1 },\n    \"spareTire\": { \"isOk\": true },\n    \"safetyTriangle\": { \"isOk\": true },\n    \"fireExtinguisher\": { \"isOk\": true },\n    \"firstAidKit\": { \"isOk\": true },\n    \"spareTireTools\": { \"isOk\": true }\n  },\n  \"conditionNotes\": null,\n  \"lateFeeAmount\": 25.00,\n  \"lateHours\": 2,\n  \"extraKmAmount\": 300.00,\n  \"extraKm\": 300,\n  \"fuelDifferenceAmount\": 50.00,\n  \"damageAmount\": 0.00,\n  \"checklist\": {\n    \"customerPresentAtCounter\": true,\n    \"odometerRecorded\": true,\n    \"fuelLevelChecked\": true,\n    \"walkAroundCompleted\": true,\n    \"customerConfirmedReturn\": true\n  }\n}"
+                  "raw": "{\n  \"odometerAtReturn\": 19420,\n  \"fuelLevelAtReturn\": 3,\n  \"sketchInfoAtReturn\": [\n    { \"type\": \"small-scratch\", \"x\": 520, \"y\": 310, \"note\": \"خدش سطحي في الباب الأمامي الأيمن\" }\n  ],\n  \"basicInspection\": {\n    \"odometerReading\": { \"isOk\": true, \"value\": 1 },\n    \"fuelLevel\": { \"isOk\": true, \"value\": 1 },\n    \"tires\": { \"isOk\": true, \"value\": 2 },\n    \"windshield\": { \"isOk\": true, \"value\": 1 },\n    \"bodyDamage\": { \"isOk\": true, \"value\": 1 },\n    \"keys\": { \"isOk\": true, \"value\": 1 },\n    \"safetyTriangle\": { \"isOk\": true, \"value\": 1 },\n    \"firstAidKit\": { \"isOk\": true, \"value\": 1 },\n    \"fireExtinguisher\": { \"isOk\": true, \"value\": 1 },\n    \"speedometer\": { \"isOk\": true, \"value\": 1 }\n  },\n  \"vehicleEquipment\": {\n    \"spareKey\": { \"isOk\": true, \"value\": 1 },\n    \"spareTire\": { \"isOk\": true, \"value\": 1 },\n    \"spareTireTools\": { \"isOk\": true, \"value\": 1 },\n    \"carSeats\": { \"isOk\": true, \"value\": 2 },\n    \"ac\": { \"isOk\": true, \"value\": 1 },\n    \"screen\": { \"isOk\": true, \"value\": 1 },\n    \"radioStereo\": { \"isOk\": true, \"value\": 1 },\n    \"powerOutlet\": { \"isOk\": true, \"value\": 1 },\n    \"smokingOdor\": { \"isOk\": true, \"value\": 0 }\n  },\n  \"fleetStatusAfterReturn\": 2,\n  \"photos\": [\n    { \"label\": \"front\", \"attachmentId\": 201 },\n    { \"label\": \"rear\", \"attachmentId\": 202 }\n  ],\n  \"conditionNotes\": null,\n  \"lateFeeAmount\": 70,\n  \"lateHours\": 2,\n  \"extraKmAmount\": 0,\n  \"extraKm\": 0,\n  \"fuelDifferenceAmount\": 0,\n  \"damageAmount\": 0,\n  \"checklist\": {\n    \"customerPresentAtCounter\": true,\n    \"odometerRecorded\": true,\n    \"fuelLevelChecked\": true,\n    \"walkAroundCompleted\": true,\n    \"customerConfirmedReturn\": true\n  }\n}"
                 },
                 "url": "{{baseUrl}}/api/contracts/{{contractId}}/return",
-                "description": "Records vehicle return. checklist (معاينة الإرجاع) is required and all 5 items must be true. Send typed JSON (not stringified): sketchInfoAtReturn [{ type, x, y }], condition { isOk, note?, attachmentId? }. Transitions to Completed and releases the vehicle. Requires Permissions.Contracts.Return."
+                "description": "Records vehicle return. basicInspection + vehicleEquipment write the 16 vehicle statuses and labelled photos onto the vehicle for the next delivery. odometerAtReturn and fuelLevelAtReturn are the only handover fields that change those numbers. Requires Permissions.Contracts.Return."
               }
             },
             {
@@ -2846,10 +2882,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": null,\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready\",\n    \"isListingActive\": true,\n    \"odometerReading\": 47820,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": \"5W-30\",\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 1,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 2,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}],\n  \"images\": [],\n  \"damagePoints\": [\n    {\n      \"damageType\": 1,\n      \"positionX\": 62.5,\n      \"positionY\": 48.0,\n      \"note\": \"Scratch 5cm\",\n      \"fileId\": null\n    }\n  ]\n}"
+              "raw": "{\n  \"id\": null,\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready\",\n    \"isListingActive\": true,\n    \"odometerReading\": 47820,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": \"5W-30\",\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"lastOilOdometer\": 45000,\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 1,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 2,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1,\n    \"windshieldStatus\": 2,\n    \"spareKeyStatus\": 1,\n    \"powerOutletStatus\": 1,\n    \"smokingOdorStatus\": 0\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}],\n  \"images\": [],\n  \"damagePoints\": [\n    {\n      \"damageType\": 1,\n      \"positionX\": 62.5,\n      \"positionY\": 48.0,\n      \"note\": \"Scratch 5cm\",\n      \"fileId\": null\n    }\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/vehicles",
-            "description": "Requires Permissions.Vehicles.Save. id=null → create (201). Returns { id } on create. tajeerStatus.oilType is free-text (e.g. \"5W-30\"). airConditionGrade/radioStatus/screenStatus use ConditionGrade 1=Excellent,2=Good,3=Weak,4=Broken. tireCondition/spareTireStatus use TireCondition 1=Excellent,2=Good,3=Weak."
+            "description": "Requires Permissions.Vehicles.Save. id=null → create (201). Returns { id } on create. tajeerStatus.lastOilChangeDate (yyyy-MM-dd) is sent to Tajeer as oilChangeDate. tajeerStatus.lastOilOdometer is the kilometer reading at the last oil change and drives dashboard oil reminders. tajeerStatus.oilType is free-text (e.g. \"5W-30\"). airConditionGrade/radioStatus/screenStatus use ConditionGrade 1=Excellent,2=Good,3=Weak,4=Broken. tireCondition/spareTireStatus use TireCondition 1=Excellent,2=Good,3=Weak."
           }
         },
         {
@@ -2864,10 +2900,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": {{vehicleId}},\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White - updated\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready - updated\",\n    \"isListingActive\": true,\n    \"odometerReading\": 48000,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": \"5W-30\",\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 1,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 2,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}, 2],\n  \"images\": [],\n  \"damagePoints\": []\n}"
+              "raw": "{\n  \"id\": {{vehicleId}},\n  \"plate\": {\n    \"plateTypeId\": {{vehiclePlateTypeId}},\n    \"plateNumber\": \"1234\",\n    \"plateFirstLetter\": \"A\",\n    \"plateSecondLetter\": \"B\",\n    \"plateThirdLetter\": \"J\",\n    \"registrationNumber\": \"REG-1234\",\n    \"registrationExpiryDate\": \"2027-01-01\",\n    \"inspectionExpiryDate\": \"2027-01-01\",\n    \"serialNumber\": \"SER-1234\",\n    \"operationCardNumber\": null,\n    \"operationCardExpiryDate\": null,\n    \"customsNumber\": null,\n    \"otherNotes\": null\n  },\n  \"info\": {\n    \"makeId\": {{vehicleMakeId}},\n    \"modelId\": {{vehicleModelId}},\n    \"year\": 2024,\n    \"color\": \"White - updated\",\n    \"vin\": \"1HGBH41JXMN109186\",\n    \"engineNumber\": \"ENG-1234\",\n    \"bodyType\": 1,\n    \"category\": 3,\n    \"seats\": 5,\n    \"cylinders\": 4,\n    \"fuelType\": 1,\n    \"transmissionType\": 1,\n    \"payloadKg\": 500\n  },\n  \"insurancePricing\": {\n    \"branchId\": {{branchId}},\n    \"insuranceCompanyId\": {{vehicleInsuranceCompanyId}},\n    \"insuranceTypeId\": {{vehicleInsuranceTypeId}},\n    \"insurancePolicyNumber\": \"POL-1234\",\n    \"insuranceExpiryDate\": \"2027-01-01\",\n    \"insuranceAmount\": 100000,\n    \"dailyRate\": 360,\n    \"extraKilometerRate\": 2,\n    \"fullFuelRate\": 250,\n    \"lateHourRate\": 35,\n    \"isKilometerLimitEnabled\": false,\n    \"dailyKilometerLimit\": null\n  },\n  \"tajeerStatus\": {\n    \"status\": 2,\n    \"notes\": \"Ready - updated\",\n    \"isListingActive\": true,\n    \"odometerReading\": 48000,\n    \"fuelLevel\": 3,\n    \"enduranceAmount\": 1500,\n    \"oilType\": \"5W-30\",\n    \"lastOilChangeDate\": \"2026-01-01\",\n    \"lastOilOdometer\": 45000,\n    \"oilChangeDistance\": 5000,\n    \"airConditionGrade\": 1,\n    \"radioStatus\": 1,\n    \"screenStatus\": 1,\n    \"odometerStatus\": 0,\n    \"seatCleanliness\": 2,\n    \"keyStatus\": 1,\n    \"tireCondition\": 2,\n    \"spareTireStatus\": 1,\n    \"fireExtinguisherStatus\": 1,\n    \"firstAidKitStatus\": 1,\n    \"safetyTriangleStatus\": 1,\n    \"tireToolsStatus\": 1,\n    \"windshieldStatus\": 2,\n    \"spareKeyStatus\": 1,\n    \"powerOutletStatus\": 1,\n    \"smokingOdorStatus\": 0\n  },\n  \"featureTypeIds\": [{{vehicleFeatureTypeId}}, 2],\n  \"images\": [],\n  \"damagePoints\": []\n}"
             },
             "url": "{{baseUrl}}/api/vehicles",
-            "description": "Requires Permissions.Vehicles.Save. id=non-null → update (204 No Content). Same tajeerStatus enum/string contract as create (oilType free-text; radio/screen/AC 1–4; tires/spare 1–3)."
+            "description": "Requires Permissions.Vehicles.Save. id=non-null → update (204 No Content). Same tajeerStatus contract as create: lastOilChangeDate (yyyy-MM-dd) for Tajeer oilChangeDate, lastOilOdometer (km) for oil reminders, oilType free-text, radio/screen/AC 1–4, tires/spare 1–3."
           }
         },
         {

@@ -4,7 +4,7 @@ import { Info, Lock, CreditCard, Wallet, Banknote } from "lucide-react";
 import { Badge, Select } from "@/components/ui";
 import type { Car } from "@/lib/data";
 import type { TajeerContractType } from "@/lib/tajeer";
-import type { ContractDiscountRate, ContractExtendedCoverage } from "./useContractLookups";
+import type { ContractDiscountRate } from "./useContractLookups";
 import {
   T, ADD_ONS,
   SYSTEM_DRIVER_FARE_PER_DAY, SYSTEM_DRIVER_FARE_PER_HOUR,
@@ -23,11 +23,6 @@ export type StepPricingPaymentProps = {
   unlimitedKm: boolean;
   receiveBranchId: number;
   returnBranchId: number;
-  // Extended coverage — picked from the backend picker; its registered cost is
-  // snapshotted onto the contract, so it isn't editable here.
-  extendedCoverage: ContractExtendedCoverage[];
-  extendedCoverageId: number | undefined;
-  onExtendedCoverageChange: (id: number | null) => void;
   // Editable rates
   rentDayCost: number; setRentDayCost: (v: number) => void;
   rentHourCost: number; setRentHourCost: (v: number) => void;
@@ -56,7 +51,6 @@ export type StepPricingPaymentProps = {
 
 export function StepPricingPayment({
   ar, car, contractTypeCode, days, totalHours, addons, unlimitedKm, receiveBranchId, returnBranchId,
-  extendedCoverage, extendedCoverageId, onExtendedCoverageChange,
   rentDayCost, setRentDayCost, rentHourCost, setRentHourCost, extraKmCost, setExtraKmCost, fullFuelCost, setFullFuelCost,
   driverFarePerDay, setDriverFarePerDay, driverFarePerHour, setDriverFarePerHour, vehicleTransferCost, setVehicleTransferCost,
   internationalAuthorizationCost, setInternationalAuthorizationCost,
@@ -64,7 +58,7 @@ export function StepPricingPayment({
   discountType, discountPercent, discountRates, discountRateId, onDiscountRateChange, payType, setPayType, payMethod, setPayMethod, setAdvanceCost, pricing,
 }: StepPricingPaymentProps) {
   const {
-    base, addonPrices, extraDriverFare, transferFare, authorizationFare, coverageFare,
+    base, addonPrices, extraDriverFare, transferFare, authorizationFare,
     discountAmount, subtotal, vat, total, advanceAmount, remaining,
   } = pricing;
   return (
@@ -172,37 +166,6 @@ export function StepPricingPayment({
 
           {/* Extended coverage — picked from the backend picker; the registered
               cost is snapshotted onto the contract (managed in Pricing settings). */}
-          <div className="pt-6 mt-6 border-t border-mk-ink-100">
-            <div className="flex items-center justify-between mb-3">
-              <div className="mk-label text-mk-ink-900">{T("Extended coverage", "التغطية الإضافية", ar)}</div>
-              <span className="flex items-center gap-1 mk-overline text-mk-ink-400">
-                <Lock size={11} />{T("Cost managed in Pricing settings", "التكلفة تُدار من إعدادات الأسعار", ar)}
-              </span>
-            </div>
-            <Select
-              value={extendedCoverageId != null ? String(extendedCoverageId) : ""}
-              onChange={(e) => onExtendedCoverageChange(e.target.value ? Number(e.target.value) : null)}
-              className="w-full"
-            >
-              <option value="">{T("No additional coverage", "بدون تغطية إضافية", ar)}</option>
-              {extendedCoverage.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {(ar ? (c.nameAr || c.nameEn) : (c.nameEn || c.nameAr)) || `—`} ({c.cost.toLocaleString()} {T("SAR", "ريال", ar)})
-                </option>
-              ))}
-            </Select>
-            {coverageFare > 0 && (
-              <p className="mk-caption text-mk-blue-500 mt-2">
-                {T(`+${coverageFare.toLocaleString()} SAR`, `+${coverageFare.toLocaleString()} ريال`, ar)}
-              </p>
-            )}
-            {extendedCoverage.length === 0 && (
-              <p className="mk-caption text-mk-ink-400 mt-2">
-                {T("No coverage packages available.", "لا توجد باقات تغطية متاحة.", ar)}
-              </p>
-            )}
-          </div>
-
           {/* Discount — picked from the tenant's named discount rates
               (managed in Pricing settings); only the percent is sent. */}
           <div className="pt-6 mt-6 border-t border-mk-ink-100">
@@ -380,12 +343,6 @@ export function StepPricingPayment({
               <div className="flex justify-between text-mk-ink-600">
                 <span>+ {T("International authorization", "التفويض الدولي", ar)}</span>
                 <span>{authorizationFare.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-              </div>
-            )}
-            {coverageFare > 0 && (
-              <div className="flex justify-between text-mk-ink-600">
-                <span>+ {T("Additional coverage", "التغطية الإضافية", ar)}</span>
-                <span>{coverageFare.toLocaleString()} {T("SAR", "ريال", ar)}</span>
               </div>
             )}
             {fullFuelCost > 0 && (
