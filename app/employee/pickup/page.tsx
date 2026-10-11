@@ -5,7 +5,7 @@ import {
   FileText, IdCard, CreditCard, Camera, Fuel, KeyRound, Check, Phone,
   MapPin, Search, ChevronRight, ChevronLeft,
   Gauge, Monitor, Music, Wind, CircleDot, Armchair, TriangleAlert,
-  FireExtinguisher, HeartPulse, Wrench, ShieldCheck, Droplet,
+  FireExtinguisher, HeartPulse, Wrench, ShieldCheck, Droplet, X,
 } from "lucide-react";
 import { Avatar, Badge, Button, Tabs, Input, IconButton, Table, Th, Td, Select } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -114,12 +114,22 @@ function fuelLabel(level: Types.FuelLevel | "", ar: boolean): string {
   return opt ? (ar ? opt.ar : opt.en) : "—";
 }
 
-const ALL_OK_CONDITION: Types.HandoverCondition = {
-  ac: { isOk: true }, radioStereo: { isOk: true }, screen: { isOk: true },
-  speedometer: { isOk: true }, keys: { isOk: true }, carSeats: { isOk: true },
-  tires: { isOk: true }, spareTire: { isOk: true }, safetyTriangle: { isOk: true },
-  fireExtinguisher: { isOk: true }, firstAidKit: { isOk: true }, spareTireTools: { isOk: true },
-};
+// HandoverCondition fields in backend DTO order — the delivery payload mirrors
+// the schema field-for-field; gridKey is the inspection-grid key for the note/photo.
+const CONDITION_FIELDS: { field: keyof Types.HandoverCondition; gridKey: string }[] = [
+  { field: "ac", gridKey: "ac" },
+  { field: "radioStereo", gridKey: "radio" },
+  { field: "screen", gridKey: "screen" },
+  { field: "speedometer", gridKey: "odometer" },
+  { field: "keys", gridKey: "keys" },
+  { field: "carSeats", gridKey: "seats" },
+  { field: "tires", gridKey: "tires" },
+  { field: "spareTire", gridKey: "spareTire" },
+  { field: "safetyTriangle", gridKey: "triangle" },
+  { field: "fireExtinguisher", gridKey: "extinguisher" },
+  { field: "firstAidKit", gridKey: "firstAid" },
+  { field: "spareTireTools", gridKey: "tireKit" },
+];
 
 type TabKey = "all" | "pending" | "active";
 const TABS: { key: TabKey; en: string; ar: string }[] = [
@@ -170,7 +180,10 @@ function ReadonlyCarCarousel({ images, ar }: { images: string[]; ar: boolean }) 
 }
 
 // ── Vehicle Condition Panel ───────────────────────────────────────
-function VehicleConditionPanel({ ar, sketchItems, onSketchChange, images }: { ar: boolean; sketchItems: SketchItem[]; onSketchChange: (i: SketchItem[]) => void; images: string[] }) {
+function VehicleConditionPanel({ ar, sketchItems, onSketchChange, baselineSketch, disabled, images }: {
+  ar: boolean; sketchItems: SketchItem[]; onSketchChange: (i: SketchItem[]) => void;
+  baselineSketch: SketchItem[]; disabled?: boolean; images: string[];
+}) {
   const [view, setView] = useState<"diagram" | "photos">("diagram");
   return (
     <div className="rounded-xl p-6 mk-surface">
@@ -188,7 +201,7 @@ function VehicleConditionPanel({ ar, sketchItems, onSketchChange, images }: { ar
         />
       </div>
       {view === "diagram"
-        ? <div className="rounded-lg flex items-center justify-center w-full"><SketchComponent value={sketchItems} onChange={onSketchChange} ar={ar} disabled /></div>
+        ? <div className="rounded-lg flex items-center justify-center w-full"><SketchComponent value={sketchItems} onChange={onSketchChange} baseline={baselineSketch} ar={ar} disabled={disabled} /></div>
         : <ReadonlyCarCarousel images={images} ar={ar} />
       }
     </div>
@@ -197,8 +210,44 @@ function VehicleConditionPanel({ ar, sketchItems, onSketchChange, images }: { ar
 
 // ── Vehicle Condition Summary ───────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function VehicleSummaryPanel({ ar, odometer, fuel, endurance, status }: { ar: boolean; odometer: number | null; fuel: string; endurance: number | null; status?: any }) {
+function VehicleSummaryPanel({ ar, odometer, fuel, endurance, status, defects, onDefectsChange, reasons, onReasonsChange, photos, onPhotosChange, damageNotes, onDamageNotesChange, disabled }: {
+  ar: boolean; odometer: number | null; fuel: string; endurance: number | null; status?: any;
+  defects: Record<string, boolean>; onDefectsChange: (d: Record<string, boolean>) => void;
+  reasons: Record<string, string>; onReasonsChange: (r: Record<string, string>) => void;
+  photos: Record<string, { file?: File; preview: string; attachmentId?: number | null }>;
+  onPhotosChange: (p: Record<string, { file?: File; preview: string; attachmentId?: number | null }>) => void;
+  damageNotes: string; onDamageNotesChange: (v: string) => void;
+  disabled?: boolean;
+}) {
   const st = status ?? {};
+  const [noteOpen, setNoteOpen] = useState<Record<string, boolean>>({});
+  const damageCount = new Set([
+    ...Object.keys(defects).filter(k => defects[k]),
+    ...Object.keys(reasons).filter(k => reasons[k]),
+    ...Object.keys(photos),
+  ]).size;
+
+  // The ⚠️ button IS the isOk toggle: it flags the item defective (isOk:false)
+  // and opens the note/photo row; flagging again clears the defect entirely.
+  const toggleDefect = (key: string) => {
+    const next = !defects[key];
+    onDefectsChange({ ...defects, [key]: next });
+    setNoteOpen(o => ({ ...o, [key]: next }));
+    if (!next) {
+      onReasonsChange(omitKey(reasons, key));
+      onPhotosChange(omitKey(photos, key));
+    }
+  };
+
+  const omitKey = <T,>(obj: Record<string, T>, key: string): Record<string, T> =>
+    Object.fromEntries(Object.entries(obj).filter(([k]) => k !== key));
+
+  const handleItemPhoto = (key: string, file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => onPhotosChange({ ...photos, [key]: { file, preview: reader.result as string } });
+    reader.readAsDataURL(file);
+  };
 
   // ConditionGrade 1–4
   const gradeLabel = (v: unknown): string => {
@@ -246,18 +295,18 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance, status }: { ar: bo
   ];
 
   const INSPECTION = [
-    { icon: Gauge, label: T("Speedometer", "حالة عداد السرعة", ar), value: workingLabel(st.odometerStatus) },
-    { icon: Monitor, label: T("Screen", "حالة الشاشة الداخلية", ar), value: gradeLabel(st.screenStatus) },
-    { icon: Music, label: T("Radio/Stereo", "حالة الراديو/المسجل", ar), value: gradeLabel(st.radioStatus) },
-    { icon: Wind, label: T("A/C", "حالة التكييف", ar), value: gradeLabel(st.airConditionGrade) },
-    { icon: CircleDot, label: T("Spare tire", "حالة العجلة الاحتياطية", ar), value: tireLabel(st.spareTireStatus) },
-    { icon: CircleDot, label: T("Tires", "حالة العجلات", ar), value: tireLabel(st.tireCondition) },
-    { icon: Armchair, label: T("Seats", "المقاعد", ar), value: cleanLabel(st.seatCleanliness) },
-    { icon: KeyRound, label: T("Keys", "حالة المفتاح", ar), value: workingLabel(st.keyStatus) },
-    { icon: TriangleAlert, label: T("Warning triangle", "توفر المثلث العاكس", ar), value: presentLabel(st.safetyTriangleStatus) },
-    { icon: FireExtinguisher, label: T("Fire extinguisher", "توفر طفاية الحريق", ar), value: presentLabel(st.fireExtinguisherStatus) },
-    { icon: HeartPulse, label: T("First aid kit", "حالة حقيبة الاسعافات الأولية", ar), value: presentLabel(st.firstAidKitStatus) },
-    { icon: Wrench, label: T("Tire kit", "معدات الكفر الاحتياطية", ar), value: presentLabel(st.tireToolsStatus) },
+    { key: "odometer", icon: Gauge, label: T("Speedometer", "حالة عداد السرعة", ar), value: workingLabel(st.odometerStatus) },
+    { key: "screen", icon: Monitor, label: T("Screen", "حالة الشاشة الداخلية", ar), value: gradeLabel(st.screenStatus) },
+    { key: "radio", icon: Music, label: T("Radio/Stereo", "حالة الراديو/المسجل", ar), value: gradeLabel(st.radioStatus) },
+    { key: "ac", icon: Wind, label: T("A/C", "حالة التكييف", ar), value: gradeLabel(st.airConditionGrade) },
+    { key: "spareTire", icon: CircleDot, label: T("Spare tire", "حالة العجلة الاحتياطية", ar), value: tireLabel(st.spareTireStatus) },
+    { key: "tires", icon: CircleDot, label: T("Tires", "حالة العجلات", ar), value: tireLabel(st.tireCondition) },
+    { key: "seats", icon: Armchair, label: T("Seats", "المقاعد", ar), value: cleanLabel(st.seatCleanliness) },
+    { key: "keys", icon: KeyRound, label: T("Keys", "حالة المفتاح", ar), value: workingLabel(st.keyStatus) },
+    { key: "triangle", icon: TriangleAlert, label: T("Warning triangle", "توفر المثلث العاكس", ar), value: presentLabel(st.safetyTriangleStatus) },
+    { key: "extinguisher", icon: FireExtinguisher, label: T("Fire extinguisher", "توفر طفاية الحريق", ar), value: presentLabel(st.fireExtinguisherStatus) },
+    { key: "firstAid", icon: HeartPulse, label: T("First aid kit", "حالة حقيبة الاسعافات الأولية", ar), value: presentLabel(st.firstAidKitStatus) },
+    { key: "tireKit", icon: Wrench, label: T("Tire kit", "معدات الكفر الاحتياطية", ar), value: presentLabel(st.tireToolsStatus) },
   ];
 
   return (
@@ -278,19 +327,91 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance, status }: { ar: bo
       </div>
 
       <div className="mt-6 pt-6 border-t border-mk-ink-100">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {INSPECTION.map(({ icon: Icon, label, value }, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 select-none">
-              <div className="w-9 h-9 rounded-md bg-mk-blue-500/10 text-mk-blue-500 flex items-center justify-center shrink-0">
-                <Icon size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="mk-caption text-mk-ink-500 truncate">{label}</div>
-                <div className="mk-caption text-mk-ink-900 mt-1 truncate">{value}</div>
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="mk-body text-mk-ink-900 flex-1">{T("Inspection details & damage report", "تفاصيل الفحص والإبلاغ عن الأضرار", ar)}</div>
+          {damageCount > 0 && (
+            <span className="mk-overline px-2 py-1 rounded-full text-mk-blue-500" style={{ background: "rgba(65,113,226,0.10)" }}>
+              {T(`${damageCount} damage report${damageCount > 1 ? "s" : ""}`, `${damageCount} بلاغ ضرر`, ar)}
+            </span>
+          )}
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {INSPECTION.map(({ key, icon: Icon, label, value }) => {
+            const isOpen = noteOpen[key] ?? false;
+            const hasNote = Boolean(defects[key] || reasons[key] || photos[key]);
+            const photo = photos[key];
+            return (
+              <div key={key} className="rounded-lg p-3"
+                style={{ background: hasNote ? "rgba(65,113,226,0.05)" : "transparent", border: `1px solid ${hasNote ? "rgba(65,113,226,0.20)" : "var(--color-mk-ink-100)"}` }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-md bg-mk-blue-500/10 text-mk-blue-500 flex items-center justify-center shrink-0">
+                      <Icon size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="mk-overline text-mk-ink-500 truncate">{label}</div>
+                      <div className={`mk-caption mt-1 truncate ${hasNote ? "text-mk-danger" : "text-mk-ink-900"}`}>
+                        {hasNote ? T("Defect reported", "خلل مُبلغ عنه", ar) : value}
+                      </div>
+                    </div>
+                  </div>
+                  {!disabled && (
+                    <button type="button" onClick={() => toggleDefect(key)}
+                      className="w-7 h-7 rounded-sm flex items-center justify-center border-0 cursor-pointer transition-colors shrink-0"
+                      style={{ background: hasNote ? "var(--color-mk-blue-500)" : "var(--color-mk-ink-100)", color: hasNote ? "white" : "var(--color-mk-ink-400)" }}
+                      title={T("Report damage", "الإبلاغ عن ضرر", ar)}>
+                      <TriangleAlert size={14} />
+                    </button>
+                  )}
+                </div>
+                {disabled && hasNote ? (
+                  /* Recorded snapshot — defect flag/note/photo read-only */
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="flex-1 min-w-0 mk-overline text-mk-danger truncate">
+                      {reasons[key] || T("Reported defective", "تم الإبلاغ عن خلل", ar)}
+                    </span>
+                    {photo && <img src={photo.preview} alt="" className="w-8 h-8 rounded-md object-cover border border-mk-danger/30" />}
+                  </div>
+                ) : isOpen && !disabled ? (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={reasons[key] ?? ""}
+                      onChange={e => onReasonsChange({ ...reasons, [key]: e.target.value })}
+                      placeholder={T("Describe the damage…", "صف الضرر…", ar)}
+                      className="flex-1 min-w-0 px-3 py-2 rounded-md mk-overline text-mk-ink-900 border border-mk-blue-500/30 bg-white outline-none focus:border-mk-blue-500"
+                    />
+                    {photo ? (
+                      <div className="relative shrink-0">
+                        <img src={photo.preview} alt="" className="w-8 h-8 rounded-md object-cover border border-mk-blue-500/30" />
+                        <button type="button" onClick={() => onPhotosChange(omitKey(photos, key))}
+                          className="absolute -top-2 -end-1.5 w-4 h-4 rounded-full flex items-center justify-center border-0 cursor-pointer text-white bg-mk-danger">
+                          <X size={9} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 cursor-pointer border border-mk-blue-500/30 bg-white text-mk-blue-500">
+                        <Camera size={14} />
+                        <input type="file" accept="image/*" className="hidden" onChange={e => handleItemPhoto(key, e.target.files?.[0])} />
+                      </label>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+        {!disabled ? (
+          <textarea
+            value={damageNotes}
+            onChange={e => onDamageNotesChange(e.target.value)}
+            placeholder={T("Additional notes on the vehicle condition…", "ملاحظات إضافية على حالة المركبة…", ar)}
+            rows={3}
+            className="w-full px-3 py-2 rounded-md mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500 resize-none mt-3"
+          />
+        ) : damageNotes ? (
+          <div className="mt-3 px-3 py-2 rounded-md mk-overline text-mk-ink-600 bg-mk-ink-50">{damageNotes}</div>
+        ) : null}
       </div>
     </div>
   );
@@ -300,7 +421,18 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance, status }: { ar: bo
 function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; basePath: string }) {
   const router = useRouter();
   const [checks, setChecks] = useState<Record<string, boolean>>({ contract: true, id: true, deposit: true, inspect: false, fuel: false, keys: false });
+  // Baseline = damages already recorded on the vehicle file; sketchItems =
+  // NEW damage the operator marks at delivery (editable sketch).
+  const [baselineSketch, setBaselineSketch] = useState<SketchItem[]>([]);
   const [sketchItems, setSketchItems] = useState<SketchItem[]>([]);
+  const [damageNotes, setDamageNotes] = useState("");
+  // Explicit per-item defective flags — isOk:false is possible even without
+  // a note or a photo (the ⚠️ toggle IS the isOk checkbox).
+  const [defects, setDefects] = useState<Record<string, boolean>>({});
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  // Photo entry: file = local upload pending submit; attachmentId = already
+  // recorded on the delivery snapshot (download URL as preview).
+  const [photos, setPhotos] = useState<Record<string, { file?: File; preview: string; attachmentId?: number | null }>>({});
   const [showMap, setShowMap] = useState(false);
   const [odometer, setOdometer] = useState("");
   const [fuel, setFuel] = useState<Types.FuelLevel | "">("");
@@ -321,6 +453,7 @@ function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
     let cancelled = false;
     (async () => {
       setLoading(true);
+      let deliverySketch: SketchItem[] | null = null;
       try {
         const res = await contractService.getById(id);
         const c = res?.data ?? res;
@@ -337,6 +470,42 @@ function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
           const d = dRes?.data ?? dRes;
           if (!cancelled && d && (d.id != null || d.deliveredAt)) {
             setDeliveredAt(d.deliveredAt ?? "");
+            // Replay the recorded snapshot read-only — readings, checklist,
+            // condition defects/notes/photos and the delivery sketch.
+            if (d.odometerAtDelivery != null) setOdometer(String(d.odometerAtDelivery));
+            if (d.fuelLevelAtDelivery != null) setFuel(Number(d.fuelLevelAtDelivery) as Types.FuelLevel);
+            if (d.checklist) setChecks({
+              contract: Boolean(d.checklist.contractSigned),
+              id: Boolean(d.checklist.customerIdPhotographed),
+              deposit: Boolean(d.checklist.securityDepositCollected),
+              inspect: Boolean(d.checklist.walkAroundInspectionDone),
+              fuel: Boolean(d.checklist.fuelLevelRecorded),
+              keys: Boolean(d.checklist.keysHandedOver),
+            });
+            if (d.condition) {
+              const defectFlags: Record<string, boolean> = {};
+              const noteMap: Record<string, string> = {};
+              const photoMap: Record<string, { preview: string; attachmentId: number }> = {};
+              for (const { field, gridKey } of CONDITION_FIELDS) {
+                const item = d.condition[field];
+                if (!item) continue;
+                if (item.isOk === false) defectFlags[gridKey] = true;
+                if (item.note) noteMap[gridKey] = item.note;
+                if (item.attachmentId != null) {
+                  photoMap[gridKey] = { attachmentId: Number(item.attachmentId), preview: attachmentService.getDownloadUrl(Number(item.attachmentId)) };
+                }
+              }
+              setDefects(defectFlags);
+              setReasons(noteMap);
+              setPhotos(photoMap);
+            }
+            if (d.conditionNotes) setDamageNotes(d.conditionNotes);
+            if (Array.isArray(d.sketchInfoAtDelivery) && d.sketchInfoAtDelivery.length) {
+              // The recorded delivery marks override the vehicle-file baseline
+              // (applied after the vehicle fetch below).
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              deliverySketch = d.sketchInfoAtDelivery.map((s: any) => ({ type: s.type, x: Number(s.x), y: Number(s.y) }));
+            }
           }
         } catch { /* no delivery yet */ }
 
@@ -347,14 +516,15 @@ function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
             const v = vRes?.data ?? vRes;
             if (cancelled) return;
             setVehicle(v);
-            // Same sketch as the vehicle detail page — damage points registered
-            // on the vehicle record show up as the delivery baseline.
-            setSketchItems(mapDamagePointsToSketchItems(v?.damagePoints));
+            // Damage points registered on the vehicle record show up as the
+            // delivery baseline — new marks go to sketchItems on top.
+            setBaselineSketch(mapDamagePointsToSketchItems(v?.damagePoints));
             const st = v?.tajeerStatus ?? v ?? {};
             if (odo == null && st.odometerReading != null) setOdometer(String(st.odometerReading));
             if (c.fuelLevel == null && st.fuelLevel != null) setFuel(Number(st.fuelLevel) as Types.FuelLevel);
           } catch { /* vehicle enrichment is optional */ }
         }
+        if (!cancelled && deliverySketch) setBaselineSketch(deliverySketch);
       } catch {
         if (!cancelled) setNotFound(true);
       } finally {
@@ -374,12 +544,26 @@ function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
     setSubmitting(true);
     setSubmitError("");
     try {
+      // Upload item damage photos, then build the per-item condition report —
+      // an item is not-ok as soon as it carries a note or a photo.
+      const condition: Types.HandoverCondition = {};
+      for (const { field, gridKey } of CONDITION_FIELDS) {
+        const note = reasons[gridKey]?.trim() || null;
+        const photo = photos[gridKey];
+        let attachmentId: number | null = photo?.attachmentId ?? null;
+        if (photo?.file) {
+          const up = await attachmentService.upload(photo.file);
+          attachmentId = Number(up?.id ?? up?.data?.id ?? up?.attachmentId) || null;
+        }
+        condition[field] = { isOk: !(defects[gridKey] || note || photo), note, attachmentId };
+      }
+
       await contractService.recordDelivery(id, {
         odometerAtDelivery: Number(odometer),
         fuelLevelAtDelivery: fuel === "" ? undefined : (fuel as Types.FuelLevel),
-        sketchInfoAtDelivery: sketchItems.map((s) => ({ type: s.type, x: s.x, y: s.y })),
-        condition: ALL_OK_CONDITION,
-        conditionNotes: null,
+        sketchInfoAtDelivery: [...baselineSketch, ...sketchItems].map((s) => ({ type: s.type, x: s.x, y: s.y })),
+        condition,
+        conditionNotes: damageNotes.trim() || null,
         checklist: {
           contractSigned: checks.contract,
           customerIdPhotographed: checks.id,
@@ -550,13 +734,29 @@ function PickupDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
           </Button>
         </div>
         <div className="flex flex-col gap-4">
-          <VehicleConditionPanel ar={ar} sketchItems={sketchItems} onSketchChange={setSketchItems} images={carImages} />
+          <VehicleConditionPanel
+            ar={ar}
+            sketchItems={sketchItems}
+            onSketchChange={setSketchItems}
+            baselineSketch={baselineSketch}
+            disabled={Boolean(deliveredAt)}
+            images={carImages}
+          />
           <VehicleSummaryPanel
             ar={ar}
             odometer={odometerValid ? Number(odometer) : null}
             fuel={fuelValid ? fuelLabel(fuel, ar) : "—"}
             endurance={raw.enduranceAmount != null ? Number(raw.enduranceAmount) : (vehicleStatus?.enduranceAmount != null ? Number(vehicleStatus.enduranceAmount) : null)}
             status={vehicleStatus}
+            defects={defects}
+            onDefectsChange={setDefects}
+            reasons={reasons}
+            onReasonsChange={setReasons}
+            photos={photos}
+            onPhotosChange={setPhotos}
+            damageNotes={damageNotes}
+            onDamageNotesChange={setDamageNotes}
+            disabled={Boolean(deliveredAt)}
           />
         </div>
       </div>

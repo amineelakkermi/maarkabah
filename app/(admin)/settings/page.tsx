@@ -2,12 +2,12 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Clock, HelpCircle, Loader2, CheckCircle2, XCircle, ShieldCheck, Eye, EyeOff } from "lucide-react";
-import { Avatar, Badge, Button, Input, Select, Toggle, Table, Th, Td, Tabs } from "@/components/ui";
+import { Clock, HelpCircle, Loader2, CheckCircle2, XCircle, ShieldCheck, Eye, EyeOff, Pencil } from "lucide-react";
+import { Avatar, Badge, Button, Input, Select, Toggle, Table, Th, Td, Tabs, useToast } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Permission, type PermissionRequirement } from "@/lib/permissions";
-import { tenantSettingsService } from "@/lib/api-services";
+import { tenantSettingsService, extendedCoverageService } from "@/lib/api-services";
 import type { SmsSenderId } from "@/lib/api-types";
 import { BranchesPanel } from "@/components/admin/BranchesPanel";
 import { StaffRolesPanel } from "@/components/admin/StaffRolesPanel";
@@ -54,6 +54,7 @@ function SettingsContent() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const { hasPermission, reload: reloadPermissions } = usePermissions();
+  const { showToast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -115,6 +116,13 @@ function SettingsContent() {
     hasGatewayKey?: boolean; hasAppKey?: boolean; hasAuthorization?: boolean;
     isActive?: boolean; tajeerOfficeId?: number | null; lastVerifiedAt?: string | null;
   }>({});
+  // Office's default extended-coverage product on the Tajeer side —
+  // `tajeer.extendedCoverageTajeerId` in GET /tenant/settings, writable via
+  // PUT /tenant/settings/system. Not a credential: it doesn't re-verify.
+  const [extCoverageTajeerId, setExtCoverageTajeerId] = useState<number | null>(null);
+  const [extCoverageLoaded, setExtCoverageLoaded] = useState<number | null>(null);
+  const [extCoverageSaving, setExtCoverageSaving] = useState(false);
+  const [extCoverageOptions, setExtCoverageOptions] = useState<{ tajeerId: number; nameEn: string; nameAr: string }[]>([]);
   // Non-secret fields (gatewayUrl, appId) ARE returned by GET /tenant/settings
   // and pre-fill the inputs — remember what was loaded so "unchanged" values
   // don't trigger a Tajeer re-verification on every unrelated save.
@@ -133,16 +141,18 @@ function SettingsContent() {
   const [systemSaved, setSystemSaved] = useState(false);
   const [systemError, setSystemError] = useState("");
   const [systemSaving, setSystemSaving] = useState(false);
+  // Read-only by default — fields unlock after « تعديل » and re-lock on
+  // cancel (values refetched from GET /tenant/settings) or save success.
+  const [systemEditing, setSystemEditing] = useState(false);
 
   const TAGLINE_MAX = 140;
 
-  // Load tenant settings once on mount — GET /tenant/settings returns both
-  // the office profile and the system configuration.
-  useEffect(() => {
-    let cancelled = false;
+  // GET /tenant/settings returns both the office profile and the system
+  // configuration — also used to restore the last-saved values on cancel
+  // and to refresh link state after a successful save.
+  function loadSettings() {
     tenantSettingsService.getSettings()
       .then((res) => {
-        if (cancelled) return;
         const d = res?.data ?? res;
         if (!d || typeof d !== "object") return;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -186,7 +196,11 @@ function SettingsContent() {
           tajeerOfficeId: tj.tajeerOfficeId ?? null,
           lastVerifiedAt: tj.lastVerifiedAt ?? null,
         });
-        if (tj.isActive) setTajeerVerifyStatus("verified");
+        setTajeerVerifyStatus(tj.isActive ? "verified" : "idle");
+        setTajeerVerifyError(null);
+        const ecId = tj.extendedCoverageTajeerId != null ? Number(tj.extendedCoverageTajeerId) : null;
+        setExtCoverageTajeerId(ecId);
+        setExtCoverageLoaded(ecId);
         if (s.sessionTimeoutMinutes != null) setSessionTimeout(String(s.sessionTimeoutMinutes));
         if (s.contractAutoCancelHours != null) setContractAutoCancel(String(s.contractAutoCancelHours));
         if (s.lateFeeGraceHours != null) setLateFeeGrace(String(s.lateFeeGraceHours));
@@ -202,7 +216,22 @@ function SettingsContent() {
         }
       })
       .catch(() => {});
-    return () => { cancelled = true; };
+  }
+
+  useEffect(() => {
+    loadSettings();
+    // Options for the default extended-coverage select — Tajeer-synced rows
+    // carry the office-side `tajeerId` the PUT expects.
+    extendedCoverageService.picker({})
+      .then((res) => {
+        const items = res?.items ?? res?.data?.items ?? res?.data ?? res;
+        setExtCoverageOptions((Array.isArray(items) ? items : [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((c: any) => c?.tajeerId != null && c?.isActive !== false)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((c: any) => ({ tajeerId: Number(c.tajeerId), nameEn: String(c.nameEn ?? ""), nameAr: String(c.nameAr ?? "") })));
+      })
+      .catch(() => {});
   }, []);
 
   async function handleSaveProfile() {
@@ -230,12 +259,25 @@ function SettingsContent() {
     }
   }
 
+  // Secrets come back masked (has*Key) so verify with empty secret inputs
+  // lets the backend use the stored credentials; a *partially* filled set is
+  // ambiguous — require all three or none.
+  const tajeerSecretsMissing = !tajeerGatewayKey || !tajeerAppKey || !tajeerAuthorization;
+  const tajeerSecretsPartial = tajeerSecretsMissing && Boolean(tajeerGatewayKey || tajeerAppKey || tajeerAuthorization);
+  const MISSING_SECRETS_MSG = "Enter all three secrets together, or leave them empty to use the saved credentials.";
+  const MISSING_SECRETS_MSG_AR = "أدخل المفاتيح الثلاثة معاً، أو اتركها فارغة لاستخدام المحفوظة.";
+  const REQUIRED_SECRETS_MSG = "To change the Tajeer connection, re-enter the Gateway Key, App Key and Authorization.";
+  const REQUIRED_SECRETS_MSG_AR = "لتغيير ربط تاجير، أعد إدخال مفتاح البوابة ومفتاح التطبيق ورمز التفويض.";
+
   async function handleVerifyTajeer() {
     setTajeerVerifyStatus("verifying");
     setTajeerVerifyError(null);
+    if (tajeerSecretsPartial) {
+      setTajeerVerifyStatus("error");
+      setTajeerVerifyError(ar ? MISSING_SECRETS_MSG_AR : MISSING_SECRETS_MSG);
+      return false;
+    }
     try {
-      // Only send fields the user actually filled — secrets stay server-side
-      // (the API never returns them) so empty inputs must not blank them out.
       const res = await tenantSettingsService.verifyTajeer({
         gatewayUrl: tajeerGatewayUrl || undefined,
         gatewayKey: tajeerGatewayKey || undefined,
@@ -247,13 +289,15 @@ function SettingsContent() {
       const verified = Boolean(d?.verified ?? d?.isVerified ?? d?.success);
       if (verified) {
         setTajeerVerifyStatus("verified");
-      } else {
-        setTajeerVerifyStatus("error");
-        setTajeerVerifyError(friendlyTajeerError(d?.message ?? d?.error ?? null));
+        return true;
       }
+      setTajeerVerifyStatus("error");
+      setTajeerVerifyError(friendlyTajeerError(d?.message ?? d?.error ?? null));
+      return false;
     } catch (err) {
       setTajeerVerifyStatus("error");
       setTajeerVerifyError(friendlyTajeerError(err instanceof Error ? err.message : null));
+      return false;
     }
   }
 
@@ -294,8 +338,21 @@ function SettingsContent() {
         tajeerGatewayUrl !== tajeerLoaded.gatewayUrl ||
         tajeerAppId !== tajeerLoaded.appId ||
         Boolean(tajeerAppKey || tajeerAuthorization || tajeerGatewayKey);
+      const extCoverageDirty = extCoverageTajeerId !== extCoverageLoaded;
       if (tajeerDirty) {
-        await handleVerifyTajeer();
+        // The PUT re-verifies changed Tajeer fields server-side — re-entering
+        // all three secrets keeps the new credential set unambiguous.
+        if (tajeerSecretsMissing) {
+          setSystemError(T(REQUIRED_SECRETS_MSG, REQUIRED_SECRETS_MSG_AR, ar));
+          setSystemSaving(false);
+          return;
+        }
+        // Abort before the PUT when verification already failed — it would
+        // just surface the same upstream error a second time.
+        if (!(await handleVerifyTajeer())) {
+          setSystemSaving(false);
+          return;
+        }
       }
       await tenantSettingsService.updateSystem({
         sessionTimeoutMinutes: Number(sessionTimeout) || 0,
@@ -313,18 +370,22 @@ function SettingsContent() {
         appId: tajeerDirty && tajeerAppId ? tajeerAppId : undefined,
         appKey: tajeerDirty && tajeerAppKey ? tajeerAppKey : undefined,
         authorization: tajeerDirty && tajeerAuthorization ? tajeerAuthorization : undefined,
+        extendedCoverageTajeerId: extCoverageDirty ? extCoverageTajeerId : undefined,
       });
-      // Credentials are now stored server-side — clear the secret inputs and
-      // re-anchor the dirty check so a later save doesn't resend them.
+      // Credentials are now stored server-side — clear the secret inputs so
+      // they aren't resent on a later save.
       if (tajeerDirty) {
         setTajeerGatewayKey("");
         setTajeerAppKey("");
         setTajeerAuthorization("");
-        setTajeerLoaded({ gatewayUrl: tajeerGatewayUrl, appId: tajeerAppId });
       }
       // Refresh the shared permission/settings context so flags like
       // autoApprove* propagate instantly (e.g. KYC queue links in the nav).
       reloadPermissions().catch(() => {});
+      // Back to read mode — reload re-anchors the dirty baselines and shows
+      // the persisted values (verified link state, coverage id, etc.).
+      setSystemEditing(false);
+      loadSettings();
       setSystemSaved(true);
       setTimeout(() => setSystemSaved(false), 1800);
     } catch (err) {
@@ -332,6 +393,50 @@ function SettingsContent() {
     } finally {
       setSystemSaving(false);
     }
+  }
+
+  // The default-coverage select works without entering edit mode — the
+  // change saves immediately (optimistic, reverted on failure). The PUT
+  // carries the current system values so a partial body can't zero them,
+  // and no credential fields — so no Tajeer re-verify is triggered.
+  async function handleExtCoverageChange(id: number | null) {
+    const prev = extCoverageTajeerId;
+    setExtCoverageTajeerId(id);
+    setExtCoverageSaving(true);
+    try {
+      await tenantSettingsService.updateSystem({
+        sessionTimeoutMinutes: Number(sessionTimeout) || 0,
+        contractAutoCancelHours: Number(contractAutoCancel) || 0,
+        lateFeeGraceHours: Number(lateFeeGrace) || 0,
+        otpResendLimit: Number(otpResendLimit) || 0,
+        otpLockoutMinutes: Number(otpLockout) || 0,
+        otpValidityMinutes: Number(otpValidity) || 0,
+        smsEnabled,
+        autoApproveCustomers,
+        autoApproveDrivers,
+        senderIds,
+        extendedCoverageTajeerId: id,
+      });
+      setExtCoverageLoaded(id);
+      showToast(T("Default coverage updated", "تم تحديث التغطية الافتراضية", ar));
+    } catch (err) {
+      setExtCoverageTajeerId(prev);
+      showToast(err instanceof Error ? err.message : T("Failed to update coverage", "فشل تحديث التغطية", ar), "error");
+    } finally {
+      setExtCoverageSaving(false);
+    }
+  }
+
+  // « إلغاء » — discard unsaved edits, restore the last API values, re-lock.
+  function handleCancelSystem() {
+    setSystemEditing(false);
+    setSystemError("");
+    setSystemSaved(false);
+    setTajeerGatewayKey("");
+    setTajeerAppKey("");
+    setTajeerAuthorization("");
+    setShowTajeerSecrets(false);
+    loadSettings();
   }
 
   function toggleSender(id: string) {
@@ -507,16 +612,33 @@ function SettingsContent() {
             <p className="mk-caption text-mk-ink-500 mt-1">{T("Update tax, timing, and platform-wide configuration.", "تحديث الضريبة والتوقيتات وإعدادات المنصة العامة.", ar)}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm">{T("Cancel", "إلغاء", ar)}</Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleSaveSystem}
-              disabled={systemSaving}
-              className={systemSaved ? "bg-mk-mint-500 hover:bg-mk-mint-500" : ""}
-            >
-              {systemSaving ? T("Saving…", "جارٍ الحفظ…", ar) : systemSaved ? T("Saved!", "تم الحفظ!", ar) : T("Save Changes", "حفظ التعديلات", ar)}
-            </Button>
+            {systemEditing ? (
+              <>
+                <Button variant="outline" size="sm" onClick={handleCancelSystem} disabled={systemSaving}>{T("Cancel", "إلغاء", ar)}</Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSaveSystem}
+                  disabled={systemSaving}
+                  className={systemSaved ? "bg-mk-mint-500 hover:bg-mk-mint-500" : ""}
+                >
+                  {systemSaving ? T("Saving…", "جارٍ الحفظ…", ar) : T("Save Changes", "حفظ التعديلات", ar)}
+                </Button>
+              </>
+            ) : (
+              <>
+                {systemSaved && (
+                  <span className="flex items-center gap-1.5 mk-label text-mk-mint-600">
+                    <CheckCircle2 size={15} />
+                    {T("Saved", "تم الحفظ", ar)}
+                  </span>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setSystemEditing(true)}>
+                  <Pencil size={14} />
+                  {T("Edit", "تعديل", ar)}
+                </Button>
+              </>
+            )}
           </div>
         </div>
         {systemError && (
@@ -533,16 +655,17 @@ function SettingsContent() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
                 <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Gateway URL", "رابط البوابة", ar)}</span>
-                <input className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono" dir="ltr" placeholder="https://api.tajeer.sa" value={tajeerGatewayUrl} onChange={(e) => { setTajeerGatewayUrl(e.target.value); setTajeerVerifyStatus("idle"); }} />
+                <input className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono read-only:cursor-default" dir="ltr" placeholder="https://api.tajeer.sa" value={tajeerGatewayUrl} onChange={(e) => { setTajeerGatewayUrl(e.target.value); setTajeerVerifyStatus("idle"); }} readOnly={!systemEditing} />
               </div>
               <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
                 <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Gateway Key", "مفتاح البوابة", ar)}</span>
                 <input
                   type={showTajeerSecrets ? "text" : "password"}
-                  className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono"
+                  className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono read-only:cursor-default"
                   placeholder={tajeerMeta.hasGatewayKey ? "••••••••" : "gateway-key"}
                   value={tajeerGatewayKey}
                   onChange={(e) => { setTajeerGatewayKey(e.target.value); setTajeerVerifyStatus("idle"); }}
+                  readOnly={!systemEditing}
                 />
                 {tajeerMeta.hasGatewayKey && !tajeerGatewayKey && (
                   <span className="mk-caption text-mk-mint-600 px-3 shrink-0">{T("✓ configured", "✓ مُهيأ", ar)}</span>
@@ -550,16 +673,17 @@ function SettingsContent() {
               </div>
               <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
                 <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("App ID", "معرّف التطبيق", ar)}</span>
-                <input className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono" placeholder="app-id" value={tajeerAppId} onChange={(e) => { setTajeerAppId(e.target.value); setTajeerVerifyStatus("idle"); }} />
+                <input className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono read-only:cursor-default" placeholder="app-id" value={tajeerAppId} onChange={(e) => { setTajeerAppId(e.target.value); setTajeerVerifyStatus("idle"); }} readOnly={!systemEditing} />
               </div>
               <div className="flex items-center rounded-md border border-mk-ink-100 bg-mk-ink-50 overflow-hidden focus-within:border-mk-blue-500 focus-within:shadow-[0_0_0_3px_rgba(65,113,226,0.15)] transition-all">
                 <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("App Key", "مفتاح التطبيق", ar)}</span>
                 <input
                   type={showTajeerSecrets ? "text" : "password"}
-                  className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono"
+                  className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono read-only:cursor-default"
                   placeholder={tajeerMeta.hasAppKey ? "••••••••" : "app-key"}
                   value={tajeerAppKey}
                   onChange={(e) => { setTajeerAppKey(e.target.value); setTajeerVerifyStatus("idle"); }}
+                  readOnly={!systemEditing}
                 />
                 {tajeerMeta.hasAppKey && !tajeerAppKey && (
                   <span className="mk-caption text-mk-mint-600 px-3 shrink-0">{T("✓ configured", "✓ مُهيأ", ar)}</span>
@@ -567,7 +691,8 @@ function SettingsContent() {
                 <button
                   type="button"
                   onClick={() => setShowTajeerSecrets((s) => !s)}
-                  className="px-3 h-11 flex items-center text-mk-ink-400 hover:text-mk-ink-700 bg-transparent border-0 cursor-pointer transition-colors shrink-0"
+                  disabled={!systemEditing}
+                  className="px-3 h-11 flex items-center text-mk-ink-400 hover:text-mk-ink-700 bg-transparent border-0 cursor-pointer transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label={showTajeerSecrets ? T("Hide secrets", "إخفاء البيانات السرية", ar) : T("Show secrets", "إظهار البيانات السرية", ar)}
                 >
                   {showTajeerSecrets ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -577,16 +702,34 @@ function SettingsContent() {
                 <span className="mk-caption text-mk-ink-400 px-3 border-e border-mk-ink-100 shrink-0">{T("Authorization", "رمز التفويض", ar)}</span>
                 <input
                   type={showTajeerSecrets ? "text" : "password"}
-                  className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono"
+                  className="flex-1 h-11 px-3 mk-body-sm outline-none border-0 bg-transparent font-mono read-only:cursor-default"
                   placeholder={tajeerMeta.hasAuthorization ? "••••••••" : "Basic ••••••••"}
                   value={tajeerAuthorization}
                   onChange={(e) => { setTajeerAuthorization(e.target.value); setTajeerVerifyStatus("idle"); }}
+                  readOnly={!systemEditing}
                 />
                 {tajeerMeta.hasAuthorization && !tajeerAuthorization && (
                   <span className="mk-caption text-mk-mint-600 px-3 shrink-0">{T("✓ configured", "✓ مُهيأ", ar)}</span>
                 )}
               </div>
               <p className="mk-overline text-mk-ink-400">{T("Gateway URL/Key connect to the Tajeer gateway; App ID / App Key / Authorization are issued for your office in the Tajeer portal.", "رابط ومفتاح البوابة للاتصال ببوابة تاجير، ومعرّف ومفتاح التطبيق ورمز التفويض تُصدر لمكتبك من بوابة تاجير.", ar)}</p>
+
+              <Select
+                variant="muted"
+                label={T("Default extended coverage", "التغطية الإضافية الافتراضية", ar)}
+                helpText={extCoverageOptions.length === 0
+                  ? T("No synced coverage packages — sync them from Pricing first.", "لا توجد باقات تغطية مُزامنة — زامِنها من صفحة الأسعار أولاً.", ar)
+                  : T("Sent to Tajeer as your office's extended coverage on submitted contracts.", "تُرسل لتاجير كتغطية إضافية لمكتبك عند إصدار العقود.", ar)}
+                value={extCoverageTajeerId != null ? String(extCoverageTajeerId) : ""}
+                onChange={(e) => handleExtCoverageChange(e.target.value ? Number(e.target.value) : null)}
+                disabled={extCoverageSaving}
+                className="disabled:opacity-100 disabled:text-mk-fg-1 disabled:cursor-not-allowed"
+              >
+                <option value="">{T("None", "بدون", ar)}</option>
+                {extCoverageOptions.map((c) => (
+                  <option key={c.tajeerId} value={c.tajeerId}>{ar ? (c.nameAr || c.nameEn) : (c.nameEn || c.nameAr)}</option>
+                ))}
+              </Select>
 
               <div className="flex items-center justify-between gap-3 pt-1">
                 <Button
@@ -644,21 +787,21 @@ function SettingsContent() {
 
           <SettingsRow title={T("Session Timeout", "مهلة الجلسة", ar)} sub={T("Minutes of inactivity before automatic logout.", "عدد الدقائق قبل تسجيل الخروج التلقائي بسبب عدم النشاط.", ar)}>
             <div className="flex items-center gap-2">
-              <Input type="number" variant="muted" className="max-w-[140px] font-mono" value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)} />
+              <Input type="number" variant="muted" className="max-w-[140px] font-mono" value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)} readOnly={!systemEditing} />
               <span className="mk-caption text-mk-ink-400">{T("minutes", "دقيقة", ar)}</span>
             </div>
           </SettingsRow>
 
           <SettingsRow title={T("Contract Auto-Cancel", "إلغاء العقد التلقائي", ar)} sub={T("Hours before an unsigned Tajeer contract is cancelled automatically.", "عدد الساعات قبل إلغاء عقد تاجير غير الموقّع تلقائياً.", ar)}>
             <div className="flex items-center gap-2">
-              <Input type="number" variant="muted" className="max-w-[140px] font-mono" value={contractAutoCancel} onChange={(e) => setContractAutoCancel(e.target.value)} />
+              <Input type="number" variant="muted" className="max-w-[140px] font-mono" value={contractAutoCancel} onChange={(e) => setContractAutoCancel(e.target.value)} readOnly={!systemEditing} />
               <span className="mk-caption text-mk-ink-400">{T("hours", "ساعة", ar)}</span>
             </div>
           </SettingsRow>
 
           <SettingsRow title={T("Late Return Grace Period", "مهلة الإرجاع المتأخر", ar)} sub={T("Grace period before the late-return penalty starts accruing.", "المهلة قبل بدء احتساب غرامة التأخير.", ar)}>
             <div className="flex items-center gap-2">
-              <Input type="number" variant="muted" className="max-w-[140px] font-mono" value={lateFeeGrace} onChange={(e) => setLateFeeGrace(e.target.value)} />
+              <Input type="number" variant="muted" className="max-w-[140px] font-mono" value={lateFeeGrace} onChange={(e) => setLateFeeGrace(e.target.value)} readOnly={!systemEditing} />
               <span className="mk-caption text-mk-ink-400">{T("hour(s)", "ساعة", ar)}</span>
             </div>
           </SettingsRow>
@@ -670,14 +813,14 @@ function SettingsContent() {
                   <div className="mk-label text-mk-ink-900">{T("Auto-approve customers", "اعتماد العملاء تلقائياً", ar)}</div>
                   <p className="mk-caption text-mk-ink-400 mt-1">{T("New customers (incl. warehouse import) are Verified immediately instead of Pending.", "العملاء الجدد (بما فيهم المستوردون) يصبحون موثّقين فوراً بدلاً من معلّق.", ar)}</p>
                 </div>
-                <Toggle checked={autoApproveCustomers} onChange={setAutoApproveCustomers} />
+                <Toggle checked={autoApproveCustomers} onChange={setAutoApproveCustomers} disabled={!systemEditing} />
               </div>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="mk-label text-mk-ink-900">{T("Auto-approve drivers", "اعتماد السائقين تلقائياً", ar)}</div>
                   <p className="mk-caption text-mk-ink-400 mt-1">{T("New drivers are Verified immediately instead of waiting for manual approval.", "السائقون الجدد يصبحون موثّقين فوراً بدلاً من انتظار الاعتماد اليدوي.", ar)}</p>
                 </div>
-                <Toggle checked={autoApproveDrivers} onChange={setAutoApproveDrivers} />
+                <Toggle checked={autoApproveDrivers} onChange={setAutoApproveDrivers} disabled={!systemEditing} />
               </div>
             </div>
           </SettingsRow>
@@ -686,15 +829,15 @@ function SettingsContent() {
             <div className="grid grid-cols-3 gap-3">
               <Input
                 label={T("Resend limit", "حد الإعادة", ar)}
-                type="number" variant="muted" className="font-mono" value={otpResendLimit} onChange={(e) => setOtpResendLimit(e.target.value)}
+                type="number" variant="muted" className="font-mono" value={otpResendLimit} onChange={(e) => setOtpResendLimit(e.target.value)} readOnly={!systemEditing}
               />
               <Input
                 label={T("Lockout (min)", "الإغلاق (د)", ar)}
-                type="number" variant="muted" className="font-mono" value={otpLockout} onChange={(e) => setOtpLockout(e.target.value)}
+                type="number" variant="muted" className="font-mono" value={otpLockout} onChange={(e) => setOtpLockout(e.target.value)} readOnly={!systemEditing}
               />
               <Input
                 label={T("Validity (min)", "الصلاحية (د)", ar)}
-                type="number" variant="muted" className="font-mono" value={otpValidity} onChange={(e) => setOtpValidity(e.target.value)}
+                type="number" variant="muted" className="font-mono" value={otpValidity} onChange={(e) => setOtpValidity(e.target.value)} readOnly={!systemEditing}
               />
             </div>
           </SettingsRow>
@@ -710,7 +853,7 @@ function SettingsContent() {
                   <div className="mk-label text-mk-ink-900">{T("SMS Sending", "إرسال الرسائل النصية", ar)}</div>
                   <p className="mk-caption text-mk-ink-400 mt-1">{T("Enable or disable sending SMS messages to customers (payment links, OTP, alerts).", "تفعيل أو تعطيل إرسال الرسائل النصية للعملاء (روابط الدفع، رمز التحقق، التنبيهات).", ar)}</p>
                 </div>
-                <Toggle checked={smsEnabled} onChange={setSmsEnabled} />
+                <Toggle checked={smsEnabled} onChange={setSmsEnabled} disabled={!systemEditing} />
               </div>
 
               <div className="rounded-md overflow-hidden border border-mk-ink-100">
@@ -732,7 +875,7 @@ function SettingsContent() {
                       senderIds.map((s) => (
                         <tr key={s.id}>
                           <Td className="font-mono mk-label text-mk-ink-900">{s.id}</Td>
-                          <Td><Toggle checked={s.enabled ?? false} onChange={() => toggleSender(s.id ?? "")} disabled={!smsEnabled} size="sm" /></Td>
+                          <Td><Toggle checked={s.enabled ?? false} onChange={() => toggleSender(s.id ?? "")} disabled={!systemEditing || !smsEnabled} size="sm" /></Td>
                         </tr>
                       ))
                     )}

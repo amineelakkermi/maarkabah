@@ -830,6 +830,9 @@ export interface TenantSystemSettingsRequest {
   appId?: string;
   appKey?: string;
   authorization?: string;
+  /** Office's default extended-coverage product on the Tajeer side (Tajeer ID,
+   *  not the local /extended-coverages id). Read back at tajeer.extendedCoverageTajeerId. */
+  extendedCoverageTajeerId?: number | null;
 }
 
 export interface TajeerVerifyRequest {
