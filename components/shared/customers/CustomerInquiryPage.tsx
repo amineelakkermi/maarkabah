@@ -183,7 +183,15 @@ function mapWarehouseRecord(item: any, summary: any | null, ar: boolean): Dynami
 
 // POST /api/customers/inquiry — single-identity lookup that also reaches
 // Dynamic GetClientInfo when the id is unknown to the warehouse.
-function mapInquiryRecord(item: any, ar: boolean): DynamicsLookupRecord {
+function mapInquiryRecord(item: any, ar: boolean, queriedId?: string): DynamicsLookupRecord {
+  const digits = (value: unknown) => String(value ?? "").replace(/\D/g, "");
+  const rawId = digits(item.idNumber);
+  const rawPhone = digits(item.phoneNumber);
+  const idLooksLikePhone = /^(?:966)?5\d{8}$/.test(rawId);
+  const phoneLooksLikeId = /^[12]\d{9}$/.test(rawPhone);
+  const idNumber = queriedId || (idLooksLikePhone && phoneLooksLikeId ? rawPhone : rawId);
+  const phoneNumber = idLooksLikePhone && phoneLooksLikeId ? item.idNumber : item.phoneNumber;
+
   const debts: ClientDebt[] = (Array.isArray(item?.debts) ? item.debts : []).map((d: any, i: number) => ({
     id: String(d.contractNumber ?? `debt-${i}`),
     type: d.note || d.contractNumber || "Debt",
@@ -214,10 +222,10 @@ function mapInquiryRecord(item: any, ar: boolean): DynamicsLookupRecord {
   }));
 
   return {
-    idNumber: maskId(item.idNumber ?? ""),
+    idNumber: maskId(idNumber),
     name: item.fullNameEn || "",
     nameAr: item.fullNameAr || "",
-    phone: normalizePhone(item.phoneNumber),
+    phone: normalizePhone(phoneNumber),
     idType: idTypeLabel(item.identityType, false),
     licenseNumber: item.licenseNumber || "",
     blacklisted: item.isBlacklisted ?? false,
@@ -303,7 +311,7 @@ export default function CustomerInquiryPage({ customerProfilePath }: CustomerInq
         }
         external.push({
           kind: "external" as const,
-          record: mapInquiryRecord(inquiryData, ar),
+          record: mapInquiryRecord(inquiryData, ar, idQuery),
           warehouseId,
         });
       }
@@ -498,9 +506,9 @@ export default function CustomerInquiryPage({ customerProfilePath }: CustomerInq
                     <div className="flex-1 min-w-0">
                       <div className="mk-body text-mk-ink-900 truncate">{ar ? nameAr : name}</div>
                       <div className="flex items-center gap-2 mk-overline text-mk-ink-400 mt-1">
-                        <span className="flex items-center gap-1"><Phone size={10} />{phone}</span>
+                        <span dir="ltr" className="flex items-center gap-1"><Phone size={10} />{phone}</span>
                         <span>·</span>
-                        <span className="flex items-center gap-1 font-mono"><CreditCard size={10} />{idNumber}</span>
+                        <span dir="ltr" className="flex items-center gap-1 font-mono"><CreditCard size={10} />{idNumber}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -717,11 +725,11 @@ export default function CustomerInquiryPage({ customerProfilePath }: CustomerInq
                 <span className="mk-overline uppercase tracking-wider text-mk-ink-400">{T("Identity", "الهوية", ar)}</span>
                 <div className="flex justify-between items-center mk-label border-b border-mk-ink-100 pb-2">
                   <span className="flex items-center gap-2 text-mk-ink-500"><CreditCard size={13} className="text-mk-ink-400" />{T(view.idType, view.idType, ar)}</span>
-                  <strong className="font-mono text-mk-ink-900">{view.idNumber}</strong>
+                  <strong dir="ltr" className="font-mono text-mk-ink-900">{view.idNumber}</strong>
                 </div>
                 <div className="flex justify-between items-center mk-label border-b border-mk-ink-100 pb-2">
                   <span className="flex items-center gap-2 text-mk-ink-500"><Phone size={13} className="text-mk-ink-400" />{T("Phone", "الهاتف", ar)}</span>
-                  <strong className="text-mk-ink-900">{view.phone}</strong>
+                  <strong dir="ltr" className="text-mk-ink-900">{view.phone}</strong>
                 </div>
                 {view.isLocal && view.yakeenStatus && (
                   <div className="flex justify-between items-center mk-label">
