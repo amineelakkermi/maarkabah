@@ -91,6 +91,7 @@ export interface TajeerRentStatus {
   enduranceAmount: number;     // deductible — CANNOT be changed after save
   oilChangeKmDistance: number;
   oilChangeDate: string;       // yyyy-mm-dd
+  nextOilChangeKm?: number;    // lastOilOdometer + oilChangeDistance (display only)
   oilType: string;
   sketchInfo?: string;         // JSON string of SketchItem[]
   notes?: string;              // max 130 chars

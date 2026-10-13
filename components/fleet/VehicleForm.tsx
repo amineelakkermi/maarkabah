@@ -448,6 +448,12 @@ export function VehicleForm({
                     onChange={(e) => setForm((f: any) => ({ ...f, lastOilChangeDate: e.target.value }))}
                   />
                   <Input
+                    label={T("Odometer at last oil change (km)", "قراءة العداد عند آخر تغيير زيت (كم)", ar)}
+                    type="number"
+                    value={form.lastOilOdometer}
+                    onChange={(e) => setForm((f: any) => ({ ...f, lastOilOdometer: e.target.value }))}
+                  />
+                  <Input
                     label={T("Oil change interval (km)", "فترة تغيير الزيت (كم)", ar)}
                     type="number"
                     value={form.oilChangeDistance}
@@ -456,7 +462,7 @@ export function VehicleForm({
                   <Input
                     label={T("Next oil change at (km)", "موعد تغيير الزيت القادم (كم)", ar)}
                     type="number"
-                    value={form.odometerReading && form.oilChangeDistance ? String(Number(form.odometerReading) + Number(form.oilChangeDistance)) : ""}
+                    value={(form.lastOilOdometer || form.odometerReading) && form.oilChangeDistance ? String(Number(form.lastOilOdometer || form.odometerReading) + Number(form.oilChangeDistance)) : ""}
                     disabled
                     placeholder="—"
                     onChange={() => {}}
@@ -544,6 +550,34 @@ export function VehicleForm({
                     onChange={(e) => setForm((f: any) => ({ ...f, tireToolsStatus: e.target.value }))}
                   >
                     {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                  </Select>
+                  <Select
+                    label={T("Windshield", "الزجاج الأمامي", ar)}
+                    value={form.windshieldStatus}
+                    onChange={(e) => setForm((f: any) => ({ ...f, windshieldStatus: e.target.value }))}
+                  >
+                    {enumOptions(Types.ConditionGrade, AR_LABELS)}
+                  </Select>
+                  <Select
+                    label={T("Spare key", "المفتاح الاحتياطي", ar)}
+                    value={form.spareKeyStatus}
+                    onChange={(e) => setForm((f: any) => ({ ...f, spareKeyStatus: e.target.value }))}
+                  >
+                    {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                  </Select>
+                  <Select
+                    label={T("Power outlet", "منفذ الكهرباء", ar)}
+                    value={form.powerOutletStatus}
+                    onChange={(e) => setForm((f: any) => ({ ...f, powerOutletStatus: e.target.value }))}
+                  >
+                    {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                  </Select>
+                  <Select
+                    label={T("Smoking odor", "رائحة التدخين", ar)}
+                    value={form.smokingOdorStatus}
+                    onChange={(e) => setForm((f: any) => ({ ...f, smokingOdorStatus: e.target.value }))}
+                  >
+                    {enumOptions(Types.OdorStatus, AR_LABELS)}
                   </Select>
                   <div className="col-span-2 flex flex-col gap-2">
                     <label className="mk-body-sm text-mk-fg-1">{T("Notes", "ملاحظات", ar)}</label>

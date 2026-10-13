@@ -197,8 +197,8 @@ export function StepIssue({
                 </div>
               
                 <div className="flex flex-col">
-                  <span className="mk-overline text-mk-ink-400 uppercase">{T("Next oil change due", "موعد استدعاء الزيت القادم", ar)}</span>
-                  <span className="mk-label-muted text-mk-ink-700 mt-1">{rentStatus.oilChangeDate || "—"}</span>
+                  <span className="mk-overline text-mk-ink-400 uppercase">{T("Next oil change (km)", "موعد تغيير الزيت القادم (كم)", ar)}</span>
+                  <span className="mk-label-muted text-mk-ink-700 mt-1">{rentStatus.nextOilChangeKm ? `${rentStatus.nextOilChangeKm.toLocaleString()} ${T("km", "كم", ar)}` : "—"}</span>
                 </div>
                 {car?.otherNotes && (
                   <div className="flex flex-col sm:col-span-2">

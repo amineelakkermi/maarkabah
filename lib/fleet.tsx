@@ -66,6 +66,8 @@ export const AR_LABELS: Record<string, string> = {
   Clean: "نظيف",
   Dirty: "متسخ",
   NotAvailable: "لا يوجد",
+  NoOdor: "لا توجد رائحة",
+  SmokingOdor: "رائحة دخان",
 };
 
 export const STATUS_BADGE_VARIANT: Record<CarStatus, "success" | "info" | "danger" | "warning" | "violet" | "neutral"> = {
@@ -133,6 +135,7 @@ export function emptyVehicleForm() {
     enduranceAmount: "",
     oilType: "",
     lastOilChangeDate: new Date().toISOString().split("T")[0],
+    lastOilOdometer: "",
     oilChangeDistance: "",
     airConditionGrade: Types.ConditionGrade.Good,
     radioStatus: Types.ConditionGrade.Good,
@@ -146,6 +149,10 @@ export function emptyVehicleForm() {
     firstAidKitStatus: Types.PresenceStatus.Available,
     safetyTriangleStatus: Types.PresenceStatus.Available,
     tireToolsStatus: Types.PresenceStatus.Available,
+    windshieldStatus: Types.ConditionGrade.Good,
+    spareKeyStatus: Types.PresenceStatus.Available,
+    powerOutletStatus: Types.WorkingStatus.Working,
+    smokingOdorStatus: Types.OdorStatus.NoOdor,
     featureTypeIds: [] as number[],
     sketchItems: [] as SketchItem[],
   };
@@ -293,6 +300,7 @@ export function mapVehicleToForm(raw: any) {
     lastOilChangeDate:
       toDateInput(firstDefined(tajeer.lastOilChangeDate, v.lastOilChangeDate, v.oilChangeDate)) ||
       empty.lastOilChangeDate,
+    lastOilOdometer: firstDefined(tajeer.lastOilOdometer, v.lastOilOdometer) ?? "",
     oilChangeDistance: firstDefined(tajeer.oilChangeDistance, v.oilChangeDistance) ?? "",
     airConditionGrade:
       firstDefined(tajeer.airConditionGrade, v.airConditionGrade) ?? empty.airConditionGrade,
@@ -311,6 +319,10 @@ export function mapVehicleToForm(raw: any) {
     safetyTriangleStatus:
       firstDefined(tajeer.safetyTriangleStatus, v.safetyTriangleStatus) ?? empty.safetyTriangleStatus,
     tireToolsStatus: firstDefined(tajeer.tireToolsStatus, v.tireToolsStatus) ?? empty.tireToolsStatus,
+    windshieldStatus: firstDefined(tajeer.windshieldStatus, v.windshieldStatus) ?? empty.windshieldStatus,
+    spareKeyStatus: firstDefined(tajeer.spareKeyStatus, v.spareKeyStatus) ?? empty.spareKeyStatus,
+    powerOutletStatus: firstDefined(tajeer.powerOutletStatus, v.powerOutletStatus) ?? empty.powerOutletStatus,
+    smokingOdorStatus: firstDefined(tajeer.smokingOdorStatus, v.smokingOdorStatus) ?? empty.smokingOdorStatus,
     featureTypeIds: Array.isArray(v.featureTypeIds) ? v.featureTypeIds : [],
     sketchItems: mapDamagePointsToSketchItems(v.damagePoints),
   };
@@ -412,6 +424,7 @@ export const buildVehiclePayload = (form: any, imageFileIds: number[] = []) => (
     enduranceAmount: Number(form.enduranceAmount) || 0,
     oilType: String(form.oilType ?? "").trim(),
     lastOilChangeDate: form.lastOilChangeDate || new Date().toISOString().split("T")[0],
+    lastOilOdometer: Number(form.lastOilOdometer) || 0,
     oilChangeDistance: Number(form.oilChangeDistance) || 0,
     airConditionGrade:
       form.airConditionGrade === "" || form.airConditionGrade == null
@@ -461,6 +474,22 @@ export const buildVehiclePayload = (form: any, imageFileIds: number[] = []) => (
       form.tireToolsStatus === "" || form.tireToolsStatus == null
         ? Types.PresenceStatus.Available
         : Number(form.tireToolsStatus),
+    windshieldStatus:
+      form.windshieldStatus === "" || form.windshieldStatus == null
+        ? Types.ConditionGrade.Good
+        : Number(form.windshieldStatus),
+    spareKeyStatus:
+      form.spareKeyStatus === "" || form.spareKeyStatus == null
+        ? Types.PresenceStatus.Available
+        : Number(form.spareKeyStatus),
+    powerOutletStatus:
+      form.powerOutletStatus === "" || form.powerOutletStatus == null
+        ? Types.WorkingStatus.Working
+        : Number(form.powerOutletStatus),
+    smokingOdorStatus:
+      form.smokingOdorStatus === "" || form.smokingOdorStatus == null
+        ? Types.OdorStatus.NoOdor
+        : Number(form.smokingOdorStatus),
   },
   featureTypeIds: (form.featureTypeIds || []).map((id: any) => Number(id)),
   images: imageFileIds.length
@@ -594,10 +623,11 @@ export const VEHICLE_FIELD_PANEL_MAP: Record<string, VehicleFieldPanel> = {
   fullFuelRate: "insurance", lateHourRate: "insurance", isKilometerLimitEnabled: "insurance", dailyKilometerLimit: "insurance",
   enduranceAmount: "insurance",
   status: "status", isListingActive: "status", odometerReading: "status", fuelLevel: "status",
-  oilType: "status", lastOilChangeDate: "status", oilChangeDistance: "status", airConditionGrade: "status",
+  oilType: "status", lastOilChangeDate: "status", lastOilOdometer: "status", oilChangeDistance: "status", airConditionGrade: "status",
   radioStatus: "status", screenStatus: "status", odometerStatus: "status", seatCleanliness: "status", keyStatus: "status",
   tireCondition: "status", spareTireStatus: "status", fireExtinguisherStatus: "status", firstAidKitStatus: "status",
-  safetyTriangleStatus: "status", tireToolsStatus: "status", tajeerNotes: "status",
+  safetyTriangleStatus: "status", tireToolsStatus: "status", windshieldStatus: "status", spareKeyStatus: "status",
+  powerOutletStatus: "status", smokingOdorStatus: "status", tajeerNotes: "status",
 };
 
 export function getMissingVehicleFields(form: any): VehicleRequiredField[] {

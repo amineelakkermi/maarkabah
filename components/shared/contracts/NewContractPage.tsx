@@ -298,6 +298,9 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         odometerReading: 0,
         fuelTypeCode: selectedCar.fuelTypeCode,
         enduranceAmount: selectedCar.enduranceAmount,
+        nextOilChangeKm: selectedCar.oilChangeDistance
+          ? (selectedCar.lastOilOdometer || selectedCar.odometerReading || 0) + selectedCar.oilChangeDistance
+          : undefined,
       }));
 
       // Auto-fill insurance amount from vehicle fleet data
@@ -394,6 +397,13 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         setTajeerError(ar
           ? "سياسة التأجير المحددة غير مزامنة مع تاجير. اختر سياسة متزامنة أو زامن السياسات من صفحة الأسعار."
           : "The selected rent policy is not synced with Tajeer. Pick a synced policy or sync policies from the Pricing page.");
+        return;
+      }
+      if (coverageBlocked) {
+        setContractStep("error");
+        setTajeerError(ar
+          ? `التغطية الإضافية ${coveragePerDay.toLocaleString()} ريال/يوم تتجاوز الحد الأقصى ${coverageMaxPerDay.toLocaleString()} ريال/يوم (السعر اليومي × 2). أزل خدمة تكميلية من الخطوة 2.`
+          : `Additional coverage ${coveragePerDay.toLocaleString()} SAR/day exceeds the maximum of ${coverageMaxPerDay.toLocaleString()} SAR/day (daily rate × 2). Remove a supplementary service in step 2.`);
         return;
       }
     }
@@ -544,7 +554,9 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
   });
   const {
     base, addonPrices, grossSubtotal, discountAmount, subtotal, vat, total, advanceAmount, remaining,
+    coveragePerDay, coverageMaxPerDay, coverageExceedsMax,
   } = pricing;
+  const coverageBlocked = Boolean(tajeerEnabled) && coverageExceedsMax;
 
   const filteredCustomers = customersList
     .filter((c) => {
@@ -896,6 +908,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             rentPolicies={rentPolicies}
             rentPolicyId={rentPolicyId} setRentPolicyId={setRentPolicyId}
             tajeerEnabled={tajeerEnabled}
+            coverage={{ perDay: coveragePerDay, maxPerDay: coverageMaxPerDay, exceeds: coverageExceedsMax }}
             cancellationPolicies={cancellationPolicies}
             cancellationPolicyId={cancellationPolicyId} setCancellationPolicyId={setCancellationPolicyId}
             extensionPolicy={extensionPolicy} setExtensionPolicy={setExtensionPolicy}
@@ -1126,6 +1139,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
           && car != null
           && effectiveCarStatus(car, ar) === "available"
         }
+        coverageBlocked={coverageBlocked}
         payType={payType}
         advanceAmount={advanceAmount}
         total={total}

@@ -136,6 +136,44 @@ export interface CustomerSearchRequest {
   pageSize?: number;
 }
 
+/** POST /api/customers/inquiry — warehouse lookup + Dynamic GetClientInfo
+ * fallback. Identity type is inferred from idNumber (1… = National,
+ * 2… = Residence, other 10-digit = visitor border number, else Gulf). */
+export interface CustomerInquiryRequest {
+  idNumber: string;
+}
+
+export interface CustomerInquiryDebt {
+  officeName?: string;
+  amount?: number;
+  date?: string;
+  contractNumber?: string;
+  note?: string;
+}
+
+export interface CustomerInquiryResponse {
+  found?: boolean;
+  warehouseCustomerId?: number;
+  isRegisteredLocally?: boolean;
+  localCustomerId?: number;
+  fullNameAr?: string;
+  fullNameEn?: string;
+  identityType?: IdentityType;
+  idNumber?: string;
+  phoneNumber?: string;
+  licenseNumber?: string;
+  address?: string;
+  birthDate?: string;
+  verificationStatus?: VerificationStatus;
+  isBlacklisted?: boolean;
+  openContractsCount?: number;
+  previousContractsCount?: number;
+  outstandingDebt?: number;
+  openViolationsCount?: number;
+  debts?: CustomerInquiryDebt[];
+  claims?: CustomerInquiryDebt[];
+}
+
 export interface CustomerReasonRequest {
   reason?: string;
 }
@@ -333,6 +371,11 @@ export enum PresenceStatus {
   Available = 1,
 }
 
+export enum OdorStatus {
+  NoOdor = 0,
+  SmokingOdor = 1,
+}
+
 export enum FuelLevel {
   Full = 0,
   ThreeQuarters = 1,
@@ -360,6 +403,7 @@ export interface TajeerStatusRequest {
   /** Free text, e.g. "5W-30". */
   oilType: string;
   lastOilChangeDate: string;
+  lastOilOdometer: number;
   oilChangeDistance: number;
   airConditionGrade: ConditionGrade;
   radioStatus: ConditionGrade;
@@ -373,6 +417,10 @@ export interface TajeerStatusRequest {
   firstAidKitStatus: PresenceStatus;
   safetyTriangleStatus: PresenceStatus;
   tireToolsStatus: PresenceStatus;
+  windshieldStatus: ConditionGrade;
+  spareKeyStatus: PresenceStatus;
+  powerOutletStatus: WorkingStatus;
+  smokingOdorStatus: OdorStatus;
 }
 
 export interface InsurancePricingRequest {

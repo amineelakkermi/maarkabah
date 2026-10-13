@@ -38,6 +38,7 @@ export interface Car {
   operationCardExpiryDate?: string;
   oilChangeDate?: string; // next oil-change due date, yyyy-mm-dd
   oilChangeDistance?: number; // oil change interval in km
+  lastOilOdometer?: number; // odometer reading at the last oil change
   insuranceAmount?: number;
   otherNotes?: string;
 

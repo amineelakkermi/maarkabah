@@ -68,6 +68,18 @@ export function computePricing(p: PricingInput) {
   const addonVatExempt = Object.entries(p.addons)
     .filter(([key, enabled]) => enabled && key !== "driver")
     .reduce((sum, [key]) => (serviceByKey.get(key)?.includeInVat === false ? sum + (addonPrices[key] ?? 0) : sum), 0);
+  // Non-basic (type 2) services are summed into the Tajeer additional coverage,
+  // which submit-tajeer caps at daily rate × 2 per day.
+  const coverageTotal = Object.entries(p.addons)
+    .filter(([key, enabled]) => enabled && key !== "driver")
+    .reduce((sum, [key]) => {
+      const type = serviceByKey.get(key)?.type;
+      return type != null && type !== 1 ? sum + (addonPrices[key] ?? 0) : sum;
+    }, 0);
+  const coveragePerDay = coverageTotal / Math.max(1, p.days);
+  const coverageDailyRate = p.rentDayCost || p.car?.dailyRate || 0;
+  const coverageMaxPerDay = coverageDailyRate * 2;
+  const coverageExceedsMax = coverageDailyRate > 0 && coveragePerDay > coverageMaxPerDay;
   const extraDriverFare = p.hasExtraDriver
     ? (p.contractTypeCode === 4 ? p.driverFarePerHour * p.totalHours : p.driverFarePerDay * p.days)
     : 0;
@@ -101,5 +113,6 @@ export function computePricing(p: PricingInput) {
   return {
     base, addonPrices, addonTotal, extraDriverFare, transferFare, authorizationFare,
     grossSubtotal, discountAmount, subtotal, vat, total, advanceAmount, remaining,
+    coveragePerDay, coverageMaxPerDay, coverageExceedsMax,
   };
 }

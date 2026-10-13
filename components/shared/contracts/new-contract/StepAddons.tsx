@@ -28,6 +28,8 @@ export type StepAddonsProps = {
   rentPolicies: ContractRentPolicy[];
   rentPolicyId: number; setRentPolicyId: (v: number) => void;
   tajeerEnabled?: boolean;
+  /** Tajeer additional-coverage cap check (non-basic services ÷ days vs daily rate × 2). */
+  coverage?: { perDay: number; maxPerDay: number; exceeds: boolean };
   cancellationPolicies: ContractCancellationPolicy[];
   cancellationPolicyId: number; setCancellationPolicyId: (v: number) => void;
   extensionPolicy: string; setExtensionPolicy: (v: string) => void;
@@ -41,7 +43,7 @@ export function StepAddons({
   ar, car, days, total,
   branches, receiveBranchId, setReceiveBranchId, returnBranchId, setReturnBranchId, setWorkingBranchId,
   addons, setAddons, additionalServices,
-  rentPolicies, rentPolicyId, setRentPolicyId, tajeerEnabled, cancellationPolicies, cancellationPolicyId, setCancellationPolicyId,
+  rentPolicies, rentPolicyId, setRentPolicyId, tajeerEnabled, coverage, cancellationPolicies, cancellationPolicyId, setCancellationPolicyId,
   extensionPolicy, setExtensionPolicy, earlyReturnPolicy, setEarlyReturnPolicy,
   accidentReportPolicy, setAccidentReportPolicy, fuelReturnPolicy, setFuelReturnPolicy,
   breakdownReportPolicy, setBreakdownReportPolicy,
@@ -292,6 +294,15 @@ export function StepAddons({
                   {T(group.labelEn, group.labelAr, ar)}
                 </div>
                 {group.items.map(renderService)}
+                {group.key === "supplementary" && tajeerEnabled && coverage?.exceeds && (
+                  <p className="mk-caption px-3 py-2 rounded-lg bg-mk-danger-100 text-mk-danger-700">
+                    {T(
+                      `Additional coverage ${coverage.perDay.toLocaleString()} SAR/day exceeds the Tajeer maximum of ${coverage.maxPerDay.toLocaleString()} SAR/day (daily rate × 2). Remove a supplementary service to continue.`,
+                      `التغطية الإضافية ${coverage.perDay.toLocaleString()} ريال/يوم تتجاوز الحد الأقصى في تاجير ${coverage.maxPerDay.toLocaleString()} ريال/يوم (السعر اليومي × 2). أزل خدمة تكميلية للمتابعة.`,
+                      ar
+                    )}
+                  </p>
+                )}
               </div>
             ))}
 

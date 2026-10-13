@@ -119,6 +119,18 @@ export const customerService = {
   },
 
   /**
+   * Identity lookup in the shared warehouse — falls back to Dynamic
+   * GetClientInfo when the identity is unknown there.
+   * POST /api/customers/inquiry
+   */
+  async inquiry(request: Types.CustomerInquiryRequest): Promise<Types.CustomerInquiryResponse> {
+    return apiClient.request('/customers/inquiry', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
    * Get customer by ID
    * GET /api/customers/{id}
    */

@@ -70,6 +70,7 @@ interface ContractExt {
   remaining: number;
   paymentType: string;
   kmCap: string;
+  extraKmCost: number | null;
 }
 
 type ContractView = Booking & { navId: string };
@@ -141,6 +142,7 @@ function mapExt(c: any): ContractExt {
     remaining,
     paymentType: pay.paymentTypeCode ?? c.paymentTypeCode ?? (remaining > 0 ? "ADVANCE" : "FULL"),
     kmCap: c.unlimitedKm ? "Unlimited" : c.allowedKmPerDay != null ? `${c.allowedKmPerDay} km/day` : "—",
+    extraKmCost: c.extraKmCost != null && c.extraKmCost !== "" ? Number(c.extraKmCost) : null,
   };
 }
 
@@ -182,11 +184,13 @@ const PreviewFieldGrid = ({ children, cols = 4 }: { children: React.ReactNode; c
 );
 
 function ContractPreviewModal({
-  contract, ext, lateFeePerHour, onClose, ar,
+  contract, ext, lateFeePerHour, nextOilChangeKm, extraKmCost, onClose, ar,
 }: {
   contract: ContractView;
   ext: ContractExt;
   lateFeePerHour: number;
+  nextOilChangeKm: number | null;
+  extraKmCost: number | null;
   onClose: () => void;
   ar: boolean;
 }) {
@@ -275,7 +279,8 @@ function ContractPreviewModal({
             <PreviewField en="Make / Model" arLabel="الماركة / الموديل" value={contract.car} />
             <PreviewField en="Plate No." arLabel="رقم اللوحة" value={contract.plate} />
             <PreviewField en="KM Limit / Day" arLabel="حد الكيلومترات" value={ext.kmCap} />
-            <PreviewField en="Extra KM Cost" arLabel="تكلفة الكيلومتر الزائد" value="2 SAR / ر.س" />
+            <PreviewField en="Extra KM Cost" arLabel="تكلفة الكيلومتر الزائد" value={extraKmCost != null ? `${extraKmCost} SAR / ر.س` : "—"} />
+            <PreviewField en="Next Oil Change (km)" arLabel="موعد تغيير الزيت القادم (كم)" value={nextOilChangeKm ? `${nextOilChangeKm.toLocaleString()} km` : "—"} span={4} />
           </PreviewFieldGrid>
 
           {/* Section 4 — Rental Period */}
@@ -736,6 +741,8 @@ export default function ContractDetailPage({
   const [vehicleType, setVehicleType] = useState("");
   const [carPhoto, setCarPhoto] = useState<string | null>(null);
   const [lateFeePerHour, setLateFeePerHour] = useState(0);
+  const [nextOilChangeKm, setNextOilChangeKm] = useState<number | null>(null);
+  const [vehicleExtraKmRate, setVehicleExtraKmRate] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -791,6 +798,12 @@ export default function ContractDetailPage({
               const bodyLabel = Types.VehicleBodyType[veh?.bodyType as number] ?? "";
               setVehicleType(bodyLabel);
               setLateFeePerHour(Number(veh?.lateHourRate ?? 0));
+              const extraKmRate = veh?.insurancePricing?.extraKilometerRate ?? veh?.extraKilometerRate;
+              setVehicleExtraKmRate(extraKmRate != null ? Number(extraKmRate) : null);
+              const oilDistance = Number(veh?.tajeerStatus?.oilChangeDistance ?? veh?.oilChangeDistance) || 0;
+              const oilBase = Number(veh?.tajeerStatus?.lastOilOdometer ?? veh?.lastOilOdometer)
+                || Number(veh?.tajeerStatus?.odometerReading ?? veh?.odometerReading) || 0;
+              setNextOilChangeKm(oilDistance ? oilBase + oilDistance : null);
               // Contract detail only carries the plate number — the letters
               // (plateFirstLetter…) live on the vehicle record.
               const fullPlate = formatPlate(veh);
@@ -1505,6 +1518,8 @@ export default function ContractDetailPage({
           contract={contract}
           ext={ext}
           lateFeePerHour={lateFeePerHour}
+          nextOilChangeKm={nextOilChangeKm}
+          extraKmCost={ext.extraKmCost ?? vehicleExtraKmRate}
           onClose={() => setShowPreview(false)}
           ar={ar}
         />

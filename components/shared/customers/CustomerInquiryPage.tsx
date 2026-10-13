@@ -181,6 +181,53 @@ function mapWarehouseRecord(item: any, summary: any | null, ar: boolean): Dynami
   };
 }
 
+// POST /api/customers/inquiry — single-identity lookup that also reaches
+// Dynamic GetClientInfo when the id is unknown to the warehouse.
+function mapInquiryRecord(item: any, ar: boolean): DynamicsLookupRecord {
+  const debts: ClientDebt[] = (Array.isArray(item?.debts) ? item.debts : []).map((d: any, i: number) => ({
+    id: String(d.contractNumber ?? `debt-${i}`),
+    type: d.note || d.contractNumber || "Debt",
+    typeAr: d.note || d.contractNumber || "مديونية",
+    date: String(d.date || "").slice(0, 10) || new Date().toISOString().split("T")[0],
+    amount: Number(d.amount ?? 0),
+    status: "unpaid" as const,
+    statusAr: "غير مسدد",
+    contractRef: d.contractNumber,
+    notes: d.note || "",
+    notesAr: d.note || "",
+    office: parseOfficeName(d.officeName ?? d.office, false),
+    officeAr: parseOfficeName(d.officeName ?? d.office, true),
+  }));
+
+  const disputes: ClientDispute[] = (Array.isArray(item?.claims) ? item.claims : []).map((c: any, i: number) => ({
+    id: String(c.contractNumber ?? `claim-${i}`),
+    type: c.note || c.contractNumber || "Claim",
+    typeAr: c.note || c.contractNumber || "مطالبة",
+    date: String(c.date || "").slice(0, 10) || new Date().toISOString().split("T")[0],
+    amount: c.amount != null ? Number(c.amount) : undefined,
+    status: "open" as const,
+    statusAr: "نشط",
+    notes: c.note || "",
+    notesAr: c.note || "",
+    office: parseOfficeName(c.officeName ?? c.office, false),
+    officeAr: parseOfficeName(c.officeName ?? c.office, true),
+  }));
+
+  return {
+    idNumber: maskId(item.idNumber ?? ""),
+    name: item.fullNameEn || "",
+    nameAr: item.fullNameAr || "",
+    phone: normalizePhone(item.phoneNumber),
+    idType: idTypeLabel(item.identityType, false),
+    licenseNumber: item.licenseNumber || "",
+    blacklisted: item.isBlacklisted ?? false,
+    isRegisteredLocally: item.isRegisteredLocally ?? false,
+    localCustomerId: item.localCustomerId != null ? String(item.localCustomerId) : undefined,
+    debts,
+    disputes,
+  };
+}
+
 export default function CustomerInquiryPage({ customerProfilePath }: CustomerInquiryPageProps) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
@@ -214,10 +261,14 @@ export default function CustomerInquiryPage({ customerProfilePath }: CustomerInq
     setError(null);
     setSelectedKey(null);
 
+    const idQuery = q.replace(/[\s-]/g, "");
+    const looksLikeId = /^\d{5,}$/.test(idQuery);
+
     try {
-      const [localRes, warehouseRes] = await Promise.all([
+      const [localRes, warehouseRes, inquiryRes] = await Promise.all([
         customerService.search({ search: q, pageNumber: 1, pageSize: 20 }).catch(() => null),
         customerWarehouseService.inquiry({ search: q, pageNumber: 1, pageSize: 20 }).catch(() => null),
+        looksLikeId ? customerService.inquiry({ idNumber: idQuery }).catch(() => null) : Promise.resolve(null),
       ]);
 
       if (controller.signal.aborted) return;
@@ -236,6 +287,26 @@ export default function CustomerInquiryPage({ customerProfilePath }: CustomerInq
           record: mapWarehouseRecord(item, null, ar),
           warehouseId: item.id ?? item.warehouseCustomerId,
         }));
+
+      const inquiryData = (inquiryRes as any)?.data ?? inquiryRes;
+      const inquiryHit =
+        inquiryData &&
+        inquiryData.found !== false &&
+        (inquiryData.warehouseCustomerId != null || inquiryData.fullNameAr || inquiryData.fullNameEn);
+      if (inquiryHit) {
+        const warehouseId = inquiryData.warehouseCustomerId ?? undefined;
+        for (let i = external.length - 1; i >= 0; i--) {
+          const m = external[i];
+          if (m.kind === "external" && m.warehouseId != null && String(m.warehouseId) === String(warehouseId)) {
+            external.splice(i, 1);
+          }
+        }
+        external.push({
+          kind: "external" as const,
+          record: mapInquiryRecord(inquiryData, ar),
+          warehouseId,
+        });
+      }
 
       setMatches([...local, ...external]);
     } catch (err) {

@@ -8,7 +8,7 @@ export type ContractStep = "idle" | "saving" | "pending_signature" | "issued" | 
 
 // Sticky bottom navigation bar: Back button, step indicator and the per-step CTA.
 export function StickyFooter({
-  ar, step, onStepChange, contractStep, otpComplete, canContinueFromStep0,
+  ar, step, onStepChange, contractStep, otpComplete, canContinueFromStep0, coverageBlocked = false,
   payType, advanceAmount, total, onIssue, onCheckSignature, onRetry,
 }: {
   ar: boolean;
@@ -17,6 +17,8 @@ export function StickyFooter({
   contractStep: ContractStep;
   otpComplete: boolean;
   canContinueFromStep0: boolean;
+  /** Add-ons exceed the Tajeer additional-coverage cap — blocks moving past step 2 and issuing. */
+  coverageBlocked?: boolean;
   payType: "full" | "advance";
   advanceAmount: number;
   total: number;
@@ -73,7 +75,7 @@ export function StickyFooter({
           </Button>
         )}
         {step === 1 && (
-          <Button variant="primary" onClick={() => onStepChange(2)} className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
+          <Button variant="primary" onClick={() => onStepChange(2)} disabled={coverageBlocked} className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
             {T("Continue to payment", "متابعة إلى الدفع", ar)}
             {ar ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
           </Button>
@@ -81,6 +83,7 @@ export function StickyFooter({
         {step === 2 && (
           <Button
             onClick={() => onStepChange(3)}
+            disabled={coverageBlocked}
             className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap"
           >
             <CreditCard size={14} />
@@ -93,7 +96,7 @@ export function StickyFooter({
         {step === 3 && (
           <>
             {contractStep === "idle" && (
-              <Button variant="primary" onClick={onIssue}
+              <Button variant="primary" onClick={onIssue} disabled={coverageBlocked}
                 className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
                 <FileText size={15} />
                 {T("Issue Unified Contract", "إصدار العقد الموحد", ar)}
@@ -107,7 +110,7 @@ export function StickyFooter({
               </Button>
             )}
             {contractStep === "error" && (
-              <Button variant="primary" onClick={onRetry}
+              <Button variant="primary" onClick={onRetry} disabled={coverageBlocked}
                 className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
                 {T("Try again", "حاول مرة أخرى", ar)}
               </Button>

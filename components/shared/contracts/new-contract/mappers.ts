@@ -160,6 +160,7 @@ export function mapBackendVehicleToCar(item: any, lookups?: VehicleLookupContext
     operationCardExpiryDate: pick(plate.operationCardExpiryDate, item.operationCardExpiryDate),
     oilChangeDate: pick(item.oilChangeDate, item.nextOilChangeDate),
     oilChangeDistance: Number(pick(tajeer.oilChangeDistance, item.oilChangeDistance)) || undefined,
+    lastOilOdometer: Number(pick(tajeer.lastOilOdometer, item.lastOilOdometer)) || undefined,
     insuranceAmount: Number(pick(pricing.insuranceAmount, item.insuranceAmount)) || undefined,
     otherNotes: pick(plate.otherNotes, item.otherNotes),
     imageUrls,

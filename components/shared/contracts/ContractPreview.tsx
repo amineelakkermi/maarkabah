@@ -18,7 +18,7 @@ interface RentStatus {
   keys?: number; carSeats?: number; tires?: number; spareTire?: number;
   spareTireTools?: number; safetyTriangle?: number; fireExtinguisher?: number;
   firstAidKit?: number; oilChangeKmDistance?: number; enduranceAmount?: number;
-  oilChangeDate?: string;
+  oilChangeDate?: string; nextOilChangeKm?: number;
 }
 interface LOOKUP { readonly code: number; readonly ar: string; readonly en: string }
 interface TAJEER_LOOKUPS_TYPE {
@@ -488,8 +488,8 @@ export default function ContractPreview({
             <Field label="Insurance Amount" labelAr="مبلغ التأمين" value={`${(insuranceAmount ?? 0).toLocaleString()} SAR`} />
             <Field label="Endurance Amount (Fixed)" labelAr="مبلغ التحمل (ثابت لا يتغير)"
               value={`${rentStatus.enduranceAmount ?? 0} SAR`} />
-            <Field label="Next Oil Change" labelAr="موعد استدعاء الزيت القادم"
-              value={rentStatus.oilChangeDate || "—"} />
+            <Field label="Next Oil Change (km)" labelAr="موعد تغيير الزيت القادم (كم)"
+              value={rentStatus.nextOilChangeKm ? `${rentStatus.nextOilChangeKm.toLocaleString()} km` : "—"} />
             <Field label="Other" labelAr="أخرى" value={vehicleOtherNotes || "—"} span={2} />
           </FieldGrid>
         </div>
@@ -670,7 +670,7 @@ export default function ContractPreview({
               { en: "Fire Extinguisher", ar: "توفر طفاية الحريق", val: fireLabel },
               { en: "First Aid Kit", ar: "حالة حقيبة الاسعافات الأولية", val: firstAidLabel },
               { en: "Key Condition", ar: "حالة المفتاح", val: keysLabel },
-              { en: "Next Oil Change Date", ar: "موعد استدعاء الزيت القادم", val: rentStatus.oilChangeDate || "—" },
+              { en: "Next Oil Change (km)", ar: "موعد تغيير الزيت القادم (كم)", val: rentStatus.nextOilChangeKm ? `${rentStatus.nextOilChangeKm.toLocaleString()} km` : "—" },
             ].map((row) => (
               <div key={row.en} style={{
                 display: "grid", gridTemplateColumns: "2fr 1fr 1fr",

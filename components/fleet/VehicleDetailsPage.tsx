@@ -1054,6 +1054,13 @@ export function VehicleDetailsPage({
                         required
                       />
                     </FL>
+                    <FL label={T("Odometer at last oil change (km)", "قراءة العداد عند آخر تغيير زيت (كم)", ar)}>
+                      <FI
+                        type="number"
+                        value={form.lastOilOdometer}
+                        onChange={(v) => setForm((f: any) => ({ ...f, lastOilOdometer: v }))}
+                      />
+                    </FL>
                     <FL label={T("Oil change interval (km)", "فترة تغيير الزيت (كم)", ar)}>
                       <FI
                         type="number"
@@ -1064,7 +1071,7 @@ export function VehicleDetailsPage({
                     <FL label={T("Next oil change at (km)", "موعد تغيير الزيت القادم (كم)", ar)}>
                       <FI
                         type="number"
-                        value={form.odometerReading && form.oilChangeDistance ? String(Number(form.odometerReading) + Number(form.oilChangeDistance)) : ""}
+                        value={(form.lastOilOdometer || form.odometerReading) && form.oilChangeDistance ? String(Number(form.lastOilOdometer || form.odometerReading) + Number(form.oilChangeDistance)) : ""}
                         disabled
                         placeholder="—"
                         onChange={() => {}}
@@ -1135,6 +1142,26 @@ export function VehicleDetailsPage({
                     <FL label={T("Tire tools", "أدوات الإطار", ar)}>
                       <FS value={form.tireToolsStatus} onChange={(v) => setForm((f: any) => ({ ...f, tireToolsStatus: v }))}>
                         {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Windshield", "الزجاج الأمامي", ar)}>
+                      <FS value={form.windshieldStatus} onChange={(v) => setForm((f: any) => ({ ...f, windshieldStatus: v }))}>
+                        {enumOptions(Types.ConditionGrade, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Spare key", "المفتاح الاحتياطي", ar)}>
+                      <FS value={form.spareKeyStatus} onChange={(v) => setForm((f: any) => ({ ...f, spareKeyStatus: v }))}>
+                        {enumOptions(Types.PresenceStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Power outlet", "منفذ الكهرباء", ar)}>
+                      <FS value={form.powerOutletStatus} onChange={(v) => setForm((f: any) => ({ ...f, powerOutletStatus: v }))}>
+                        {enumOptions(Types.WorkingStatus, AR_LABELS)}
+                      </FS>
+                    </FL>
+                    <FL label={T("Smoking odor", "رائحة التدخين", ar)}>
+                      <FS value={form.smokingOdorStatus} onChange={(v) => setForm((f: any) => ({ ...f, smokingOdorStatus: v }))}>
+                        {enumOptions(Types.OdorStatus, AR_LABELS)}
                       </FS>
                     </FL>
                   </div>
