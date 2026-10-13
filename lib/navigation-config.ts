@@ -54,6 +54,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       { href: "/drivers", icon: IdCard, label: "Drivers", labelAr: "بيانات السائقين", requiredPermission: Permission.Drivers.View },
       { href: "/kyc-queue", icon: ShieldCheck, label: "KYC Queue", labelAr: "مراجعة الهوية", requiredPermission: Permission.Customers.View },
       { href: "/drivers-kyc-queue", icon: ShieldCheck, label: "Driver KYC Queue", labelAr: "مراجعة هوية السائقين", requiredPermission: Permission.Drivers.View },
+      { href: "/customers/inquiry", icon: UserSearch, label: "Dynamic Inquiry", labelAr: "الإستعلام من ديناميك", requiredPermission: Permission.Customers.View },
       { href: "/blacklist", icon: UserSearch, label: "Customer Inquiry", labelAr: "الإستعلام عن العملاء", requiredPermission: Permission.Blacklist.View },
     ],
   },
