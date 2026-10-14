@@ -1198,6 +1198,96 @@ body {
   background-color: #222745;
 }
 
+.mk-succ-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mk-succ-piece {
+  position: absolute;
+  top: -20px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: mk-succ-fall var(--du) cubic-bezier(.18,.7,.25,1) var(--dl) forwards;
+}
+
+.mk-succ-badge {
+  position: relative;
+  cursor: pointer;
+  animation: mk-succ-pop .55s cubic-bezier(.2,1.6,.35,1) both;
+}
+
+.mk-succ-ring {
+  position: absolute;
+  inset: -7px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  opacity: 0;
+  animation: mk-succ-ring .8s ease-out .2s both;
+}
+
+.mk-success-check .c1,
+.mk-success-check .c2 {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.mk-success-check .c1 {
+  animation: mk-succ-draw .55s ease-out .15s forwards;
+}
+
+.mk-success-check .c2 {
+  animation: mk-succ-draw .35s ease-out .6s forwards;
+}
+
+.mk-succ-rise {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: mk-succ-rise .45s ease-out var(--rd) forwards;
+}
+
+@keyframes mk-succ-fall {
+  0% { opacity: 0; transform: translate3d(0, -5vh, 0) rotate(0); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--dx), 105vh, 0) rotate(var(--r)); }
+}
+
+@keyframes mk-succ-pop {
+  0% { opacity: 0; transform: scale(.45); }
+  70% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes mk-succ-ring {
+  0% { opacity: .55; transform: scale(.7); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes mk-succ-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes mk-succ-rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-succ-piece,
+  .mk-succ-badge,
+  .mk-succ-ring,
+  .mk-success-check .c1,
+  .mk-success-check .c2,
+  .mk-succ-rise {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
+
 /* ── Quick-action card (dashboard) ─────────────────────────────── */
 .mk-qa-card {
   background: white;

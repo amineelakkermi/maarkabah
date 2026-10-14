@@ -2,24 +2,27 @@
 
 import { useState, useEffect, Suspense } from "react";
 import {
-  Check, AlertTriangle, Tablet,
+  Check, AlertTriangle,
   Camera, MapPin, X, Search,
   ChevronRight, ChevronLeft, Phone,
   UserCheck, Gauge, Fuel, Smartphone,
   Monitor, Music, Wind, CircleDot, Armchair, KeyRound, TriangleAlert,
   FireExtinguisher, HeartPulse, Wrench, ShieldCheck, Droplet,
 } from "lucide-react";
-import { Avatar, Badge, Button, Tabs, Input, IconButton, Table, Th, Td, Select, Modal } from "@/components/ui";
+import { Avatar, Badge, Button, Checkbox, Tabs, Input, IconButton, Table, Th, Td, Select, Modal, SuccessDialog } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
-import { CAR_IMAGES } from "@/lib/data";
 import { SketchComponent } from "@/components/employee/SketchComponent";
+import { PhotoSlotsPanel, type PhotoSlotValue } from "@/components/employee/PhotoSlotsPanel";
+import { ReadonlyCarCarousel } from "@/components/employee/ReadonlyCarCarousel";
 import { VehicleMapPanel } from "@/components/employee/VehicleMapPanel";
+import { HANDOVER_ITEM_ICONS } from "@/components/employee/handoverIcons";
+import { PlaceBadge } from "@/components/shared/ContractPlace";
 import type { SketchItem } from "@/lib/tajeer";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { contractService, attachmentService, vehicleService } from "@/lib/api-services";
 import * as Types from "@/lib/api-types";
-import { mapDamagePointsToSketchItems } from "@/lib/fleet";
+import { buildVehiclePayload, extractVehicleImageFileIds, mapDamagePointsToSketchItems, mapVehicleToForm } from "@/lib/fleet";
 import { normalizeKycStatus, formatPlate } from "@/lib/formatting";
 import type { Booking } from "@/lib/data";
 
@@ -139,62 +142,21 @@ const TABS: { key: TabKey; en: string; ar: string; color?: string }[] = [
   { key: "late", en: "Late", ar: "متأخرة", color: "var(--color-mk-danger)" },
 ];
 
-
-// ── Readonly Car Carousel ──────────────────────────────────────────
-function ReadonlyCarCarousel({ images, ar }: { images: string[]; ar: boolean }) {
-  const [index, setIndex] = useState(0);
-  const [startX, setStartX] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const PHOTOS = [T("Front", "أمامي", ar), T("Back", "خلفي", ar), T("Driver side", "جهة السائق", ar), T("Passenger side", "جهة الراكب", ar)];
-  if (!images || images.length === 0) return <div className="w-full h-[192px] flex items-center justify-center mk-caption text-mk-ink-400 bg-mk-ink-50">No Photo</div>;
-  const hs = (x: number) => { setStartX(x); setIsDragging(true); };
-  const hm = (x: number) => { if (!isDragging || startX === null) return; const d = startX - x; if (d > 40) { setIndex(p => (p + 1) % 4); setIsDragging(false); setStartX(null); } else if (d < -40) { setIndex(p => (p - 1 + 4) % 4); setIsDragging(false); setStartX(null); } };
-  const he = () => { setIsDragging(false); setStartX(null); };
-  return (
-    <div className="flex flex-col w-full gap-2">
-      <div className="w-full rounded-md overflow-hidden relative cursor-grab active:cursor-grabbing" style={{ height: 192 }}
-        onTouchStart={e => hs(e.touches[0].clientX)} onTouchMove={e => hm(e.touches[0].clientX)} onTouchEnd={he}
-        onMouseDown={e => hs(e.clientX)} onMouseMove={e => { if (isDragging) { e.preventDefault(); hm(e.clientX); } }} onMouseUp={he} onMouseLeave={he}>
-        {PHOTOS.map((angle, i) => {
-          const src = images[i]; const fl = src?.endsWith("#flipped"); const cs = fl ? src.replace("#flipped", "") : src; return src ? (
-            <div key={angle} className="absolute inset-0 w-full h-full transition-opacity duration-300" style={{ opacity: i === index ? 1 : 0, zIndex: i === index ? 10 : 0 }}>
-              <img src={cs} alt={angle} className="w-full h-full object-cover pointer-events-none" style={{ transform: fl ? "scaleX(-1)" : "none" }} />
-              <span className="absolute bottom-2 start-2 mk-overline px-2 py-1 rounded-sm z-20" style={{ background: "rgba(0,0,0,0.5)", color: "white" }}>{angle}</span>
-            </div>
-          ) : (
-            <div key={angle} className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-mk-ink-400 transition-opacity duration-300 bg-mk-ink-50" style={{ opacity: i === index ? 1 : 0, zIndex: i === index ? 10 : 0, border: "2px dashed var(--color-mk-ink-300)", borderRadius: "12px" }}>
-              <Camera size={28} /><div className="mk-label mt-2">{angle}</div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex justify-center gap-2">
-        {PHOTOS.map((_, i) => {
-          const src = images[i]; const fl = src?.endsWith("#flipped"); const cs = fl ? src?.replace("#flipped", "") : src; const a = i === index; return (
-            <button key={i} type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); setIndex(i); }} className="w-12 h-9 rounded-sm overflow-hidden p-0 border transition-all cursor-pointer shrink-0" style={{ borderColor: a ? "var(--color-mk-blue-500)" : "var(--color-mk-ink-200)", boxShadow: a ? "0 0 0 1px var(--color-mk-blue-500)" : "none", opacity: a ? 1 : 0.65, background: src ? "transparent" : "var(--color-mk-ink-50)" }}>
-              {src ? <img src={cs} alt="" className="w-full h-full object-cover" style={{ transform: fl ? "scaleX(-1)" : "none" }} /> : <div className="w-full h-full flex items-center justify-center"><Camera size={12} className="text-mk-ink-400" /></div>}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // ── Vehicle Condition Panel ────────────────────────────────────────
-function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, baselineSketch, damageNotes, onDamageNotesChange }: {
-  ar: boolean; carImages: string[]; sketchItems: SketchItem[]; onSketchChange: (items: SketchItem[]) => void;
-  baselineSketch: SketchItem[]; damageNotes: string; onDamageNotesChange: (v: string) => void;
+function VehicleConditionPanel({ ar, photos, vehicleTitle, sketchItems, onSketchChange, baselineSketch, damageNotes, onDamageNotesChange, disabled }: {
+  ar: boolean; photos: { src: string; label: string }[]; vehicleTitle: string; sketchItems: SketchItem[]; onSketchChange: (items: SketchItem[]) => void;
+  baselineSketch: SketchItem[]; damageNotes: string; onDamageNotesChange: (v: string) => void; disabled: boolean;
 }) {
   const [view, setView] = useState<"diagram" | "photos">("diagram");
   const hasDamage = sketchItems.length > 0;
   return (
-    <div className="rounded-xl p-6 mk-surface">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="mk-h4 flex-1 text-mk-ink-900">{T("Vehicle Condition", "حالة المركبة", ar)}</div>
+    <div className="rounded-xl p-5 mk-surface">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="mk-h4 text-mk-ink-900">{T("Vehicle Condition", "حالة المركبة", ar)}</div>
         <Tabs
-          variant="tonal"
-          size="xs"
+          variant="default"
+          rounded="full"
+          size="sm"
           value={view}
           onChange={(v) => setView(v as "diagram" | "photos")}
           items={[
@@ -204,8 +166,8 @@ function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, bas
         />
       </div>
       {view === "diagram"
-        ? <div className="rounded-lg flex items-center justify-center w-full"><SketchComponent value={sketchItems} onChange={onSketchChange} baseline={baselineSketch} ar={ar} /></div>
-        : <ReadonlyCarCarousel images={carImages} ar={ar} />
+        ? <div className="rounded-lg flex items-center justify-center w-full"><SketchComponent value={sketchItems} onChange={onSketchChange} baseline={baselineSketch} ar={ar} disabled={disabled} /></div>
+        : <ReadonlyCarCarousel photos={photos} ar={ar} title={vehicleTitle} />
       }
       {view === "diagram" && hasDamage && (
         <div className="mt-3 rounded-lg p-3" style={{ background: "rgba(226,65,113,0.06)", border: "1px solid rgba(226,65,113,0.25)" }}>
@@ -216,6 +178,7 @@ function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, bas
           <textarea
             value={damageNotes}
             onChange={e => onDamageNotesChange(e.target.value)}
+            disabled={disabled}
             placeholder={T("Describe the damage and how it differs from the pickup report…", "صف التلفيات والنقاط الغير مطابقة لمحضر التسليم…", ar)}
             rows={3}
             className="w-full px-3 py-2 rounded-md mk-body-sm text-mk-ink-900 border border-mk-danger/30 bg-white outline-none focus:border-mk-danger resize-none"
@@ -226,27 +189,69 @@ function VehicleConditionPanel({ ar, carImages, sketchItems, onSketchChange, bas
   );
 }
 
-// ── Vehicle Condition Summary ───────────────────────────────────────
+type ReturnInspectionField = {
+  key: string;
+  group: "base" | "equipment";
+  labelEn: string;
+  labelAr: string;
+  item?: Types.HandoverInspectionDisplayItem;
+};
+
+function ReturnInspectionSelects({ ar, fields, values, onChange, disabled }: {
+  ar: boolean;
+  fields: ReturnInspectionField[];
+  values: Record<string, number>;
+  onChange: (values: Record<string, number>) => void;
+  disabled: boolean;
+}) {
+  const optionsFor = (field: ReturnInspectionField) => {
+    const current = Number(field.item?.value ?? 0);
+    const options = field.key === "smokingOdor" || ["keys", "speedometer", "safetyTriangle", "firstAidKit", "fireExtinguisher", "spareKey", "spareTireTools", "powerOutlet"].includes(field.key) ? [0, 1] : field.key === "tires" || field.key === "spareTire" ? [1, 2, 3] : [1, 2, 3, 4];
+    return [...new Set([current, ...options])];
+  };
+  const labelFor = (field: ReturnInspectionField, value: number) => {
+    if (value === Number(field.item?.value)) return ar ? field.item?.valueAr ?? String(value) : field.item?.valueEn ?? String(value);
+    if (field.key === "smokingOdor") return value === 0 ? T("None", "لا توجد", ar) : T("Smoking odor", "توجد رائحة", ar);
+    if (["keys", "speedometer", "powerOutlet"].includes(field.key)) return value === 1 ? T("Working", "يعمل", ar) : T("Not working", "لا يعمل", ar);
+    if (["safetyTriangle", "firstAidKit", "fireExtinguisher", "spareKey", "spareTireTools"].includes(field.key)) return value === 1 ? T("Available", "موجود", ar) : T("Missing", "غير موجود", ar);
+    return ({ 1: T("Excellent", "ممتاز", ar), 2: T("Good", "جيد", ar), 3: T("Weak", "ضعيف", ar), 4: T("Broken", "تالف", ar) } as Record<number, string>)[value] ?? String(value);
+  };
+  return <>{(["base", "equipment"] as const).map((group, index) => <div key={group} className={index ? "mt-4 border-t border-mk-ink-100 pt-4" : "mt-4"}>
+    <div className="mb-2 mk-overline uppercase text-mk-ink-500 mk-tracking-wide">{group === "base" ? T("Mandatory inspection", "الفحص الأساسي", ar) : T("Vehicle equipment", "تجهيزات المركبة", ar)}</div>
+    <div className="-mx-3 grid grid-cols-1 gap-2 sm:grid-cols-2">{fields.filter((field) => field.group === group).map((field) => {
+      const Icon = HANDOVER_ITEM_ICONS[field.key] ?? Check;
+      const deliveryValue = Number(field.item?.atDeliveryValue ?? field.item?.value ?? 0);
+      const value = values[field.key] ?? Number(field.item?.value ?? 0);
+      const changed = value !== deliveryValue;
+      return <div key={field.key} className="flex flex-col gap-2 rounded-md px-3 py-2">
+        <div className="flex items-center gap-1.5 mk-caption font-medium" style={{ color: changed ? "var(--color-mk-danger)" : "var(--color-mk-ink-900)" }}><Icon size={14} className="shrink-0 text-mk-ink-500" /><span className="truncate">{ar ? field.labelAr : field.labelEn}</span></div>
+        <div className="relative">{changed && <span className="absolute -top-2 start-3 z-10 bg-[var(--bg-elevated)] px-1.5 mk-caption leading-none text-mk-ink-500">{T(`At pickup: ${labelFor(field, deliveryValue)}`, `عند التسليم: ${labelFor(field, deliveryValue)}`, ar)}</span>}<Select size="sm" className="!h-9 !px-3" value={String(value)} disabled={disabled} onChange={(event) => onChange({ ...values, [field.key]: Number(event.target.value) })}>{optionsFor(field).map((option) => <option key={option} value={option}>{labelFor(field, option)}</option>)}</Select></div>
+      </div>;
+    })}</div>
+  </div>)}</>;
+}
+
 const INSPECTION_ITEMS = [
-  { key: "odometer", icon: Gauge, label: ["Speedometer", "حالة عداد السرعة"], value: ["Working", "يعمل"] },
-  { key: "screen", icon: Monitor, label: ["Screen", "حالة الشاشة الداخلية"], value: ["Excellent", "ممتاز"] },
-  { key: "radio", icon: Music, label: ["Radio/Stereo", "حالة الراديو/المسجل"], value: ["Excellent", "ممتاز"] },
-  { key: "ac", icon: Wind, label: ["A/C", "حالة التكييف"], value: ["Excellent", "ممتاز"] },
-  { key: "spareTire", icon: CircleDot, label: ["Spare tire", "حالة العجلة الاحتياطية"], value: ["Excellent", "ممتاز"] },
-  { key: "tires", icon: CircleDot, label: ["Tires", "حالة العجلات"], value: ["Excellent", "ممتاز"] },
-  { key: "seats", icon: Armchair, label: ["Seats", "المقاعد"], value: ["Clean", "نظيف"] },
-  { key: "keys", icon: KeyRound, label: ["Keys", "حالة المفتاح"], value: ["Working", "يعمل"] },
-  { key: "triangle", icon: TriangleAlert, label: ["Warning triangle", "توفر المثلث العاكس"], value: ["Present", "موجود"] },
-  { key: "extinguisher", icon: FireExtinguisher, label: ["Fire extinguisher", "توفر طفاية الحريق"], value: ["Present", "موجود"] },
-  { key: "firstAid", icon: HeartPulse, label: ["First aid kit", "حالة حقيبة الاسعافات الأولية"], value: ["Present", "موجود"] },
-  { key: "tireKit", icon: Wrench, label: ["Tire kit", "معدات الكفر الاحتياطية"], value: ["Present", "موجود"] },
+  { key: "odometer", icon: Gauge, label: ["Speedometer", "حالة عداد السرعة"] },
+  { key: "screen", icon: Monitor, label: ["Screen", "حالة الشاشة الداخلية"] },
+  { key: "radio", icon: Music, label: ["Radio/Stereo", "حالة الراديو/المسجل"] },
+  { key: "ac", icon: Wind, label: ["A/C", "حالة التكييف"] },
+  { key: "spareTire", icon: CircleDot, label: ["Spare tire", "حالة العجلة الاحتياطية"] },
+  { key: "tires", icon: CircleDot, label: ["Tires", "حالة العجلات"] },
+  { key: "seats", icon: Armchair, label: ["Seats", "المقاعد"] },
+  { key: "keys", icon: KeyRound, label: ["Keys", "حالة المفتاح"] },
+  { key: "triangle", icon: TriangleAlert, label: ["Warning triangle", "توفر المثلث العاكس"] },
+  { key: "extinguisher", icon: FireExtinguisher, label: ["Fire extinguisher", "توفر طفاية الحريق"] },
+  { key: "firstAid", icon: HeartPulse, label: ["First aid kit", "حالة حقيبة الاسعافات الأولية"] },
+  { key: "tireKit", icon: Wrench, label: ["Tire kit", "معدات الكفر الاحتياطية"] },
 ] as const;
 
-function VehicleSummaryPanel({ ar, odometer, fuel, endurance, reasons, onReasonsChange, photos, onPhotosChange }: {
+function VehicleSummaryPanel({ ar, odometer, fuel, endurance, deliveryValues, reasons, onReasonsChange, photos, onPhotosChange }: {
   ar: boolean;
   odometer: number;
   fuel: string;
   endurance: number | null;
+  deliveryValues: Record<string, string>;
   reasons: Record<string, string>;
   onReasonsChange: (r: Record<string, string>) => void;
   photos: Record<string, { file: File; preview: string }>;
@@ -277,11 +282,10 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance, reasons, onReasons
     { icon: Gauge, label: T("Current odometer", "عداد الكيلومتر الحالي", ar), value: `${odometer.toLocaleString()} ${T("km", "كم", ar)}` },
     { icon: Droplet, label: T("Current fuel", "الوقود الحالي", ar), value: fuel },
     { icon: ShieldCheck, label: T("Accident deductible", "مبلغ التحمل للحوادث", ar), value: endurance != null ? `${endurance.toLocaleString()} ${T("SAR", "ريال", ar)}` : "—" },
-    { icon: Wrench, label: T("Next oil change", "صيانة تغيير الزيت القادمة", ar), value: `5,000 ${T("km", "كم", ar)} · 5W-30` },
   ];
 
   return (
-    <div className="rounded-xl p-6 mk-surface">
+    <div className="rounded-xl p-5 mk-surface">
       <div className="mk-h4 text-mk-ink-900 mb-6">{T("Key Inspection Metrics", "المؤشرات الرئيسية للفحص", ar)}</div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {INDICATORS.map(({ icon: Icon, label, value }) => (
@@ -307,7 +311,7 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance, reasons, onReasons
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {INSPECTION_ITEMS.map(({ key, icon: Icon, label, value }) => {
+          {INSPECTION_ITEMS.map(({ key, icon: Icon, label }) => {
             const isOpen = noteOpen[key] ?? false;
             const hasNote = Boolean(reasons[key] || photos[key]);
             const photo = photos[key];
@@ -321,7 +325,7 @@ function VehicleSummaryPanel({ ar, odometer, fuel, endurance, reasons, onReasons
                     </div>
                     <div className="min-w-0">
                       <div className="mk-overline text-mk-ink-500 truncate">{T(label[0], label[1], ar)}</div>
-                      <div className="mk-caption text-mk-ink-900 mt-1 truncate">{T(value[0], value[1], ar)}</div>
+                      <div className="mk-caption text-mk-ink-900 mt-1 truncate">{deliveryValues[key] ?? "—"}</div>
                     </div>
                   </div>
                   <button type="button" onClick={() => toggleNote(key)}
@@ -380,12 +384,17 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
   const [fuelDiffCharge, setFuelDiffCharge] = useState("");
   const [damageCharge, setDamageCharge] = useState("");
   const [damageNotes, setDamageNotes] = useState("");
-  const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [photos, setPhotos] = useState<Record<string, { file: File; preview: string }>>({});
+  const [returnPhotos, setReturnPhotos] = useState<Record<string, PhotoSlotValue>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [suggestion, setSuggestion] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [customerPresent, setCustomerPresent] = useState(false);
+  const [customerConfirms, setCustomerConfirms] = useState(false);
+  const [walkDone, setWalkDone] = useState(false);
+  const [fleetStatus, setFleetStatus] = useState<Types.VehicleFleetStatus | "">("");
+  const [inspectionValues, setInspectionValues] = useState<Record<string, number>>({});
   const [submitError, setSubmitError] = useState("");
   const [showDispute, setShowDispute] = useState(false);
   const [disputeNotes, setDisputeNotes] = useState("");
@@ -394,8 +403,7 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [raw, setRaw] = useState<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [delivery, setDelivery] = useState<any>(null);
+  const [returnForm, setReturnForm] = useState<Types.ReturnFormResponse | null>(null);
   const [row, setRow] = useState<ReturnRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -405,30 +413,59 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
     (async () => {
       setLoading(true);
       try {
-        const res = await contractService.getById(id);
-        const c = res?.data ?? res;
+        const [contractResult, formResult, recordResult] = await Promise.all([
+          contractService.getById(id),
+          contractService.getReturnForm(id),
+          contractService.getReturn(id).catch(() => null),
+        ]);
+        const c = contractResult?.data ?? contractResult;
+        const form: Types.ReturnFormResponse = formResult;
+        const record = (recordResult?.data ?? recordResult ?? form.return) as Types.ReturnRecordResponse | null;
         if (cancelled) return;
-        if (!c || c.id == null) { setNotFound(true); return; }
-        setRaw(c);
-        setRow(mapReturnRow(c, ar));
-
-        // Delivery record gives the baseline odometer/fuel (non-blocking —
-        // 404 just means no delivery was recorded for this contract).
-        contractService.getDelivery(id)
-          .then((d) => { if (!cancelled) setDelivery(d?.data ?? d); })
-          .catch(() => {});
-
-        // Vehicle record gives the registered damage sketch (non-blocking).
-        const vehicleId = Number(c.vehicleId ?? c.vehicle?.id ?? 0);
-        if (vehicleId) {
-          vehicleService.getById(vehicleId)
-            .then((vRes) => {
-              if (cancelled) return;
-              const v = vRes?.data ?? vRes;
-              setBaselineSketch(mapDamagePointsToSketchItems(v?.damagePoints));
-            })
-            .catch(() => {});
+        if (!c || c.id == null || !form?.contractId) { setNotFound(true); return; }
+        const vehicle = form.vehicle;
+        const customer = form.customer;
+        const merged = {
+          ...c,
+          contractNumber: form.contractNumber ?? c.contractNumber,
+          customerNameAr: customer?.nameAr ?? c.customerNameAr,
+          customerNameEn: customer?.nameEn ?? c.customerNameEn,
+          customerPhone: customer?.phone ?? c.customerPhone,
+          customerVerificationStatus: customer?.verificationStatus ?? c.customerVerificationStatus,
+          vehicleId: vehicle?.id ?? c.vehicleId,
+          vehiclePlateNumber: vehicle?.plateNumber ?? c.vehiclePlateNumber,
+          vehicleMakeNameAr: vehicle?.makeNameAr ?? c.vehicleMakeNameAr,
+          vehicleMakeNameEn: vehicle?.makeNameEn ?? c.vehicleMakeNameEn,
+          vehicleModelNameAr: vehicle?.modelNameAr ?? c.vehicleModelNameAr,
+          vehicleModelNameEn: vehicle?.modelNameEn ?? c.vehicleModelNameEn,
+          vehicleYear: vehicle?.year ?? c.vehicleYear,
+          workingBranchNameAr: form.branchNameAr ?? c.workingBranchNameAr,
+          workingBranchNameEn: form.branchNameEn ?? c.workingBranchNameEn,
+          endAt: form.scheduledReturnAt ?? c.endAt,
+          totalAmount: form.invoice?.totalAmount ?? c.totalAmount,
+        };
+        setRaw(merged);
+        setReturnForm(form);
+        setSubmitted(Boolean(record));
+        setFleetStatus(record?.fleetStatusAfterReturn ?? form.suggestedFleetStatus ?? "");
+        const inspectionSource = record ?? form;
+        setInspectionValues(Object.fromEntries([...Object.entries(inspectionSource.basicInspection ?? {}), ...Object.entries(inspectionSource.vehicleEquipment ?? {})].map(([key, item]) => [key, Number(item?.value ?? 0)])));
+        if (record) {
+          setReturnOdometer(record.odometerAtReturn != null ? String(record.odometerAtReturn) : "");
+          setFuel(record.fuelLevelAtReturn ?? "");
+          setDamageNotes(record.conditionNotes ?? "");
+          setCustomerPresent(Boolean(record.checklist?.customerPresentAtCounter));
+          setCustomerConfirms(Boolean(record.checklist?.customerConfirmedReturn));
+          setWalkDone(Boolean(record.checklist?.walkAroundCompleted));
+          setReturnPhotos(Object.fromEntries((record.photos ?? []).map((photo) => [photo.label ?? String(photo.attachmentId), { preview: `/api/attachments/${photo.attachmentId}/download` }])));
         }
+        setRow(mapReturnRow(merged, ar));
+        setBaselineSketch((record?.sketchInfoAtReturn ?? form.sketchInfoAtReturn ?? form.sketchInfoAtDelivery ?? []).map((mark: Types.HandoverSketchPoint) => ({
+          type: mark.type as SketchItem["type"],
+          x: Number(mark.x ?? 0),
+          y: Number(mark.y ?? 0),
+          note: mark.note ?? undefined,
+        })));
       } catch {
         if (!cancelled) setNotFound(true);
       } finally {
@@ -446,17 +483,18 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
   useEffect(() => {
     let cancelled = false;
     const t = setTimeout(() => {
-      if (!odometerEntered || !fuelValid) { setSuggestion(null); return; }
+      const calculationFuel = fuel !== "" ? fuel : returnForm?.fuelLevelAtDelivery;
+      if (submitted || !odometerEntered || calculationFuel == null) { setSuggestion(null); return; }
       contractService.calculateReturnCharges(id, {
         odometerAtReturn: odometerNum,
-        fuelLevelAtReturn: fuel as Types.FuelLevel,
+        fuelLevelAtReturn: calculationFuel as Types.FuelLevel,
         actualReturnAt: new Date().toISOString(),
       })
         .then((s) => { if (!cancelled) setSuggestion(s?.data ?? s); })
         .catch(() => { if (!cancelled) setSuggestion(null); });
     }, 500);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [id, odometerEntered, fuelValid, odometerNum, fuel]);
+  }, [id, odometerEntered, odometerNum, fuel, submitted, returnForm?.fuelLevelAtDelivery]);
 
   if (loading) return (
     <div className="py-24 text-center">
@@ -464,7 +502,7 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
     </div>
   );
 
-  if (notFound || !row || !raw) return (
+  if (notFound || !row || !raw || !returnForm) return (
     <div className="py-24 text-center">
       <div className="mk-display mb-3">📋</div>
       <div className="mk-body mb-2 text-mk-ink-900">{T("Contract not found", "العقد غير موجود", ar)}</div>
@@ -472,44 +510,74 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
     </div>
   );
 
-  if (submitted) {
-    return (
-      <div className="py-24 text-center">
-        <div className="mk-display mb-3">✅</div>
-        <div className="mk-h3 mb-2 text-mk-ink-900">{T("Return confirmed", "تم تأكيد الإرجاع", ar)}</div>
-        <div className="mk-body-sm mb-6 text-mk-ink-500">{T(`Contract ${row.ref} closed`, `العقد ${row.ref} أُغلق`, ar)}</div>
-        <Button variant="primary" onClick={() => router.push(basePath)}>
-          {T("Back to active rentals", "العودة للمركبات المؤجرة", ar)}
-        </Button>
-      </div>
-    );
-  }
-
   const contract = toBooking(raw, ar, row);
   // Payment snapshot — contract rows carry a nested payment object
   // { paid, remaining, deposit, type/method codes }. For ADVANCE contracts
   // the customer still owes `remaining` at handback — surface it loudly.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const paymentInfo: any = raw?.payment ?? {};
-  const paidAmountNum = Number(paymentInfo.paidAmount ?? paymentInfo.paid ?? raw.paidAmount ?? contract.amount);
-  const outstandingBalance = Math.max(0, Number(paymentInfo.remainingAmount ?? paymentInfo.remaining ?? raw.remainingAmount ?? (contract.amount - paidAmountNum)) || 0);
-  const carKey = ["Camry", "Sonata", "Elantra", "Civic", "Sportage", "Patrol", "CX-5", "Land Cruiser", "Tahoe", "ZS"].find(k => contract.car.includes(k)) || "Sonata";
-  const carImages = CAR_IMAGES[carKey] || CAR_IMAGES["Sonata"];
-  const isLate = row.status === "late";
+  const invoice = returnForm.invoice ?? {};
+  const paidAmountNum = Number(invoice.paidAmount ?? paymentInfo.paidAmount ?? paymentInfo.paid ?? raw.paidAmount ?? contract.amount);
+  const outstandingBalance = Math.max(0, Number(invoice.remainingAmount ?? paymentInfo.remainingAmount ?? paymentInfo.remaining ?? raw.remainingAmount ?? (contract.amount - paidAmountNum)) || 0);
+  const returnPhotoSlots = returnForm.photoSlots ?? [];
+  const carImages = Array.from(new Map(
+    (returnPhotoSlots.some((slot) => slot.fileId) ? returnPhotoSlots : returnForm.images ?? [])
+      .filter((image) => image.fileId)
+      .map((image) => [Number(image.fileId), `/api/attachments/${image.fileId}/download`]),
+  ).values());
+  const conditionPhotos = returnPhotoSlots
+    .filter((slot) => slot.fileId)
+    .map((slot) => ({ src: `/api/attachments/${slot.fileId}/download`, label: ar ? slot.labelAr ?? slot.label : slot.labelEn ?? slot.label }));
+  const isLate = returnForm.isLate ?? row.status === "late";
 
   const days = Math.max(1, Math.round((new Date(raw.endAt).getTime() - new Date(raw.startAt).getTime()) / 86400000)) || 1;
-  const pickupOdometer = Number(delivery?.odometerAtDelivery ?? raw.odometerReading ?? raw.odometerAtDelivery ?? 0);
-  const pickupFuel: Types.FuelLevel | null = delivery?.fuelLevelAtDelivery != null ? Number(delivery.fuelLevelAtDelivery) as Types.FuelLevel : (raw.fuelLevel != null ? Number(raw.fuelLevel) as Types.FuelLevel : null);
+  const pickupOdometer = Number(returnForm.odometerAtDelivery ?? 0);
+  const pickupFuel: Types.FuelLevel | null = returnForm.fuelLevelAtDelivery != null ? Number(returnForm.fuelLevelAtDelivery) as Types.FuelLevel : null;
+  const deliveryValue = (item?: Types.HandoverInspectionDisplayItem) => {
+    const localized = (ar ? item?.valueAr : item?.valueEn) ?? item?.value ?? "—";
+    return String(item?.atDeliveryValue == null || String(item.atDeliveryValue) === String(item.value) ? localized : item.atDeliveryValue);
+  };
+  const deliveryValues = {
+    odometer: deliveryValue(returnForm.basicInspection?.speedometer),
+    screen: deliveryValue(returnForm.vehicleEquipment?.screen),
+    radio: deliveryValue(returnForm.vehicleEquipment?.radioStereo),
+    ac: deliveryValue(returnForm.vehicleEquipment?.ac),
+    spareTire: deliveryValue(returnForm.vehicleEquipment?.spareTire),
+    tires: deliveryValue(returnForm.basicInspection?.tires),
+    seats: deliveryValue(returnForm.vehicleEquipment?.carSeats),
+    keys: deliveryValue(returnForm.basicInspection?.keys),
+    triangle: deliveryValue(returnForm.basicInspection?.safetyTriangle),
+    extinguisher: deliveryValue(returnForm.basicInspection?.fireExtinguisher),
+    firstAid: deliveryValue(returnForm.basicInspection?.firstAidKit),
+    tireKit: deliveryValue(returnForm.vehicleEquipment?.spareTireTools),
+  };
+  const inspectionFields: ReturnInspectionField[] = [
+    { key: "tires", group: "base", labelEn: "Tire condition", labelAr: "حالة الإطارات", item: returnForm.basicInspection?.tires },
+    { key: "windshield", group: "base", labelEn: "Windshield condition", labelAr: "حالة الزجاج الأمامي", item: returnForm.basicInspection?.windshield },
+    { key: "keys", group: "base", labelEn: "Keys", labelAr: "المفاتيح", item: returnForm.basicInspection?.keys },
+    { key: "safetyTriangle", group: "base", labelEn: "Warning triangle", labelAr: "مثلث التحذير", item: returnForm.basicInspection?.safetyTriangle },
+    { key: "firstAidKit", group: "base", labelEn: "First aid kit", labelAr: "حقيبة الإسعافات الأولية", item: returnForm.basicInspection?.firstAidKit },
+    { key: "fireExtinguisher", group: "base", labelEn: "Fire extinguisher", labelAr: "طفاية الحريق", item: returnForm.basicInspection?.fireExtinguisher },
+    { key: "speedometer", group: "base", labelEn: "Speedometer condition", labelAr: "حالة عداد السرعة", item: returnForm.basicInspection?.speedometer },
+    { key: "spareKey", group: "equipment", labelEn: "Spare key", labelAr: "المفتاح الاحتياطي", item: returnForm.vehicleEquipment?.spareKey },
+    { key: "spareTire", group: "equipment", labelEn: "Spare tire", labelAr: "الإطار الاحتياطي", item: returnForm.vehicleEquipment?.spareTire },
+    { key: "spareTireTools", group: "equipment", labelEn: "Basic vehicle tools", labelAr: "أدوات السيارة الأساسية", item: returnForm.vehicleEquipment?.spareTireTools },
+    { key: "carSeats", group: "equipment", labelEn: "Seat condition", labelAr: "حالة المقاعد", item: returnForm.vehicleEquipment?.carSeats },
+    { key: "ac", group: "equipment", labelEn: "A/C", labelAr: "التكييف", item: returnForm.vehicleEquipment?.ac },
+    { key: "screen", group: "equipment", labelEn: "Screen", labelAr: "الشاشة", item: returnForm.vehicleEquipment?.screen },
+    { key: "radioStereo", group: "equipment", labelEn: "Audio system / radio", labelAr: "النظام الصوتي / الراديو", item: returnForm.vehicleEquipment?.radioStereo },
+    { key: "powerOutlet", group: "equipment", labelEn: "Power outlet", labelAr: "منفذ الطاقة", item: returnForm.vehicleEquipment?.powerOutlet },
+    { key: "smokingOdor", group: "equipment", labelEn: "Smoking odor inside vehicle", labelAr: "رائحة تدخين داخل المركبة", item: returnForm.vehicleEquipment?.smokingOdor },
+  ];
   const tripKm = odometerEntered ? Math.max(0, odometerNum - pickupOdometer) : null;
   const kmCapNum = raw.unlimitedKm ? null : ((Number(raw.allowedKmPerDay ?? 0) * days) || null);
-  const isOverKm = tripKm != null && kmCapNum != null && tripKm > kmCapNum;
-  const extraKmCount = isOverKm && tripKm != null && kmCapNum != null ? tripKm - kmCapNum : Number(suggestion?.extraKm ?? 0);
+  const locallyOverKm = tripKm != null && kmCapNum != null && tripKm > kmCapNum;
+  const suggestedExtraKm = Number(suggestion?.extraKm ?? 0);
+  const extraKmCount = locallyOverKm && tripKm != null && kmCapNum != null ? tripKm - kmCapNum : suggestedExtraKm;
+  const isOverKm = locallyOverKm || suggestedExtraKm > 0 || Number(suggestion?.extraKmAmount ?? 0) > 0;
 
   const noDamage = sketchItems.length === 0;
-  const damageCount = new Set([
-    ...Object.keys(reasons).filter(k => reasons[k]),
-    ...Object.keys(photos),
-  ]).size;
+  const damageCount = inspectionFields.filter((field) => (inspectionValues[field.key] ?? Number(field.item?.value ?? 0)) !== Number(field.item?.atDeliveryValue ?? field.item?.value ?? 0)).length;
 
   // Suggested amounts from /return/calculate-charges; manual inputs override.
   const lateFeeNum = manualLateFee !== "" ? (parseFloat(manualLateFee) || 0) : Number(suggestion?.lateFeeAmount ?? 0);
@@ -520,30 +588,57 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
   const extraCharges = lateFeeNum + extraKmNum + fuelDiffNum + damageNum;
   const finalTotal = contract.amount + extraCharges;
 
-  const canConfirm = odometerEntered && fuelValid && !submitting;
+  const requiredReturnPhotos = Math.min(6, returnPhotoSlots.length);
+  const canConfirm = customerPresent && customerConfirms && walkDone && odometerEntered && fuelValid && Object.keys(returnPhotos).length >= requiredReturnPhotos && returnForm.canReturn !== false && !submitting && !submitted;
 
   const handleConfirm = async () => {
     setSubmitting(true);
     setSubmitError("");
     try {
-      // Upload damage photos, then build the per-item condition report.
-      const condition: Types.HandoverCondition = {};
-      for (const [key, condKey] of Object.entries(CONDITION_KEY_MAP)) {
-        const note = reasons[key]?.trim() || null;
-        const photo = photos[key];
-        let attachmentId: number | null = null;
-        if (photo) {
-          const up = await attachmentService.upload(photo.file);
-          attachmentId = Number(up?.id ?? up?.data?.id ?? up?.attachmentId) || null;
-        }
-        condition[condKey] = { isOk: !(note || photo), note, attachmentId };
-      }
+      const uploadedPhotos = await Promise.all(Object.entries(returnPhotos).map(async ([label, photo]) => {
+        if (!photo.file) throw new Error(T("A return photo must be selected again", "يجب إعادة اختيار إحدى صور الاستلام", ar));
+        const uploaded = await attachmentService.upload(photo.file);
+        const attachmentId = Number(uploaded?.id ?? uploaded?.data?.id ?? uploaded?.attachmentId ?? uploaded?.data?.fileId ?? uploaded?.fileId);
+        if (!attachmentId) throw new Error(T("A return photo could not be uploaded", "تعذر رفع إحدى صور الاستلام", ar));
+        return { label, attachmentId };
+      }));
+      const attachmentByLabel = Object.fromEntries(uploadedPhotos.map((photo) => [photo.label, photo.attachmentId]));
+      const baselineValue = (item?: Types.HandoverInspectionDisplayItem) => Number(item?.atDeliveryValue ?? item?.value ?? 0);
+      const inspectionItem = (key: string, item?: Types.HandoverInspectionDisplayItem, attachmentId?: number, value?: number): Types.DeliveryInspectionItem => {
+        const selectedValue = value ?? inspectionValues[key] ?? Number(item?.value ?? 0);
+        return { isOk: selectedValue === baselineValue(item), note: null, ...(attachmentId ? { attachmentId } : {}), value: selectedValue };
+      };
+      const basicInspection: Types.DeliveryBasicInspection = {
+        odometerReading: inspectionItem("odometerReading", returnForm.basicInspection?.odometerReading, attachmentByLabel.odometerFuel, odometerNum),
+        fuelLevel: inspectionItem("fuelLevel", returnForm.basicInspection?.fuelLevel, attachmentByLabel.odometerFuel, fuel as Types.FuelLevel),
+        tires: inspectionItem("tires", returnForm.basicInspection?.tires),
+        windshield: inspectionItem("windshield", returnForm.basicInspection?.windshield),
+        bodyDamage: inspectionItem("bodyDamage", returnForm.basicInspection?.bodyDamage, undefined, baselineSketch.length + sketchItems.length),
+        keys: inspectionItem("keys", returnForm.basicInspection?.keys),
+        safetyTriangle: inspectionItem("safetyTriangle", returnForm.basicInspection?.safetyTriangle, attachmentByLabel.safetyKit),
+        firstAidKit: inspectionItem("firstAidKit", returnForm.basicInspection?.firstAidKit, attachmentByLabel.safetyKit),
+        fireExtinguisher: inspectionItem("fireExtinguisher", returnForm.basicInspection?.fireExtinguisher, attachmentByLabel.safetyKit),
+        speedometer: inspectionItem("speedometer", returnForm.basicInspection?.speedometer),
+      };
+      const vehicleEquipment: Types.DeliveryVehicleEquipment = {
+        spareKey: inspectionItem("spareKey", returnForm.vehicleEquipment?.spareKey),
+        spareTire: inspectionItem("spareTire", returnForm.vehicleEquipment?.spareTire, attachmentByLabel.spareTireTools),
+        spareTireTools: inspectionItem("spareTireTools", returnForm.vehicleEquipment?.spareTireTools, attachmentByLabel.spareTireTools),
+        carSeats: inspectionItem("carSeats", returnForm.vehicleEquipment?.carSeats, attachmentByLabel.interior),
+        ac: inspectionItem("ac", returnForm.vehicleEquipment?.ac),
+        screen: inspectionItem("screen", returnForm.vehicleEquipment?.screen),
+        radioStereo: inspectionItem("radioStereo", returnForm.vehicleEquipment?.radioStereo),
+        powerOutlet: inspectionItem("powerOutlet", returnForm.vehicleEquipment?.powerOutlet),
+        smokingOdor: inspectionItem("smokingOdor", returnForm.vehicleEquipment?.smokingOdor, attachmentByLabel.interior),
+      };
 
+      const finalSketch = [...baselineSketch, ...sketchItems];
       await contractService.recordReturn(id, {
         odometerAtReturn: odometerNum,
         fuelLevelAtReturn: fuel as Types.FuelLevel,
-        sketchInfoAtReturn: [...baselineSketch, ...sketchItems].map((s) => ({ type: s.type, x: s.x, y: s.y })),
-        condition,
+        sketchInfoAtReturn: finalSketch.map((mark) => ({ type: mark.type, x: mark.x, y: mark.y, note: mark.note ?? null })),
+        basicInspection,
+        vehicleEquipment,
         conditionNotes: damageNotes.trim() || null,
         lateFeeAmount: lateFeeNum,
         lateHours: lateHoursNum || undefined,
@@ -552,14 +647,35 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
         fuelDifferenceAmount: fuelDiffNum,
         damageAmount: damageNum,
         checklist: {
-          customerPresentAtCounter: true,
+          customerPresentAtCounter: customerPresent,
           odometerRecorded: odometerEntered,
           fuelLevelChecked: fuelValid,
-          walkAroundCompleted: true,
-          customerConfirmedReturn: true,
+          walkAroundCompleted: walkDone,
+          customerConfirmedReturn: customerConfirms,
         },
+        photos: uploadedPhotos,
+        fleetStatusAfterReturn: fleetStatus === "" ? returnForm.suggestedFleetStatus ?? undefined : fleetStatus,
       });
+      const vehicleId = returnForm.vehicle?.id;
+      if (vehicleId) {
+        try {
+          const vehicleResult = await vehicleService.getById(vehicleId);
+          const vehicleData = vehicleResult?.data ?? vehicleResult;
+          const fleetSketch = mapDamagePointsToSketchItems(vehicleData?.damagePoints);
+          const signature = (items: SketchItem[]) => items.map((mark) => `${mark.type}:${Math.round(mark.x * 10) / 10}:${Math.round(mark.y * 10) / 10}:${mark.note ?? ""}`).sort().join("|");
+          if (signature(fleetSketch) !== signature(finalSketch)) {
+            const vehicleForm = mapVehicleToForm(vehicleData);
+            vehicleForm.sketchItems = finalSketch;
+            const imageFileIds = extractVehicleImageFileIds(vehicleData);
+            await vehicleService.update(vehicleId, buildVehiclePayload(vehicleForm, imageFileIds));
+          }
+        } catch {
+          setSubmitError(T("The return was saved, but the Fleet sketch could not be synchronized.", "تم حفظ الإرجاع، ولكن تعذر مزامنة مخطط الأضرار مع الأسطول.", ar));
+        }
+      }
       setSubmitted(true);
+      setShowSuccess(true);
+      contractService.getReturn(id).catch(() => null);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
@@ -582,17 +698,44 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
 
     return (
       <div className="flex flex-col gap-4">
-        {/* Back nav */}
+        <SuccessDialog
+          open={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          tone={sketchItems.length || damageCount ? "violet" : "mint"}
+          title={sketchItems.length || damageCount ? T("Return recorded — sent for review", "تم تسجيل الإرجاع وإحالته للمراجعة", ar) : T("Vehicle returned successfully!", "تم استلام المركبة بنجاح!", ar)}
+          subtitle={<span className="font-mono">{contract.id}</span>}
+          description={sketchItems.length || damageCount ? T("Differences were found. The office will review them before the financial close.", "رُصدت اختلافات، سيراجعها المكتب قبل الإقفال المالي.", ar) : T("No differences found. The contract is closed and the vehicle is back in the fleet.", "لا اختلافات. تم إقفال العقد وعادت المركبة للأسطول.", ar)}
+          details={[
+            { label: T("Customer", "العميل", ar), value: contract.customer },
+            { label: T("Vehicle", "المركبة", ar), value: `${contract.car} · ${contract.plate}` },
+            { label: T("Trip distance", "المسافة المقطوعة", ar), value: `${(tripKm ?? 0).toLocaleString()} ${T("km", "كم", ar)}` },
+            { label: T("Next vehicle status", "حالة المركبة التالية", ar), value: String(returnForm.suggestedFleetStatus ?? "—") },
+          ]}
+          actions={<>
+            <Link href={basePath} className="no-underline"><Button variant="primary">{T("Back to Active Rentals", "العودة للمركبات المؤجرة", ar)}</Button></Link>
+            <Button variant="outline" onClick={() => setShowSuccess(false)}>{T("Stay here", "البقاء هنا", ar)}</Button>
+          </>}
+        />
         <div className="flex items-center gap-3">
           <Link href={basePath} className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-[var(--shadow-card)] text-mk-ink-600 no-underline hover:bg-mk-ink-50 transition-colors">
             {ar ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </Link>
-          <span className="mk-body-sm text-mk-ink-500">{T("Back to Active Rentals", "العودة للمركبات المؤجرة", ar)}</span>
+          <span className="mk-body-sm text-mk-ink-500 flex-1">{T("Back to Active Rentals", "العودة للمركبات المؤجرة", ar)}</span>
+          <Button variant="primary" size="sm" disabled={!canConfirm} onClick={handleConfirm}>
+            <Check size={16} />{submitting ? T("Processing…", "جارٍ المعالجة…", ar) : submitted ? T("Return confirmed", "تم تأكيد الإرجاع", ar) : sketchItems.length || damageCount ? T("Submit for office review", "إحالة للمكتب للمراجعة", ar) : T("Complete return & close contract", "إتمام الإرجاع وإغلاق العقد", ar)}
+          </Button>
         </div>
+
+        {(returnForm.blockers?.length ?? 0) > 0 && (
+          <div className="rounded-xl border border-mk-danger/20 bg-mk-danger/5 px-5 py-4 text-mk-danger">
+            <div className="mk-label">{T("Return is currently blocked", "لا يمكن إتمام الإرجاع حالياً", ar)}</div>
+            <ul className="mt-2 list-disc ps-5 mk-caption">{returnForm.blockers!.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Inspection checklist */}
-          <div className="rounded-xl p-6 mk-surface">
+          <div className="rounded-xl p-5 mk-surface">
             <div className="flex items-center gap-3 mb-6">
               <div className="mk-h4 flex-1 text-mk-ink-900">{T(`Return · ${contract.id}`, `استلام إرجاع · ${contract.id}`, ar)}</div>
               <Badge variant={isLate ? "danger" : "success"} dot>{isLate ? T("Overdue", "متأخر", ar) : T("On time", "في الوقت", ar)}</Badge>
@@ -641,11 +784,12 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
             {/* Car */}
             <div className="flex items-center gap-3 py-3 border-b border-mk-ink-100">
               <div className="w-16 h-11 rounded-md overflow-hidden shrink-0 bg-mk-ink-50">
-                <img src={carImages[0]} alt={contract.car} className="w-full h-full object-cover" />
+                {carImages[0] ? <img src={carImages[0]} alt={contract.car} className="w-full h-full object-cover" /> : <Camera size={16} className="m-auto h-full text-mk-ink-400" />}
               </div>
               <div className="flex-1">
                 <div className="mk-body text-mk-ink-900">{contract.car}</div>
                 <div className="mk-caption text-mk-ink-500">{contract.plate} · {contract.branch}</div>
+                <div className="mt-1.5"><PlaceBadge place={{ kind: "branch", name: contract.branch }} ar={ar} /></div>
               </div>
               <IconButton size="md" onClick={() => setShowMap(true)} className="border border-mk-ink-200 text-mk-blue-600 hover:bg-mk-blue-50" title={T("Track on map", "تتبع على الخريطة", ar)}>
                 <MapPin size={14} />
@@ -655,13 +799,11 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
             {/* Inspection steps */}
             <div className="mk-overline uppercase mt-4 mb-2 text-mk-ink-500 mk-tracking-wide">{T("Return inspection", "معاينة الإرجاع", ar)}</div>
 
-            <div className="flex items-center gap-3 px-4 py-3 rounded-md mb-2 bg-mk-mint-600/8 border border-mk-mint-600/30">
-              <div className="w-6 h-6 rounded-sm flex items-center justify-center shrink-0 text-white bg-mk-mint-600">
-                <Check size={14} />
-              </div>
+            <button type="button" disabled={submitted} onClick={() => setCustomerPresent((value) => !value)} className="flex w-full items-center gap-3 px-4 py-3 rounded-md mb-2 border-0 bg-transparent text-start hover:bg-mk-ink-50 disabled:cursor-default">
+              <Checkbox readOnly checked={customerPresent} disabled={submitted} />
               <UserCheck size={16} className="text-mk-ink-500 shrink-0" />
-              <span className="mk-body-sm text-mk-ink-500">{T("Customer present at counter", "العميل حاضر في الكاونتر", ar)}</span>
-            </div>
+              <span className="mk-body-sm text-mk-ink-900">{T("Customer present at counter", "العميل حاضر في الكاونتر", ar)}</span>
+            </button>
 
             {/* Odometer reading — required entry */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-md mb-2"
@@ -678,6 +820,7 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
                   inputMode="numeric"
                   required
                   value={returnOdometer}
+                  disabled={submitted}
                   onChange={e => setReturnOdometer(e.target.value)}
                   placeholder={T("km", "كم", ar)}
                   className="w-[100px] px-2 py-1 rounded-md mk-body-sm text-mk-ink-900 border border-mk-ink-200 bg-white outline-none focus:border-mk-blue-500"
@@ -685,11 +828,21 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
                 {odometerEntered && tripKm != null && (
                   <span className="mk-caption" style={{ color: isOverKm ? "var(--color-mk-danger)" : "var(--color-mk-ink-500)" }}>
                     {T(`+${tripKm.toLocaleString()} km this trip`, `+${tripKm.toLocaleString()} كم هذه الرحلة`, ar)}
-                    {isOverKm && kmCapNum != null && T(` · ${(tripKm - kmCapNum).toLocaleString()} km over cap`, ` · تجاوز ${(tripKm - kmCapNum).toLocaleString()} كم عن الحد`, ar)}
+                    {isOverKm && extraKmCount > 0 && T(` · ${extraKmCount.toLocaleString()} km over the allowed limit`, ` · تجاوز الحد المسموح بمقدار ${extraKmCount.toLocaleString()} كم`, ar)}
                   </span>
                 )}
               </div>
             </div>
+
+            {isOverKm && extraKmCount > 0 && (
+              <div className="mb-2 flex items-start gap-3 rounded-lg border border-mk-danger/25 bg-mk-danger/8 px-4 py-3 text-mk-danger">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="mk-label">{T("Allowed mileage exceeded", "تم تجاوز الكيلومترات المسموح بها", ar)}</div>
+                  <div className="mt-1 mk-caption">{T(`The customer exceeded the contract allowance by ${extraKmCount.toLocaleString()} km.`, `تجاوز العميل الحد المسموح في العقد بمقدار ${extraKmCount.toLocaleString()} كم.`, ar)}</div>
+                </div>
+              </div>
+            )}
 
             {/* Fuel level at return — required entry */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-md mb-2"
@@ -703,6 +856,7 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
                 <span className="mk-body-sm shrink-0" style={{ color: fuelValid ? "var(--color-mk-ink-500)" : "var(--color-mk-ink-900)" }}>{T("Fuel level at return", "مستوى الوقود عند الإرجاع", ar)}</span>
                 <Select
                   value={fuel === "" ? "" : String(fuel)}
+                  disabled={submitted}
                   onChange={e => setFuel(e.target.value === "" ? "" : (Number(e.target.value) as Types.FuelLevel))}
                   className="w-[130px] py-1 mk-body-sm"
                 >
@@ -718,25 +872,23 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
             </div>
 
             {/* Walk-around damage — reflects the condition diagram */}
-            <div className="flex items-center gap-3 px-4 py-3 rounded-md mb-2"
-              style={{ background: noDamage ? "rgba(63,182,172,0.08)" : "rgba(226,65,113,0.08)", border: `1px solid ${noDamage ? "rgba(63,182,172,0.30)" : "rgba(226,65,113,0.30)"}` }}>
-              <div className="w-6 h-6 rounded-sm flex items-center justify-center shrink-0 text-white"
-                style={{ background: noDamage ? "var(--color-mk-mint-600)" : "var(--color-mk-danger)" }}>
-                {noDamage ? <Check size={14} /> : <AlertTriangle size={14} />}
-              </div>
+            <button type="button" disabled={submitted} onClick={() => setWalkDone((value) => !value)} className="flex w-full items-center gap-3 px-4 py-3 rounded-md mb-2 border-0 bg-transparent text-start hover:bg-mk-ink-50 disabled:cursor-default">
+              <Checkbox readOnly checked={walkDone} disabled={submitted} />
               <Camera size={16} className="text-mk-ink-500 shrink-0" />
-              <span className="mk-body-sm" style={{ color: noDamage ? "var(--color-mk-ink-500)" : "var(--color-mk-danger)" }}>
+              <span className={`mk-body-sm ${noDamage ? "text-mk-ink-900" : "text-mk-danger"}`}>
                 {noDamage
                   ? T("Walk-around · no new damage", "معاينة محيطية · لا أضرار جديدة", ar)
                   : T(`Walk-around · ${sketchItems.length} damage mark(s) on diagram`, `معاينة محيطية · ${sketchItems.length} علامة ضرر في المخطط`, ar)}
               </span>
-            </div>
+            </button>
 
-            <div className="flex items-center gap-3 px-4 py-3 rounded-md mb-2">
-              <div className="w-6 h-6 rounded-sm flex items-center justify-center shrink-0 bg-mk-bg border border-mk-border" />
+            <button type="button" disabled={submitted} onClick={() => setCustomerConfirms((value) => !value)} className="flex w-full items-center gap-3 px-4 py-3 rounded-md mb-2 border-0 bg-transparent text-start hover:bg-mk-ink-50 disabled:cursor-default">
+              <Checkbox readOnly checked={customerConfirms} disabled={submitted} />
               <Smartphone size={16} className="text-mk-ink-500 shrink-0" />
               <span className="mk-body-sm text-mk-ink-900">{T("Customer confirms return on screen", "العميل يؤكد وقت الإرجاع", ar)}</span>
-            </div>
+            </button>
+
+            <ReturnInspectionSelects ar={ar} fields={inspectionFields} values={inspectionValues} onChange={setInspectionValues} disabled={submitted} />
 
             {/* Extra charges — suggested by the backend, editable on receipt */}
             {(suggestion != null || isLate || isOverKm) && (
@@ -800,12 +952,18 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
               </div>
             )}
 
+            {(returnForm.fleetStatusOptions?.length ?? 0) > 0 && (
+              <div className="mt-4 border-t border-mk-ink-100 pt-4">
+                <Select label={T("Vehicle status after return", "حالة المركبة بعد الاستلام", ar)} value={fleetStatus === "" ? "" : String(fleetStatus)} onChange={(event) => setFleetStatus(Number(event.target.value) as Types.VehicleFleetStatus)} disabled={submitted}>
+                  {returnForm.fleetStatusOptions!.map((status) => <option key={status} value={status}>{status === Types.VehicleFleetStatus.Available ? T("Available", "متاحة", ar) : status === Types.VehicleFleetStatus.Maintenance ? T("Maintenance", "صيانة", ar) : status === Types.VehicleFleetStatus.Inactive ? T("Inactive", "غير نشطة", ar) : T(`Status ${status}`, `الحالة ${status}`, ar)}</option>)}
+                </Select>
+                <div className="mt-1 mk-caption text-mk-ink-500">{T("The suggested status is selected by default.", "تم تحديد الحالة المقترحة افتراضياً.", ar)}</div>
+              </div>
+            )}
+
             {submitError && (
               <p className="mk-label text-mk-danger-700 px-4 py-3 rounded-lg bg-mk-danger-100 mt-2">{submitError}</p>
             )}
-            <Button variant="primary" className="w-full justify-center mt-4 shadow-[var(--shadow-glow-blue)]" disabled={!canConfirm} onClick={handleConfirm}>
-              <Tablet size={16} />{submitting ? T("Processing…", "جارٍ المعالجة…", ar) : T("Pass to customer", "سلّم للعميل", ar)}
-            </Button>
             <Button variant="outline" className="w-full justify-center mt-2 text-mk-danger border-mk-danger/30" disabled={submitting} onClick={() => setShowDispute(true)}>
               <AlertTriangle size={15} />{T("Mark disputed", "تسجيل نزاع", ar)}
             </Button>
@@ -815,28 +973,32 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
           <div className="flex flex-col gap-4">
             <VehicleConditionPanel
               ar={ar}
-              carImages={carImages}
+              photos={conditionPhotos.length ? conditionPhotos : carImages.map((src, index) => ({ src, label: `${T("Photo", "صورة", ar)} ${index + 1}` }))}
+              vehicleTitle={`${contract.car} · ${contract.plate}`}
               sketchItems={sketchItems}
               onSketchChange={setSketchItems}
               baselineSketch={baselineSketch}
               damageNotes={damageNotes}
               onDamageNotesChange={setDamageNotes}
+              disabled={submitted}
             />
-            <VehicleSummaryPanel
+            <PhotoSlotsPanel
               ar={ar}
-              odometer={odometerEntered ? odometerNum : pickupOdometer}
-              fuel={fuelValid ? fuelLabel(fuel, ar) : "—"}
-              endurance={raw.enduranceAmount != null ? Number(raw.enduranceAmount) : null}
-              reasons={reasons}
-              onReasonsChange={setReasons}
-              photos={photos}
-              onPhotosChange={setPhotos}
+              viewerTitle={`${contract.car} · ${contract.plate}`}
+              title={T("Return photos", "صور الاستلام", ar)}
+              definitions={returnPhotoSlots}
+              values={returnPhotos}
+              onChange={setReturnPhotos}
+              required={requiredReturnPhotos}
+              locked={submitted}
             />
-
             {/* Invoice */}
-            <div className="rounded-xl p-6 mk-surface">
+            <div className="rounded-xl p-5 mk-surface">
               <div className="mk-h4 mb-6 text-mk-ink-900">{T("Final invoice", "الفاتورة النهائية", ar)}</div>
               <div className="flex flex-col gap-3">
+                {invoice.baseRent != null && <div className="flex justify-between mk-label"><span className="text-mk-ink-600">{T("Base rent", "الإيجار الأساسي", ar)}</span><span className="text-mk-ink-900">{Number(invoice.baseRent).toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>}
+                {invoice.insurance != null && <div className="flex justify-between mk-label"><span className="text-mk-ink-600">{T("Insurance", "التأمين", ar)}</span><span className="text-mk-ink-900">{Number(invoice.insurance).toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>}
+                {invoice.vatAmount != null && <div className="flex justify-between mk-label"><span className="text-mk-ink-600">{T("VAT", "ضريبة القيمة المضافة", ar)}</span><span className="text-mk-ink-900">{Number(invoice.vatAmount).toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>}
                 <div className="flex justify-between mk-label"><span className="text-mk-ink-600">{T("Contract amount", "مبلغ العقد", ar)}</span><span className="text-mk-ink-900">{contract.amount.toLocaleString()} {T("SAR", "ر.س", ar)}</span></div>
                 {lateFeeNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Late fee", "غرامة التأخر", ar)}</span><span className="text-mk-danger">+{lateFeeNum} {T("SAR", "ر.س", ar)}</span></div>}
                 {extraKmNum > 0 && <div className="flex justify-between mk-label"><span className="text-mk-danger">{T("Extra km charge", "رسوم الكيلومترات الزائدة", ar)}</span><span className="text-mk-danger">+{extraKmNum} {T("SAR", "ر.س", ar)}</span></div>}
@@ -848,6 +1010,7 @@ function ReturnDetailView({ id, ar, basePath }: { id: string; ar: boolean; baseP
                   <span>{T(`Paid: ${paidAmountNum.toLocaleString()} SAR`, `المدفوع: ${paidAmountNum.toLocaleString()} ريال`, ar)}</span>
                   <span className={`mk-label ${outstandingBalance + extraCharges > 0 ? "text-mk-danger" : "text-mk-mint-600"}`}>{outstandingBalance + extraCharges > 0 ? `+${(outstandingBalance + extraCharges).toLocaleString()} ${T("SAR due", "ريال مستحق", ar)}` : T("No remaining balance", "لا رصيد متبقي", ar)}</span>
                 </div>
+
               </div>
             </div>
           </div>

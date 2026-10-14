@@ -3,8 +3,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Download, Calendar, ChevronRight, ChevronLeft } from "lucide-react";
-import { Avatar, Badge, Button, Tabs, Input, Table, Th, Td, IconButton } from "@/components/ui";
+import { Search, Plus, Download, Calendar, ChevronRight, ChevronLeft, Trash2 } from "lucide-react";
+import { Avatar, Badge, Button, Tabs, Input, Table, Th, Td, IconButton, Modal } from "@/components/ui";
 import { useDropdownPlacement } from "@/components/ui/useDropdownPlacement";
 import { DropdownPortal } from "@/components/ui/DropdownPortal";
 import { MONTHS_EN, MONTHS_AR, WEEKDAYS_EN, WEEKDAYS_AR, WEEKEND_INDEXES, pad, buildMonthCells, goMonth } from "@/components/ui/dateGridUtils";
@@ -58,6 +58,13 @@ function formatShort(value: string, ar: boolean) {
 function parseISO(value: string) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   return m ? { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) } : null;
+}
+
+function toApiDateTime(value: string, endOfDay = false) {
+  const parsed = parseISO(value);
+  if (!parsed) return null;
+  const date = new Date(parsed.y, parsed.m - 1, parsed.d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  return date.toISOString();
 }
 
 /** Date-range trigger — same outline pill as the other toolbar buttons.
@@ -255,6 +262,7 @@ interface ContractRow {
   branch: string;
   kyc: string;
   status: string;
+  rawStatus: ContractStatus;
   amount: number;
   flagged: boolean;
 }
@@ -302,6 +310,7 @@ function mapContractRow(item: any, ar: boolean): ContractRow {
     branch: (ar ? item.workingBranchNameAr : item.workingBranchNameEn) ?? item.workingBranchName ?? item.workingBranchNameEn ?? item.workingBranchNameAr ?? item.branchName ?? "",
     kyc: normalizeKycStatus(item.customerVerificationStatus ?? item.verificationStatus ?? (item.customerIsVerified ? 2 : undefined)),
     status: key,
+    rawStatus: Number(item.status) as ContractStatus,
     amount: Number(item.totalAmount ?? item.grandTotal ?? item.total ?? item.paidAmount ?? 0),
     flagged: key === "late",
   };
@@ -323,6 +332,9 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ContractRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [counts, setCounts] = useState<Record<FilterKey, number>>({
     all: 0, pending: 0, active: 0, late: 0, completed: 0, cancelled: 0,
   });
@@ -345,8 +357,8 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
         const res = await contractService.search({
           search: debouncedQuery || undefined,
           statuses: FILTER_STATUSES[filter],
-          from: dateFrom || null,
-          to: dateTo || null,
+          from: toApiDateTime(dateFrom),
+          to: toApiDateTime(dateTo, true),
           pageNumber: page,
           pageSize: PAGE_SIZE,
         });
@@ -394,8 +406,8 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
       try {
         const res = await contractService.getStatusCounts({
           search: debouncedQuery || undefined,
-          from: dateFrom || null,
-          to: dateTo || null,
+          from: toApiDateTime(dateFrom),
+          to: toApiDateTime(dateTo, true),
         });
         if (cancelled) return;
         const c = res?.data ?? res ?? {};
@@ -415,6 +427,23 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
   }, [debouncedQuery, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const deleteContract = async () => {
+    if (!deleteTarget || deleteTarget.rawStatus !== 1) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await contractService.delete(deleteTarget.id);
+      setRows((current) => current.filter((contract) => contract.id !== deleteTarget.id));
+      setTotal((current) => Math.max(0, current - 1));
+      setCounts((current) => ({ ...current, all: Math.max(0, current.all - 1), pending: Math.max(0, current.pending - 1) }));
+      setDeleteTarget(null);
+    } catch (reason) {
+      setDeleteError(reason instanceof Error ? reason.message : T("Unable to delete contract", "تعذر حذف العقد", ar));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div>
@@ -544,10 +573,17 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
                     <span className="mk-label text-mk-ink-900">{b.amount.toLocaleString()}</span>
                     <span className="mk-overline ms-1 text-mk-ink-400">{T("SAR", "ريال", ar)}</span>
                   </Td>
-                  <Td>
-                    <span className="inline-flex items-center justify-center text-mk-ink-400">
-                      {ar ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-                    </span>
+                  <Td onClick={(event) => event.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1">
+                      {b.rawStatus === 1 && (
+                        <IconButton size="sm" variant="ghost" className="text-mk-danger hover:bg-mk-danger/10" title={T("Delete draft", "حذف المسودة", ar)} aria-label={T("Delete draft", "حذف المسودة", ar)} onClick={() => { setDeleteError(""); setDeleteTarget(b); }}>
+                          <Trash2 size={15} />
+                        </IconButton>
+                      )}
+                      <span className="inline-flex items-center justify-center text-mk-ink-400">
+                        {ar ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                      </span>
+                    </div>
                   </Td>
                 </tr>
               );
@@ -599,6 +635,19 @@ export default function ContractsListPage({ newContractPath, contractDetailPath 
           </div>
         </div>
       </div>
+
+      <Modal open={deleteTarget !== null} onClose={() => { if (!deleting) { setDeleteTarget(null); setDeleteError(""); } }} variant="centered" size="sm" title={T("Delete draft contract", "حذف مسودة العقد", ar)}>
+        <div className="flex flex-col gap-4 p-6">
+          <p className="m-0 mk-body-sm text-mk-ink-600">
+            {T(`Delete contract ${deleteTarget?.ref ?? ""}? This action cannot be undone.`, `هل تريد حذف العقد ${deleteTarget?.ref ?? ""}؟ لا يمكن التراجع عن هذا الإجراء.`, ar)}
+          </p>
+          {deleteError && <div className="rounded-md bg-mk-danger/10 px-3 py-2 mk-caption text-mk-danger">{deleteError}</div>}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" disabled={deleting} onClick={() => { setDeleteTarget(null); setDeleteError(""); }}>{T("Cancel", "إلغاء", ar)}</Button>
+            <Button variant="danger" disabled={deleting} onClick={deleteContract}>{deleting ? T("Deleting…", "جارٍ الحذف…", ar) : T("Delete", "حذف", ar)}</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

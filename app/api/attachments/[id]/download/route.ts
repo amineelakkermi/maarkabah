@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       headers: {
         Authorization: `Bearer ${getAccessTokenFromRequest(request) || ''}`,
       },
-    }, { retry: true });
+    }, { retry: true, timeoutMs: 30_000 });
 
     if (!response.ok) {
       const text = await response.text();
@@ -27,15 +27,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    const blob = await response.blob();
     const headers = new Headers();
     const contentType = response.headers.get('content-type');
     const contentDisposition = response.headers.get('content-disposition');
+    const contentLength = response.headers.get('content-length');
 
     if (contentType) headers.set('Content-Type', contentType);
     if (contentDisposition) headers.set('Content-Disposition', contentDisposition);
+    if (contentLength) headers.set('Content-Length', contentLength);
+    headers.set('Cache-Control', 'private, max-age=300');
 
-    return new NextResponse(blob, { status: 200, headers });
+    return new NextResponse(response.body, { status: 200, headers });
   } catch (error) {
     console.error('Attachment download error:', error);
     return NextResponse.json(

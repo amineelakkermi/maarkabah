@@ -41,7 +41,8 @@ export function useDropdownPlacement(
   open: boolean,
   rootRef: RefObject<HTMLElement | null>,
   panelRef: RefObject<HTMLElement | null>,
-  align: "start" | "end" = "start"
+  align: "start" | "end" = "start",
+  matchTriggerWidth = false,
 ): DropdownPlacement {
   // `position: fixed` from the very first render, not just once open: the
   // panel stays mounted at all times (see DropdownPortal) so its close
@@ -64,7 +65,7 @@ export function useDropdownPlacement(
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
       const placement: "top" | "bottom" = spaceBelow < panelHeight && spaceAbove > spaceBelow ? "top" : "bottom";
-      const isRtl = document.documentElement.dir === "rtl";
+      const isRtl = window.getComputedStyle(rootRef.current).direction === "rtl";
       // "start"/"end" here mean the same logical edges Tailwind's start-*/
       // end-* utilities do — resolved against the page's actual direction
       // since a fixed-position portal has no writing-mode context of its
@@ -73,9 +74,11 @@ export function useDropdownPlacement(
 
       const style: CSSProperties = {
         position: "fixed",
+        direction: isRtl ? "rtl" : "ltr",
         [placement === "top" ? "bottom" : "top"]: placement === "top" ? window.innerHeight - rect.top + 6 : rect.bottom + 6,
-        [anchorLeft ? "left" : "right"]: anchorLeft ? rect.left : window.innerWidth - rect.right,
-        minWidth: rect.width,
+        ...(matchTriggerWidth
+          ? { left: rect.left, width: rect.width, maxWidth: `calc(100vw - ${rect.left + 16}px)` }
+          : { [anchorLeft ? "left" : "right"]: anchorLeft ? rect.left : window.innerWidth - rect.right, minWidth: rect.width }),
       };
       setResult({ placement, style });
     }
@@ -87,7 +90,7 @@ export function useDropdownPlacement(
       window.removeEventListener("scroll", update, { capture: true });
       window.removeEventListener("resize", update);
     };
-  }, [open, rootRef, panelRef, align]);
+  }, [open, rootRef, panelRef, align, matchTriggerWidth]);
 
   return result;
 }

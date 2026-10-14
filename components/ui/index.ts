@@ -13,7 +13,7 @@ export type { CardProps } from "./Card";
 export { Input } from "./Input";
 export type { InputProps, InputVariant } from "./Input";
 
-export { Select } from "./Select";
+export { Select, SelectOption } from "./Select";
 export type { SelectProps, SelectSize } from "./Select";
 
 export { SearchableSelect } from "./SearchableSelect";
@@ -55,3 +55,6 @@ export { Table, Tr, Th, Td } from "./Table";
 export type { TableProps, TrProps, ThProps, TdProps } from "./Table";
 
 export { ToastProvider, useToast } from "./Toast";
+
+export { SuccessCard, SuccessDialog } from "./SuccessCard";
+export type { SuccessCardProps, SuccessDialogProps, SuccessDetail, SuccessTone } from "./SuccessCard";

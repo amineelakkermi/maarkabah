@@ -377,11 +377,11 @@ export enum OdorStatus {
 }
 
 export enum FuelLevel {
-  Full = 0,
-  ThreeQuarters = 1,
+  Empty = 0,
+  Quarter = 1,
   Half = 2,
-  Quarter = 3,
-  Empty = 4,
+  ThreeQuarters = 3,
+  Full = 4,
 }
 
 /** @deprecated oilType is free text on the API now (e.g. "5W-30"). Kept for
@@ -921,10 +921,82 @@ export interface PendingReturnsSearchRequest {
   pageSize?: number;
 }
 
+export interface PendingHandoverItem {
+  id: number;
+  contractNumber?: string | null;
+  status?: ContractStatus;
+  startAt?: string | null;
+  endAt?: string | null;
+  customerId?: number;
+  customerNameAr?: string | null;
+  customerNameEn?: string | null;
+  customerPhone?: string | null;
+  customerVerificationStatus?: VerificationStatus;
+  isFlagged?: boolean;
+  vehicleId?: number;
+  vehiclePlateNumber?: string | null;
+  vehicleMakeNameAr?: string | null;
+  vehicleMakeNameEn?: string | null;
+  vehicleModelNameAr?: string | null;
+  vehicleModelNameEn?: string | null;
+  vehicleYear?: number | null;
+  workingBranchId?: number;
+  workingBranchNameAr?: string | null;
+  workingBranchNameEn?: string | null;
+  totalAmount?: number;
+  isLate?: boolean;
+}
+
+export interface PendingHandoverSearchResponse {
+  items: PendingHandoverItem[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  data?: PendingHandoverSearchResponse;
+}
+
+export interface HandoverParty {
+  id: number;
+  nameAr?: string | null;
+  nameEn?: string | null;
+  phone?: string | null;
+  idNumber?: string | null;
+  verificationStatus?: VerificationStatus;
+}
+
+export interface HandoverVehicle {
+  id: number;
+  plateNumber?: string | null;
+  plateLetters?: string | null;
+  makeNameAr?: string | null;
+  makeNameEn?: string | null;
+  modelNameAr?: string | null;
+  modelNameEn?: string | null;
+  year?: number | null;
+  color?: string | null;
+}
+
+export interface HandoverImage {
+  fileId: number;
+  label?: string | null;
+  source?: string | null;
+  isPrimary?: boolean;
+  sortOrder?: number;
+}
+
+export interface HandoverPhotoSlot {
+  label: string;
+  labelAr?: string | null;
+  labelEn?: string | null;
+  fileId?: number | null;
+}
+
 export interface HandoverSketchPoint {
   type?: string;
   x?: number;
   y?: number;
+  note?: string | null;
 }
 
 export interface HandoverConditionItem {
@@ -957,13 +1029,157 @@ export interface DeliveryChecklist {
   keysHandedOver?: boolean;
 }
 
-export interface RecordDeliveryRequest {
+export interface DeliveryInspectionItem {
+  isOk?: boolean;
+  note?: string | null;
+  attachmentId?: number | null;
+  value?: number | null;
+}
+
+export interface HandoverInspectionDisplayItem extends Omit<DeliveryInspectionItem, "value"> {
+  value?: string | number | null;
+  valueAr?: string | null;
+  valueEn?: string | null;
+  atDeliveryValue?: string | number | null;
+}
+
+export interface DeliveryBasicInspection {
+  odometerReading?: DeliveryInspectionItem;
+  fuelLevel?: DeliveryInspectionItem;
+  tires?: DeliveryInspectionItem;
+  windshield?: DeliveryInspectionItem;
+  bodyDamage?: DeliveryInspectionItem;
+  keys?: DeliveryInspectionItem;
+  safetyTriangle?: DeliveryInspectionItem;
+  firstAidKit?: DeliveryInspectionItem;
+  fireExtinguisher?: DeliveryInspectionItem;
+  speedometer?: DeliveryInspectionItem;
+}
+
+export interface DeliveryVehicleEquipment {
+  spareKey?: DeliveryInspectionItem;
+  spareTire?: DeliveryInspectionItem;
+  spareTireTools?: DeliveryInspectionItem;
+  carSeats?: DeliveryInspectionItem;
+  ac?: DeliveryInspectionItem;
+  screen?: DeliveryInspectionItem;
+  radioStereo?: DeliveryInspectionItem;
+  powerOutlet?: DeliveryInspectionItem;
+  smokingOdor?: DeliveryInspectionItem;
+}
+
+export type HandoverBasicInspectionDisplay = {
+  [K in keyof DeliveryBasicInspection]?: HandoverInspectionDisplayItem;
+};
+
+export type HandoverVehicleEquipmentDisplay = {
+  [K in keyof DeliveryVehicleEquipment]?: HandoverInspectionDisplayItem;
+};
+
+export interface DeliveryPhoto {
+  label?: string | null;
+  attachmentId: number;
+}
+
+export interface DeliveryFormResponse {
+  contractId: number;
+  data?: DeliveryFormResponse;
+  contractNumber?: string | null;
+  status?: ContractStatus;
+  customer?: HandoverParty | null;
+  vehicle?: HandoverVehicle | null;
+  branchNameAr?: string | null;
+  branchNameEn?: string | null;
+  enduranceAmount?: number;
+  odometerReading?: number;
+  fuelLevel?: FuelLevel;
+  images?: HandoverImage[];
+  sketchInfoAtDelivery?: HandoverSketchPoint[];
+  basicInspection?: HandoverBasicInspectionDisplay;
+  vehicleEquipment?: HandoverVehicleEquipmentDisplay;
+  conditionNotes?: string | null;
+}
+
+export interface DeliveryRecordResponse extends DeliveryFormResponse {
+  id: number;
   odometerAtDelivery?: number;
   fuelLevelAtDelivery?: FuelLevel;
+  deliveredAt?: string | null;
+  deliveredByUserId?: number | null;
+  deliveredByUserName?: string | null;
+  photos?: DeliveryPhoto[];
+}
+
+export interface HandoverInvoice {
+  baseRent?: number;
+  insurance?: number;
+  subtotal?: number;
+  vatAmount?: number;
+  suggestedLateFeeAmount?: number;
+  suggestedExtraKmAmount?: number;
+  suggestedFuelDifferenceAmount?: number;
+  totalAmount?: number;
+  paidAmount?: number;
+  remainingAmount?: number;
+  [key: string]: unknown;
+}
+
+export interface ReturnFormResponse {
+  contractId: number;
+  data?: ReturnFormResponse;
+  contractNumber?: string | null;
+  status?: ContractStatus;
+  isLate?: boolean;
+  customer?: HandoverParty | null;
+  vehicle?: HandoverVehicle | null;
+  branchNameAr?: string | null;
+  branchNameEn?: string | null;
+  enduranceAmount?: number;
+  scheduledReturnAt?: string | null;
+  deliveredAt?: string | null;
+  odometerAtDelivery?: number;
+  fuelLevelAtDelivery?: FuelLevel;
+  odometerReading?: number;
+  fuelLevel?: FuelLevel;
+  odometerAtReturn?: number | null;
+  fuelLevelAtReturn?: FuelLevel | null;
+  photoSlots?: HandoverPhotoSlot[];
+  images?: HandoverImage[];
   sketchInfoAtDelivery?: HandoverSketchPoint[];
-  condition?: HandoverCondition;
+  sketchInfoAtReturn?: HandoverSketchPoint[];
+  basicInspection?: HandoverBasicInspectionDisplay;
+  vehicleEquipment?: HandoverVehicleEquipmentDisplay;
   conditionNotes?: string | null;
-  checklist?: DeliveryChecklist;
+  invoice?: HandoverInvoice | null;
+  fleetStatusOptions?: VehicleFleetStatus[];
+  suggestedFleetStatus?: VehicleFleetStatus | null;
+  fleetStatusSuggestion?: VehicleFleetStatus | null;
+  canReturn?: boolean;
+  blockers?: string[];
+  return?: ReturnRecordResponse | null;
+}
+
+export interface ReturnRecordResponse extends ReturnFormResponse {
+  returnedAt?: string | null;
+  returnedByUserId?: number | null;
+  returnedByUserName?: string | null;
+  lateFeeAmount?: number;
+  lateHours?: number | null;
+  extraKmAmount?: number;
+  extraKm?: number | null;
+  fuelDifferenceAmount?: number;
+  damageAmount?: number;
+  checklist?: ReturnChecklist | null;
+  photos?: DeliveryPhoto[];
+  fleetStatusAfterReturn?: VehicleFleetStatus | null;
+}
+
+export interface RecordDeliveryRequest {
+  sketchInfoAtDelivery?: HandoverSketchPoint[];
+  basicInspection?: DeliveryBasicInspection;
+  vehicleEquipment?: DeliveryVehicleEquipment;
+  conditionNotes?: string | null;
+  photos?: DeliveryPhoto[];
 }
 
 export interface ReturnChecklist {
@@ -978,7 +1194,8 @@ export interface RecordReturnRequest {
   odometerAtReturn?: number;
   fuelLevelAtReturn?: FuelLevel;
   sketchInfoAtReturn?: HandoverSketchPoint[];
-  condition?: HandoverCondition;
+  basicInspection?: DeliveryBasicInspection;
+  vehicleEquipment?: DeliveryVehicleEquipment;
   conditionNotes?: string | null;
   lateFeeAmount?: number;
   lateHours?: number;
@@ -987,6 +1204,8 @@ export interface RecordReturnRequest {
   fuelDifferenceAmount?: number;
   damageAmount?: number;
   checklist?: ReturnChecklist;
+  photos?: DeliveryPhoto[];
+  fleetStatusAfterReturn?: VehicleFleetStatus;
 }
 
 export interface ReturnChargesQuery {

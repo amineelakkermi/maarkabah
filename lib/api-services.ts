@@ -1541,22 +1541,30 @@ export const contractService = {
 
   // ── Delivery (Pickup Handover) ──
 
-  async searchPendingDeliveries(request: Types.PendingDeliveriesSearchRequest): Promise<any> {
-    return apiClient.request('/contracts/pending-deliveries/search', { method: 'POST', body: request });
+  async searchPendingDeliveries(request: Types.PendingDeliveriesSearchRequest): Promise<Types.PendingHandoverSearchResponse> {
+    return apiClient.request<Types.PendingHandoverSearchResponse>('/contracts/pending-deliveries/search', { method: 'POST', body: request });
   },
 
-  async recordDelivery(id: number | string, request: Types.RecordDeliveryRequest): Promise<any> {
-    return apiClient.request(`/contracts/${id}/deliver`, { method: 'POST', body: request });
+  async getDeliveryForm(id: number | string): Promise<Types.DeliveryFormResponse> {
+    return apiClient.request<Types.DeliveryFormResponse>(`/contracts/${id}/delivery-form`, { method: 'GET' });
   },
 
-  async getDelivery(id: number | string): Promise<any> {
-    return apiClient.request(`/contracts/${id}/delivery`, { method: 'GET' });
+  async recordDelivery(id: number | string, request: Types.RecordDeliveryRequest): Promise<Types.DeliveryRecordResponse> {
+    return apiClient.request<Types.DeliveryRecordResponse>(`/contracts/${id}/deliver`, { method: 'POST', body: request });
+  },
+
+  async getDelivery(id: number | string): Promise<Types.DeliveryRecordResponse | null> {
+    return apiClient.request<Types.DeliveryRecordResponse | null>(`/contracts/${id}/delivery`, { method: 'GET' });
   },
 
   // ── Return (Vehicle Handback) ──
 
-  async searchPendingReturns(request: Types.PendingReturnsSearchRequest): Promise<any> {
-    return apiClient.request('/contracts/pending-returns/search', { method: 'POST', body: request });
+  async searchPendingReturns(request: Types.PendingReturnsSearchRequest): Promise<Types.PendingHandoverSearchResponse> {
+    return apiClient.request<Types.PendingHandoverSearchResponse>('/contracts/pending-returns/search', { method: 'POST', body: request });
+  },
+
+  async getReturnForm(id: number | string): Promise<Types.ReturnFormResponse> {
+    return apiClient.request<Types.ReturnFormResponse>(`/contracts/${id}/return-form`, { method: 'GET' });
   },
 
   async calculateReturnCharges(id: number | string, query: Types.ReturnChargesQuery): Promise<any> {
@@ -1568,12 +1576,12 @@ export const contractService = {
     return apiClient.request(`/contracts/${id}/return/calculate-charges`, { method: 'GET', params });
   },
 
-  async recordReturn(id: number | string, request: Types.RecordReturnRequest): Promise<any> {
-    return apiClient.request(`/contracts/${id}/return`, { method: 'POST', body: request });
+  async recordReturn(id: number | string, request: Types.RecordReturnRequest): Promise<Types.ReturnRecordResponse> {
+    return apiClient.request<Types.ReturnRecordResponse>(`/contracts/${id}/return`, { method: 'POST', body: request });
   },
 
-  async getReturn(id: number | string): Promise<any> {
-    return apiClient.request(`/contracts/${id}/return`, { method: 'GET' });
+  async getReturn(id: number | string): Promise<Types.ReturnRecordResponse | null> {
+    return apiClient.request<Types.ReturnRecordResponse | null>(`/contracts/${id}/return`, { method: 'GET' });
   },
 
   async dispute(id: number | string, request: Types.DisputeContractRequest): Promise<any> {
