@@ -86,6 +86,9 @@ const MODULE_AR: Record<string, string> = {
   staff: "الموظفون",
   payments: "المدفوعات",
   notifications: "الإشعارات",
+  rentpolicies: "سياسات الإيجار",
+  discountrates: "معدلات الخصم"
+
 };
 
 const ACTION_AR: Record<string, string> = {
