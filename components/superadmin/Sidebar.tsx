@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building2, Globe, Shield } from "lucide-react";
+import { LayoutDashboard, Building2, Globe, Shield, Car, ShieldCheck } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarShell, SidebarNavLink, SidebarUserCard } from "@/components/shared/SidebarShell";
@@ -10,6 +10,8 @@ const NAV_ITEMS = [
   { href: "/superadmin", icon: LayoutDashboard, label: "Dashboard", labelAr: "الرئيسية" },
   { href: "/superadmin/tenants", icon: Building2, label: "Tenants", labelAr: "الشركات" },
   { href: "/superadmin/customer-warehouse", icon: Globe, label: "Warehouse Admin", labelAr: "إدارة المستودع" },
+  { href: "/superadmin/vehicle-makes", icon: Car, label: "Vehicle Makes", labelAr: "ماركات المركبات" },
+  { href: "/superadmin/insurance-companies", icon: ShieldCheck, label: "Insurance Companies", labelAr: "شركات التأمين" },
 ];
 
 export function SuperAdminSidebar() {

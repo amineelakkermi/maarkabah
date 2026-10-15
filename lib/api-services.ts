@@ -776,6 +776,143 @@ export const adminTenantService = {
   },
 };
 
+// ─── Admin Vehicle Makes Service (platform catalog) ────────────
+// SuperAdmin-only: every write syncs the row to all active tenants.
+// Responses include { id, synced, failedTenants }.
+
+export const adminVehicleMakeService = {
+  /**
+   * Search vehicle makes
+   * POST /api/admin/vehicle-makes/search
+   */
+  async search(request: Types.VehicleLookupSearchRequest): Promise<{ items?: Types.AdminLookupItem[]; totalCount?: number }> {
+    return apiClient.request('/admin/vehicle-makes/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Create vehicle make
+   * POST /api/admin/vehicle-makes
+   */
+  async create(request: Types.CreateVehicleLookupRequest): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request('/admin/vehicle-makes', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Update vehicle make
+   * PUT /api/admin/vehicle-makes/{id}
+   */
+  async update(id: number, request: Types.UpdateVehicleLookupRequest): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request(`/admin/vehicle-makes/${id}`, {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Activate vehicle make
+   * POST /api/admin/vehicle-makes/{id}/activate
+   */
+  async activate(id: number): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request(`/admin/vehicle-makes/${id}/activate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Deactivate vehicle make
+   * POST /api/admin/vehicle-makes/{id}/deactivate
+   */
+  async deactivate(id: number): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request(`/admin/vehicle-makes/${id}/deactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Delete vehicle make
+   * DELETE /api/admin/vehicle-makes/{id}
+   */
+  async delete(id: number): Promise<void> {
+    await apiClient.request(`/admin/vehicle-makes/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ─── Admin Insurance Companies Service (platform catalog) ──────
+// SuperAdmin-only: every write syncs the row to all active tenants.
+
+export const adminInsuranceCompanyService = {
+  /**
+   * Search insurance companies
+   * POST /api/admin/insurance-companies/search
+   */
+  async search(request: Types.VehicleLookupSearchRequest): Promise<{ items?: Types.AdminLookupItem[]; totalCount?: number }> {
+    return apiClient.request('/admin/insurance-companies/search', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Create insurance company
+   * POST /api/admin/insurance-companies
+   */
+  async create(request: Types.CreateVehicleLookupRequest): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request('/admin/insurance-companies', {
+      method: 'POST',
+      body: request,
+    });
+  },
+
+  /**
+   * Update insurance company
+   * PUT /api/admin/insurance-companies/{id}
+   */
+  async update(id: number, request: Types.UpdateVehicleLookupRequest): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request(`/admin/insurance-companies/${id}`, {
+      method: 'PUT',
+      body: request,
+    });
+  },
+
+  /**
+   * Activate insurance company
+   * POST /api/admin/insurance-companies/{id}/activate
+   */
+  async activate(id: number): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request(`/admin/insurance-companies/${id}/activate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Deactivate insurance company
+   * POST /api/admin/insurance-companies/{id}/deactivate
+   */
+  async deactivate(id: number): Promise<Types.AdminLookupWriteResponse> {
+    return apiClient.request(`/admin/insurance-companies/${id}/deactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Delete insurance company
+   * DELETE /api/admin/insurance-companies/{id}
+   */
+  async delete(id: number): Promise<void> {
+    await apiClient.request(`/admin/insurance-companies/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // ─── Vehicle Makes Service ───────────────────────────────────────
 
 export const vehicleMakeService = {

@@ -558,6 +558,26 @@ export interface UpdateVehicleLookupRequest {
   isActive?: boolean;
 }
 
+// ─── Admin Platform Catalog (SuperAdmin) ───────────────────────
+// Rows managed via /api/admin/vehicle-makes and
+// /api/admin/insurance-companies; offices read the synced copies
+// from /api/lookups/context.
+
+export interface AdminLookupItem {
+  id: number;
+  code?: string;
+  nameAr?: string;
+  nameEn?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface AdminLookupWriteResponse {
+  id?: number;
+  synced?: number;
+  failedTenants?: number[];
+}
+
 // ─── Customer Warehouse ─────────────────────────────────────────
 
 export interface CustomerWarehouseInquiryRequest {

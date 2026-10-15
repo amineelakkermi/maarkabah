@@ -221,6 +221,22 @@ const RULES: { pattern: RegExp; message: (ar: boolean, m?: RegExpMatchArray | nu
     ),
   },
   {
+    pattern: /Lookup\.InUse|lookup.*in.?use/i,
+    message: (ar) => T(
+      "Cannot delete — an office still has models or vehicles referencing this record.",
+      "لا يمكن الحذف — يوجد مكتب لديه موديلات أو مركبات مرتبطة بهذا السجل.",
+      ar,
+    ),
+  },
+  {
+    pattern: /Catalog\.SyncFailed|catalog.*sync.*fail/i,
+    message: (ar) => T(
+      "Some offices could not be reached to verify the catalog — retry the operation.",
+      "تعذّر الوصول إلى بعض المكاتب للتحقق من القائمة — أعد المحاولة.",
+      ar,
+    ),
+  },
+  {
     pattern: /Vehicle\.InUse|vehicle.*in.?use/i,
     message: (ar) => T(
       "The vehicle is still referenced by contracts — it can't be deleted or transferred.",

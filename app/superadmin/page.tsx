@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, Globe, Shield, Users } from "lucide-react";
+import { Building2, Car, Globe, Shield, ShieldCheck, Users } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, Button } from "@/components/ui";
 
@@ -23,6 +23,18 @@ export default function SuperAdminDashboardPage() {
       icon: Globe,
       title: ["Customer Warehouse", "مستودع العملاء"],
       meta: ["Global shared-identity warehouse and bulk import.", "مستودع الهويات المشترك والاستيراد بالجملة."],
+    },
+    {
+      href: "/superadmin/vehicle-makes",
+      icon: Car,
+      title: ["Vehicle Makes", "ماركات المركبات"],
+      meta: ["Platform catalog synced to every office.", "القائمة العامة المزامنة مع كل المكاتب."],
+    },
+    {
+      href: "/superadmin/insurance-companies",
+      icon: ShieldCheck,
+      title: ["Insurance Companies", "شركات التأمين"],
+      meta: ["Platform catalog synced to every office.", "القائمة العامة المزامنة مع كل المكاتب."],
     },
   ];
 
