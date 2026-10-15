@@ -118,6 +118,8 @@ const ACTION_AR: Record<string, string> = {
   activate: "تفعيل",
   deactivate: "تعطيل",
   details: "التفاصيل",
+  deliver: "تسليم",
+  return: "إرجاع"
 };
 
 /** Module/page name in the current locale (keys normalized case-insensitively,
