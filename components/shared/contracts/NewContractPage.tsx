@@ -77,7 +77,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
     }
   });
   const [carFilter, setCarFilter] = useState("all");
-  const [carStatusTab, setCarStatusTab] = useState<"available" | CarStatus>("available");
+  const [carStatusTab, setCarStatusTab] = useState<"all" | CarStatus>("all");
   const [carSearch, setCarSearch] = useState("");
   const [viewMode, setViewMode] = useState<"card" | "list" | "map">("card");
   const [carMapsLoaded, setCarMapsLoaded] = useState(false);
