@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Input, Button, Modal, IconButton } from "@/components/ui";
-import { accountService } from "@/lib/api-services";
+import { accountService, tenantContextService, tenantSettingsService } from "@/lib/api-services";
+import { Permission } from "@/lib/permissions";
 import {
   Palette, User, Lock, Eye, EyeOff, Sun, Moon, Languages,
   Users, FileCheck, ChevronRight, ChevronLeft, Sparkles, CheckCircle2, BookOpen, Headphones,
@@ -107,9 +108,28 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, isLoggedIn, isLoading, logout, decodedToken } = useAuth();
 
-  function getHomeRouteForUser(user: any) {
-    const isSuperAdmin = user && !(user.tenant_id ?? user.tenantId);
-    return isSuperAdmin ? "/superadmin" : "/dashboard";
+  // Where the user lands after login.
+  // The JWT has no role claim, so the TenantAdmin is identified via
+  // /api/tenant/settings → currentUser.roleDisplayName === "TenantAdmin"
+  // (a system-protected role created at tenant provisioning; custom roles
+  // can't take that name). TenantAdmin always owns Settings.View, so a user
+  // without it can't be the owner → staff portal, no settings call needed.
+  async function getHomeRouteForUser(user: any): Promise<string> {
+    if (user && !(user.tenant_id ?? user.tenantId)) return "/superadmin";
+    try {
+      const ctx = await tenantContextService.getContext();
+      const perms: string[] = Array.isArray(ctx?.permissions) ? ctx.permissions : [];
+      if (!perms.includes(Permission.Settings.View)) return "/employee/today";
+
+      const settings = await tenantSettingsService.getSettings();
+      const displayName: unknown =
+        settings?.currentUser?.roleDisplayName ?? settings?.data?.currentUser?.roleDisplayName;
+      return typeof displayName === "string" && displayName.startsWith("TenantAdmin")
+        ? "/dashboard"
+        : "/employee/today";
+    } catch {
+      return "/employee/today";
+    }
   }
   const { dir, toggleDir, isDark, toggleDark } = useAdmin();
   const ar = dir === "rtl";
@@ -132,9 +152,14 @@ export default function LoginPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn && decodedToken) {
-      router.push(getHomeRouteForUser(decodedToken));
-    }
+    if (!isLoggedIn || !decodedToken) return;
+    let cancelled = false;
+    getHomeRouteForUser(decodedToken).then((target) => {
+      if (!cancelled) router.push(target);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [isLoggedIn, decodedToken, router]);
 
   useEffect(() => {
@@ -156,7 +181,7 @@ export default function LoginPage() {
 
     try {
       const user = await login(username.trim(), password);
-      router.push(getHomeRouteForUser(user));
+      router.push(await getHomeRouteForUser(user));
     } catch (err) {
       let errorMessage = T("Login failed", "فشل تسجيل الدخول", ar);
       if (err instanceof Error) {
@@ -175,12 +200,7 @@ export default function LoginPage() {
     }
   }
 
-  function fillDemoOwner() {
-    setUsername("abdullah.otaibi");
-    setPassword("Maarkbh@123");
-    setError(null);
-  }
-
+ 
   const handleLogout = () => {
     logout();
     setUsername("");
@@ -455,9 +475,7 @@ export default function LoginPage() {
               </Button>
 
               <div className="flex flex-col gap-2">
-                <Button type="button" variant="ghost" size="sm" className="w-full" onClick={fillDemoOwner}>
-                  {T("Fill demo credentials (Owner)", "تعبئة بيانات تجريبية (المالك)", ar)}
-                </Button>
+             
 
                 <button
                   onClick={() => setShowChangePassword(true)}

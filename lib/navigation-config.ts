@@ -54,7 +54,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       { href: "/drivers", icon: IdCard, label: "Drivers", labelAr: "بيانات السائقين", requiredPermission: Permission.Drivers.View },
       { href: "/kyc-queue", icon: ShieldCheck, label: "KYC Queue", labelAr: "مراجعة الهوية", requiredPermission: Permission.Customers.View },
       { href: "/drivers-kyc-queue", icon: ShieldCheck, label: "Driver KYC Queue", labelAr: "مراجعة هوية السائقين", requiredPermission: Permission.Drivers.View },
-      { href: "/customers/inquiry", icon: UserSearch, label: "Dynamic Inquiry", labelAr: "الإستعلام من ديناميك", requiredPermission: Permission.Customers.View },
+      { href: "/customers/inquiry", icon: UserSearch, label: "Customer Inquiry", labelAr: "الإستعلام عن عميل", requiredPermission: Permission.Customers.View },
       { href: "/blacklist", icon: UserSearch, label: "Customer Inquiry", labelAr: "الإستعلام عن العملاء", requiredPermission: Permission.Blacklist.View },
     ],
   },
@@ -105,15 +105,15 @@ export const EMPLOYEE_NAV_SECTIONS: NavSection[] = [
       { href: "/employee/drivers", icon: User, label: "Drivers", labelAr: "بيانات السائقين", requiredPermission: Permission.Drivers.View },
       { href: "/employee/pickup", icon: KeyRound, label: "Pickup handover", labelAr: "تسليم المركبة", requiredPermission: null, badge: 1 },
       { href: "/employee/return", icon: Undo2, label: "Return processing", labelAr: "استلام الإرجاع", requiredPermission: null },
-      { href: "/employee/cars", icon: CarFront, label: "Vehicles", labelAr: "المركبات", requiredPermission: Permission.Vehicles.View },
+      { href: "/employee/cars", icon: CarFront, label: "Vehicles", labelAr: "الأسطول", requiredPermission: Permission.Vehicles.View },
     ],
   },
   {
     title: "Customers",
     titleAr: "العملاء",
     items: [
-      { href: "/employee/customer", icon: Users, label: "Customers", labelAr: "قائمة العملاء", requiredPermission: Permission.Customers.View },
       { href: "/employee/customer/inquiry", icon: UserSearch, label: "Customer Inquiry", labelAr: "الاستعلام عن العملاء", requiredPermission: Permission.CustomerWarehouse.View },
+      { href: "/employee/customer", icon: Users, label: "Customers", labelAr: "قائمة العملاء", requiredPermission: Permission.Customers.View },
     ],
   },
 ];

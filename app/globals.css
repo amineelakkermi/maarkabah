@@ -43,10 +43,12 @@
   --color-mk-violet-100: var(--violet-100);
   --color-mk-violet-500: var(--violet-500);
   --color-mk-violet-600: var(--violet-600);
+  --color-mk-violet-surface: var(--violet-surface);
 
   --color-mk-mint-100: var(--mint-100);
   --color-mk-mint-500: var(--mint-500);
   --color-mk-mint-600: var(--mint-600);
+  --color-mk-mint-surface: var(--mint-surface);
 
   --color-mk-midnight: var(--midnight);
   --color-mk-navy: var(--navy);
@@ -80,6 +82,9 @@
   --color-mk-danger-100: var(--danger-100);
   --color-mk-danger-700: var(--danger-700);
   --color-mk-violet-700: var(--violet-700);
+  --color-mk-success-surface: var(--success-surface);
+  --color-mk-warning-surface: var(--warning-surface);
+  --color-mk-danger-surface: var(--danger-surface);
 
   /* Font families */
   --font-display: "Madani Arabic", "Inter", system-ui, -apple-system, sans-serif;
@@ -267,10 +272,19 @@
   --violet-100: #ECDFFB;
   --violet-500: #7F43DD;
   --violet-600: #6730BF;
+  --violet-surface: #F0E5FC;
 
   --mint-100: #DDF6F3;
   --mint-500: #69DAD1;
   --mint-600: #3FB6AC;
+  --mint-surface: #E2F8F5;
+
+  /* Brand gradient — mint → blue, sourced from the palette itself so it
+     stays in sync in dark mode (charts, gradient KPI accents). */
+  --gradient-brand-start: var(--mint-500);
+  --gradient-brand-end: var(--blue-500);
+  --gradient-brand: linear-gradient(90deg, var(--gradient-brand-start) 0%, var(--gradient-brand-end) 100%);
+  --gradient-brand-diagonal: linear-gradient(135deg, var(--gradient-brand-start) 0%, var(--gradient-brand-end) 100%);
 
   --midnight: #180D44;
   --navy: #1C2C63;
@@ -306,6 +320,9 @@
   --danger-100: #FBE0E8;
   --danger-700: #8B1A3B;
   --violet-700: #4F1F8B;
+  --success-surface: #E2F8F5;
+  --warning-surface: #FCF2DE;
+  --danger-surface: #FCE6EC;
 }
 
 :root[data-theme="dark"],
@@ -357,12 +374,14 @@
   --blue-surface: rgba(65, 113, 226, 0.18);
 
   --violet-100: rgba(127, 67, 221, 0.15);
+  --violet-surface: rgba(127, 67, 221, 0.15);
   --violet-500: #9E6DF2;
   /* Brighter violet for dark mode contrast */
   --violet-600: #B08FF5;
   /* Brighter violet for dark mode contrast */
 
   --mint-100: rgba(105, 218, 209, 0.15);
+  --mint-surface: rgba(105, 218, 209, 0.15);
   --mint-500: #5EEAD4;
   /* Brighter mint */
   --mint-600: #2DD4BF;
@@ -393,6 +412,9 @@
   /* High contrast text on dark danger badges */
   --violet-700: #DDD6FE;
   /* High contrast text on dark violet badges */
+  --success-surface: rgba(63, 182, 172, 0.15);
+  --warning-surface: rgba(226, 163, 65, 0.15);
+  --danger-surface: rgba(226, 65, 113, 0.15);
 }
 
 /* Map .bg-white to card background in dark mode */
@@ -1467,4 +1489,282 @@ body {
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, var(--color-mk-midnight) 0%, #1c2a63 100%);
+}
+
+/* ── KPI card — flat tonal surface ─────────────────────────────────
+   KpiCard sets --kpi-tone per kind; flat on its own -surface tint with
+   the design-system hairline shadow. In light mode the card stays on
+   the elevated white surface; the tinted surface shows in dark mode. */
+.mk-kpi {
+  position: relative;
+  box-shadow: var(--shadow-card);
+}
+:root:not([data-theme="dark"]) .mk-kpi {
+  background: var(--bg-elevated, #fff);
+  box-shadow: var(--shadow-card);
+}
+.mk-kpi-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ── Home-page panels — same flat language as .mk-kpi ───────────────
+   .mk-panel  the neutral container (pickups, revenue, fleet status…):
+              elevated surface + hairline edge, no drop shadow.
+   .mk-row    an item inside a panel — a sunken ink tint instead of a
+              second white card, so a panel never stacks the same
+              surface twice. */
+.mk-panel {
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-card);
+}
+.mk-row {
+  background: var(--bg);
+  transition: background-color var(--duration-fast, 150ms) var(--ease-standard);
+}
+.mk-row:hover {
+  background: var(--color-mk-ink-100);
+}
+/* Urgent row — the danger tone's own surface + hairline edge. */
+.mk-row-urgent {
+  background: var(--color-mk-danger-surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-mk-danger) 32%, transparent);
+  transition: background-color var(--duration-fast, 150ms) var(--ease-standard);
+}
+.mk-row-urgent:hover {
+  background: var(--color-mk-danger-100);
+}
+:root[data-theme="dark"] .mk-row,
+[data-theme="dark"] .mk-row {
+  background: var(--bg);
+}
+:root[data-theme="dark"] .mk-row:hover,
+[data-theme="dark"] .mk-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+/* .mk-row with a blue-tinted hover — used by the dashboard activity list. */
+.mk-row.mk-row-blue-hover:hover,
+:root[data-theme="dark"] .mk-row.mk-row-blue-hover:hover,
+[data-theme="dark"] .mk-row.mk-row-blue-hover:hover {
+  background: var(--color-mk-blue-surface);
+}
+
+/* Today queue rows — light: white cards with a hairline border on the panel
+   (a gray fill on white looked dull), hover tints blue; dark: the same
+   sunken --bg tone every other .mk-row uses on a panel, no border. */
+.mk-queue-list > .mk-row:not(.mk-row-urgent) {
+  background: #FFFFFF;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-mk-border) 70%, transparent);
+  transition: background-color var(--duration-fast, 150ms) var(--ease-standard), box-shadow var(--duration-fast, 150ms) var(--ease-standard);
+}
+.mk-queue-list > .mk-row:not(.mk-row-urgent):hover {
+  background: var(--color-mk-blue-surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-mk-blue-500) 30%, transparent);
+}
+:root[data-theme="dark"] .mk-queue-list > .mk-row:not(.mk-row-urgent),
+[data-theme="dark"] .mk-queue-list > .mk-row:not(.mk-row-urgent) {
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px transparent;
+}
+:root[data-theme="dark"] .mk-queue-list > .mk-row:not(.mk-row-urgent):hover,
+[data-theme="dark"] .mk-queue-list > .mk-row:not(.mk-row-urgent):hover {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px transparent;
+}
+
+/* ── Motion — entrances + animated charts ───────────────────────────
+   All ride --ease-emphasis. fill-mode backwards (not "both") on anything
+   that also has a hover transform. Everything is switched off under
+   prefers-reduced-motion below. */
+@keyframes mk-rise-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes mk-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes mk-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes mk-grow-x {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes mk-chart-pulse {
+  0%   { transform: scale(0.6); opacity: 0.35; }
+  70%  { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes mk-pop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+@keyframes mk-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Ordered page entrance ──────────────────────────────────────────
+   One timeline for the whole screen:
+     220ms+ page content, one step (80ms) per item in reading order.
+   Each item's place is --o (a plain number):
+     .mk-seq    a container whose direct children enter in order;
+                --seq-start (inline style) is the first child's --o.
+     .mk-enter  a single element; set --o on it directly.
+   Every entering item exposes its resolved start as --enter-delay so
+   charts / count-ups inside it start once their card has arrived. */
+@property --enter-delay {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 0ms;
+}
+.mk-seq > *,
+.mk-enter {
+  --enter-delay: calc(220ms + var(--o, 0) * 80ms);
+  animation: mk-rise-in 620ms var(--ease-emphasis) backwards;
+  animation-delay: var(--enter-delay);
+}
+.mk-seq > *:nth-child(1)  { --o: calc(var(--seq-start, 0) + 0); }
+.mk-seq > *:nth-child(2)  { --o: calc(var(--seq-start, 0) + 1); }
+.mk-seq > *:nth-child(3)  { --o: calc(var(--seq-start, 0) + 2); }
+.mk-seq > *:nth-child(4)  { --o: calc(var(--seq-start, 0) + 3); }
+.mk-seq > *:nth-child(5)  { --o: calc(var(--seq-start, 0) + 4); }
+.mk-seq > *:nth-child(6)  { --o: calc(var(--seq-start, 0) + 5); }
+.mk-seq > *:nth-child(7)  { --o: calc(var(--seq-start, 0) + 6); }
+.mk-seq > *:nth-child(n + 8) { --o: calc(var(--seq-start, 0) + 7); }
+
+/* Chart line draws itself (needs pathLength="1" on the path); the area
+   under it wipes in left → right on the same clock as the draw. */
+.mk-spark-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: mk-draw 1300ms var(--ease-emphasis) forwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 250ms);
+}
+@keyframes mk-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.mk-spark-area {
+  animation: mk-wipe 1300ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 250ms);
+}
+
+/* Rings: each ring draws itself from the top, outermost first. */
+.mk-ring-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: mk-draw 520ms var(--ease-out) forwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 120ms + var(--ring-i, 0) * 200ms);
+}
+
+/* Pie chart: the whole chart spins in, slices fade in one after another. */
+@keyframes mk-pie-spin {
+  from { transform: rotate(-110deg) scale(0.9); opacity: 0; }
+  to   { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+.mk-pie-spin {
+  transform-box: view-box;
+  animation: mk-pie-spin 1100ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 200ms);
+}
+.mk-pie-slice {
+  animation: mk-fade 600ms var(--ease-out) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 350ms + var(--n-i, 0) * 260ms);
+}
+
+/* Chart extras: gridlines fade in first, axis labels rise in one by one,
+   each data node pops as the line reaches it (--n-i = its draw share). */
+.mk-chart-grid {
+  animation: mk-fade 600ms var(--ease-out) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 80ms);
+}
+.mk-chart-label {
+  animation: mk-fade-up 420ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 350ms + var(--label-i, 0) * 70ms);
+}
+.mk-chart-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mk-pop 360ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 250ms + var(--n-i, 0) * 1100ms);
+}
+/* A small pill (e.g. the growth badge) that pops in once its card's
+   numbers have counted up. */
+.mk-pill-pop {
+  animation: mk-pop 420ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 900ms);
+}
+
+/* Column bars rise from the baseline. */
+@keyframes mk-grow-y {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.mk-grow-y {
+  transform-origin: center bottom;
+  animation: mk-grow-y 900ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 200ms + var(--bar-i, 0) * 22ms);
+}
+
+/* Bars grow from their inline-start edge (right in RTL). */
+.mk-grow-x {
+  transform-origin: left center;
+  animation: mk-grow-x 1000ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 300ms + var(--bar-i, 0) * 90ms);
+}
+[dir="rtl"] .mk-grow-x {
+  transform-origin: right center;
+}
+
+.mk-chart-point {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mk-pop 420ms var(--ease-emphasis) backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 1400ms);
+}
+.mk-chart-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mk-chart-pulse 2.4s var(--ease-out) infinite backwards;
+  animation-delay: calc(var(--enter-delay, 0ms) + 1600ms);
+}
+.mk-chart-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mk-pop 200ms var(--ease-emphasis);
+}
+.mk-chart-tip {
+  animation: mk-fade-up 160ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-seq > *,
+  .mk-enter,
+  .mk-spark-line,
+  .mk-spark-area,
+  .mk-grow-x,
+  .mk-grow-y,
+  .mk-chart-point,
+  .mk-chart-pulse,
+  .mk-chart-dot,
+  .mk-chart-tip,
+  .mk-pie-slice,
+  .mk-pie-spin,
+  .mk-ring-draw,
+  .mk-chart-grid,
+  .mk-chart-label,
+  .mk-chart-node,
+  .mk-pill-pop {
+    animation: none;
+  }
+  .mk-spark-line,
+  .mk-ring-draw {
+    stroke-dashoffset: 0;
+  }
+  .mk-chart-pulse {
+    display: none;
+  }
 }

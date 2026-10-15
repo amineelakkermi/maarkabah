@@ -62,6 +62,7 @@ export interface DashboardKpi {
   value: number;
   sub?: string;
   deltaPct?: number | null;
+  average7d?: number | null;
 }
 
 export interface ScheduleEntry {
@@ -96,7 +97,14 @@ export interface RevenuePoint {
   value: number;
 }
 
+export interface DashboardBranch {
+  id: number;
+  nameEn: string;
+  nameAr: string;
+}
+
 export interface OverviewData {
+  branches: DashboardBranch[];
   overdueCount: number;
   overdueRefs: string[];
   overdueBannerNote?: string;
@@ -202,7 +210,7 @@ export function normalizeOverview(res: any): OverviewData {
 
   const kpis: DashboardKpi[] = kpiDefs.map((d) => {
     const cell = kpiCell(pick(kpisRaw, ...d.keys));
-    return { key: d.key, value: cell.value, deltaPct: cell.deltaPct };
+    return { key: d.key, value: cell.value, deltaPct: cell.deltaPct, average7d: cell.average7d };
   });
 
   const overdue = pick(root, "overdueAlert", "overdue", "overdueBanner") ?? {};
@@ -231,6 +239,11 @@ export function normalizeOverview(res: any): OverviewData {
   const oilRaw = pick(root, "oilReminders", "oilDue", "oilChangesDue");
 
   return {
+    branches: arr(pick(root, "branches", "branchesList")).map((b: any) => ({
+      id: num(pick(b, "id", "branchId")),
+      nameEn: str(pick(b, "nameEn", "name", "branchNameEn")),
+      nameAr: str(pick(b, "nameAr", "branchNameAr")),
+    })).filter((b: DashboardBranch) => b.id > 0),
     overdueCount: num(pick(overdue, "count", "total") ?? pick(root, "overdueCount") ?? kpis.find((k) => k.key === "lateReturns")?.value, overdueRefs.length),
     overdueRefs,
     overdueBannerNote: pick(overdue, "note", "message", "description") ?? undefined,
@@ -275,6 +288,9 @@ export interface TodayData {
   overdueNow: number;
   pickupsDeltaPct?: number | null;
   returnsDeltaPct?: number | null;
+  pickupsAvg7d?: number | null;
+  returnsAvg7d?: number | null;
+  overdueAvg7d?: number | null;
   nextPickupLabel?: string;
   earliestReturnLabel?: string;
   queue: ScheduleEntry[];
@@ -413,6 +429,7 @@ export function normalizeToday(res: any): TodayData {
 
   const pickupsCell = kpiCell(pick(kpis, "pickupsToday", "pickups", "pickupCount"));
   const returnsCell = kpiCell(pick(kpis, "returnsToday", "returns", "returnCount"));
+  const overdueCell = kpiCell(pick(kpis, "overdueNow", "overdue", "overdueCount", "lateNow"));
 
   // Earliest scheduled times for the KPI subtitles.
   const earliest = (kind: ScheduleEntry["kind"]) =>
@@ -431,9 +448,12 @@ export function normalizeToday(res: any): TodayData {
     },
     pickupsToday: pickupsCell.value,
     returnsToday: returnsCell.value,
-    overdueNow: num(pick(kpis, "overdueNow", "overdue", "overdueCount", "lateNow")),
+    overdueNow: overdueCell.value,
     pickupsDeltaPct: pickupsCell.deltaPct,
     returnsDeltaPct: returnsCell.deltaPct,
+    pickupsAvg7d: pickupsCell.average7d,
+    returnsAvg7d: returnsCell.average7d,
+    overdueAvg7d: overdueCell.average7d,
     nextPickupLabel: pick(kpis, "nextPickupAt", "nextPickup") ?? firstPickup?.time ?? undefined,
     earliestReturnLabel: pick(kpis, "earliestReturnAt", "earliestReturn") ?? firstReturn?.time ?? undefined,
     queue,

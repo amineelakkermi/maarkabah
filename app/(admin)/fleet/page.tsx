@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Car, CarStatus } from "@/lib/data";
 import { Loader2 } from "lucide-react";
 import { useToast, Modal, Button } from "@/components/ui";
@@ -22,12 +23,22 @@ import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
 import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
 import { effectiveCarStatus } from "@/components/employee/FleetAlertBadges";
 
-export default function FleetPage() {
+// The dashboard fleet donut links here as /fleet?status=<group>; "attention"
+// groups maintenance+inactive there, its closest single tab is "maintenance".
+const STATUS_TABS: CarStatus[] = ["available", "rented", "overdue", "maintenance", "reserved", "inactive", "draft"];
+function tabFromQuery(status: string | null): "all" | CarStatus {
+  if (!status) return "all";
+  if (status === "attention") return "maintenance";
+  return STATUS_TABS.includes(status as CarStatus) ? (status as CarStatus) : "all";
+}
+
+function FleetContent() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
   const { showToast } = useToast();
+  const searchParams = useSearchParams();
 
-  const [tab, setTab] = useState<"all" | CarStatus>("all");
+  const [tab, setTab] = useState<"all" | CarStatus>(() => tabFromQuery(searchParams.get("status")));
   const [search, setSearch] = useState("");
   const [vehicles, setVehicles] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
@@ -376,5 +387,13 @@ export default function FleetPage() {
       </Modal>
 
     </div>
+  );
+}
+
+export default function FleetPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-mk-ink-500">Loading…</div>}>
+      <FleetContent />
+    </Suspense>
   );
 }

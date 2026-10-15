@@ -30,6 +30,13 @@ export type { RadioProps } from "./Radio";
 
 export { Avatar } from "./Avatar";
 export { Spark } from "./Spark";
+export { MiniTrend, lastSevenDayLabels } from "./MiniTrend";
+export { AreaChart } from "./AreaChart";
+export type { AreaChartProps, AreaChartPoint } from "./AreaChart";
+export { PieChart } from "./PieChart";
+export type { PieChartSlice } from "./PieChart";
+export { useCountUp } from "./useCountUp";
+export { ScrollArea } from "./ScrollArea";
 export { KpiCard } from "./KpiCard";
 export { AlertBanner } from "./AlertBanner";
 export { RiyalSymbol } from "./RiyalSymbol";
