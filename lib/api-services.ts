@@ -636,6 +636,21 @@ export const attachmentService = {
 
 export const adminTenantService = {
   /**
+   * List tenants (paged)
+   * GET /admin/tenants
+   */
+  async listTenants(pageNumber?: number, pageSize?: number): Promise<{ items?: { id: number; name?: string }[]; totalCount?: number }> {
+    const params: Record<string, number> = {};
+    if (pageNumber !== undefined) params.pageNumber = pageNumber;
+    if (pageSize !== undefined) params.pageSize = pageSize;
+
+    return apiClient.request('/admin/tenants', {
+      method: 'GET',
+      params,
+    });
+  },
+
+  /**
    * Create a new tenant (office)
    * POST /admin/tenants
    */

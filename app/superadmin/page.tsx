@@ -1,15 +1,42 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, Car, Globe, Shield, ShieldCheck, Users } from "lucide-react";
+import { Building2, Car, Globe, ShieldCheck } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
-import { Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, Button } from "@/components/ui";
+import { adminInsuranceCompanyService, adminTenantService } from "@/lib/api-services";
+import { Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, KpiCard } from "@/components/ui";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
+
+function readTotalCount(res: unknown): number | null {
+  const r = res as { totalCount?: number; data?: { totalCount?: number } | unknown[] } | unknown[] | undefined;
+  if (Array.isArray(r)) return r.length;
+  const total = r?.totalCount ?? (Array.isArray(r?.data) ? undefined : r?.data?.totalCount);
+  return typeof total === "number" ? total : null;
+}
 
 export default function SuperAdminDashboardPage() {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
+
+  // undefined = still loading, null = unavailable (endpoint missing/failed)
+  const [tenantsCount, setTenantsCount] = useState<number | null>();
+  const [insuranceCompaniesCount, setInsuranceCompaniesCount] = useState<number | null>();
+
+  useEffect(() => {
+    adminTenantService
+      .listTenants(1, 1)
+      .then((res) => setTenantsCount(readTotalCount(res)))
+      .catch(() => setTenantsCount(null));
+
+    adminInsuranceCompanyService
+      .search({ pageNumber: 1, pageSize: 1 })
+      .then((res) => setInsuranceCompaniesCount(readTotalCount(res)))
+      .catch(() => setInsuranceCompaniesCount(null));
+  }, []);
+
+  const statValue = (v: number | null | undefined) => (v === undefined ? "…" : v === null ? "—" : String(v));
 
   const cards = [
     {
@@ -47,6 +74,21 @@ export default function SuperAdminDashboardPage() {
             {T("Manage the platform and support tenant operations.", "إدارة المنصة ودعم عمليات الشركات.", ar)}
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <KpiCard
+          icon={Building2}
+          kind="default"
+          label={T("Tenants", "الشركات", ar)}
+          value={statValue(tenantsCount)}
+        />
+        <KpiCard
+          icon={ShieldCheck}
+          kind="mint"
+          label={T("Insurance companies", "شركات التأمين", ar)}
+          value={statValue(insuranceCompaniesCount)}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
