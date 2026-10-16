@@ -22,6 +22,7 @@ import { useVehicleLookups } from "@/hooks/useVehicleLookups";
 import { FleetVehicleList } from "@/components/fleet/FleetVehicleList";
 import { VehicleDetailsPage } from "@/components/fleet/VehicleDetailsPage";
 import { effectiveCarStatus } from "@/components/employee/FleetAlertBadges";
+import { MapModal } from "@/components/employee/MapModal";
 
 // The dashboard fleet donut links here as /fleet?status=<group>; "attention"
 // groups maintenance+inactive there, its closest single tab is "maintenance".
@@ -58,6 +59,9 @@ function FleetContent() {
 
   const [deleteTarget, setDeleteTarget] = useState<Car | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [mapCar, setMapCar] = useState<Car | null>(null);
+  const [garageMapOpen, setGarageMapOpen] = useState(false);
 
   const setVehicleForm: React.Dispatch<React.SetStateAction<any>> = (action) => {
     setForm((previous: any) => {
@@ -357,7 +361,16 @@ function FleetContent() {
         onAdd={handleAddVehicle}
         onEdit={handleEditVehicle}
         onDelete={handleDeleteVehicle}
+        onShowVehicleMap={setMapCar}
+        onShowGarageMap={() => setGarageMapOpen(true)}
       />
+
+      {mapCar && (
+        <MapModal ar={ar} car={mapCar} onClose={() => setMapCar(null)} />
+      )}
+      {garageMapOpen && (
+        <MapModal ar={ar} showAll onClose={() => setGarageMapOpen(false)} />
+      )}
 
       <Modal
         open={!!deleteTarget}

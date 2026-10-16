@@ -160,24 +160,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Quick actions */}
-      <div className="mk-seq flex gap-3 mb-6 flex-wrap" style={{ "--seq-start": 5 } as CSSProperties}>
-        {QA.map(({ href, icon: Icon, iconBg, iconColor, label, sub }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex items-center gap-3 rounded-lg px-4 sm:px-5 py-4 min-w-[200px] flex-1 mk-panel no-underline transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] hover:bg-mk-ink-50"
-          >
-            <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${iconBg} ${iconColor}`}>
-              <Icon size={18} />
-            </div>
-            <div>
-              <div className="mk-body text-mk-ink-900">{label}</div>
-              {sub && <div className="mk-overline text-mk-ink-500">{sub}</div>}
-            </div>
-          </Link>
-        ))}
-      </div>
+   
 
       {/* Two-column grid */}
       <div className="mk-seq grid gap-4 grid-cols-1 lg:grid-cols-[2fr_1fr]" style={{ "--seq-start": 9 } as CSSProperties}>

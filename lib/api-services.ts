@@ -636,17 +636,12 @@ export const attachmentService = {
 
 export const adminTenantService = {
   /**
-   * List tenants (paged)
-   * GET /admin/tenants
+   * Get total tenant count (includes inactive offices)
+   * GET /admin/tenants/count
    */
-  async listTenants(pageNumber?: number, pageSize?: number): Promise<{ items?: { id: number; name?: string }[]; totalCount?: number }> {
-    const params: Record<string, number> = {};
-    if (pageNumber !== undefined) params.pageNumber = pageNumber;
-    if (pageSize !== undefined) params.pageSize = pageSize;
-
-    return apiClient.request('/admin/tenants', {
+  async getTenantCount(): Promise<number | { count?: number; totalCount?: number; data?: number }> {
+    return apiClient.request('/admin/tenants/count', {
       method: 'GET',
-      params,
     });
   },
 

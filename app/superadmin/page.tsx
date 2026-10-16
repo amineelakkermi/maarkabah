@@ -10,9 +10,10 @@ import { Card, CardBody, CardHeader, CardIcon, CardTitle, CardMeta, KpiCard } fr
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
 function readTotalCount(res: unknown): number | null {
-  const r = res as { totalCount?: number; data?: { totalCount?: number } | unknown[] } | unknown[] | undefined;
+  const r = res as { totalCount?: number; count?: number; data?: { totalCount?: number } | unknown[] } | unknown[] | number | undefined;
+  if (typeof r === "number") return r;
   if (Array.isArray(r)) return r.length;
-  const total = r?.totalCount ?? (Array.isArray(r?.data) ? undefined : r?.data?.totalCount);
+  const total = r?.totalCount ?? r?.count ?? (Array.isArray(r?.data) ? undefined : r?.data?.totalCount);
   return typeof total === "number" ? total : null;
 }
 
@@ -26,7 +27,7 @@ export default function SuperAdminDashboardPage() {
 
   useEffect(() => {
     adminTenantService
-      .listTenants(1, 1)
+      .getTenantCount()
       .then((res) => setTenantsCount(readTotalCount(res)))
       .catch(() => setTenantsCount(null));
 

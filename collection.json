@@ -1559,7 +1559,7 @@
               "raw": "{\n  \"customerId\": {{customerId}},\n  \"vehicleId\": {{vehicleId}},\n  \"workingBranchId\": {{branchId}},\n  \"receiveBranchId\": {{branchId}},\n  \"returnBranchId\": {{branchId}},\n  \"contractType\": 1,\n  \"startAt\": \"2026-09-01T10:00:00Z\",\n  \"endAt\": \"2026-09-03T10:00:00Z\",\n  \"rentPolicyId\": {{rentPolicyId}},\n  \"cancellationPolicyId\": {{cancellationPolicyId}},\n  \"allowedKmPerDay\": 200,\n  \"unlimitedKm\": false,\n  \"allowedLateHours\": 2,\n  \"rentDayCost\": 200,\n  \"rentHourCost\": 0,\n  \"extraKmCost\": 1,\n  \"fullFuelCost\": 100,\n  \"driverFarePerDay\": 0,\n  \"driverFarePerHour\": 0,\n  \"vehicleTransferCost\": 0,\n  \"extraDriverCost\": 0,\n  \"internationalAuthorizationCost\": 0,\n  \"discountPercent\": 0,\n  \"paymentTypeId\": {{paymentTypeId}},\n  \"paymentMethodId\": {{paymentMethodId}},\n  \"otherPaymentMethodCode\": null,\n  \"paidAmount\": 230,\n  \"depositAmount\": 500,\n  \"extendedCoverageId\": null,\n  \"odometerReading\": 10000,\n  \"fuelLevel\": 1,\n  \"enduranceAmount\": 1500,\n  \"additionalServices\": []\n}"
             },
             "url": "{{baseUrl}}/api/contracts",
-            "description": "Creates Draft. paymentTypeId / paymentMethodId come from POST /api/lookups/context (PaymentTypes / PaymentMethods). Method is required when paidAmount > 0; codes stay FULL/ADVANCE and Tajeer 1=Cash / 2=POS. extendedCoverageId is ignored. Non-basic additional services are summed into additional coverage cost and their names are concatenated; the Tajeer id comes from tenant settings extendedCoverageTajeerId, or the first active extended-coverage catalog row when that setting is empty. depositAmount is Maarkbh-only inside payment. Check integrations.tajeerEnabled before activate vs submit-tajeer."
+            "description": "Creates Draft. paymentTypeId / paymentMethodId come from POST /api/lookups/context (PaymentTypes / PaymentMethods). Method is required when paidAmount > 0; codes stay FULL/ADVANCE and Tajeer 1=Cash / 2=POS. extendedCoverageId is ignored. Non-basic additional services are summed into additional coverage cost and their names are concatenated; that total cannot exceed twice the daily rent on a daily contract or twice the hourly rent on an hourly contract, otherwise create fails with Contract.AdditionalCoverageExceedsLimit. The Tajeer id comes from tenant settings extendedCoverageTajeerId, or the first active extended-coverage catalog row when that setting is empty. depositAmount is Maarkbh-only inside payment. Check integrations.tajeerEnabled before activate vs submit-tajeer."
           }
         },
         {
@@ -3257,6 +3257,15 @@
         {
           "name": "Offices",
           "item": [
+            {
+              "name": "Get tenant count",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/admin/tenants/count",
+                "description": "Requires SuperAdmin. Returns the total number of tenants in the system, including inactive offices."
+              }
+            },
             {
               "name": "Create office (tenant)",
               "event": [
