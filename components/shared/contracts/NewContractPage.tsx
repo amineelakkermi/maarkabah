@@ -295,7 +295,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
 
       setRentStatus((s) => ({
         ...s,
-        odometerReading: 0,
+        odometerReading: selectedCar.odometerReading ?? 0,
         fuelTypeCode: selectedCar.fuelTypeCode,
         enduranceAmount: selectedCar.enduranceAmount,
         nextOilChangeKm: selectedCar.oilChangeDistance
@@ -837,7 +837,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
           kind="success"
         />
 
-        <ContractStepper ar={ar} step={step} onStepChange={setStep} />
+        <ContractStepper ar={ar} step={step} onStepChange={setStep} locked={contractStep === "saving" || contractStep === "pending_signature" || contractStep === "issued"} />
 
         {/* ── Step 0: Customer, Dates & Vehicle ──────────────────── */}
         {step === 0 && (
@@ -853,7 +853,6 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             returnDateTime={returnDateTime} setReturnDateTime={setReturnDateTime}
             rentalDurationLabel={rentalDurationLabel}
             isHourlyRental={isHourlyRental}
-            days={days}
             authorizationStartDate={authorizationStartDate} setAuthorizationStartDate={setAuthorizationStartDate}
             authorizationEndDate={authorizationEndDate} setAuthorizationEndDate={setAuthorizationEndDate}
             authorizationTypeCode={authorizationTypeCode} setAuthorizationTypeCode={setAuthorizationTypeCode}
@@ -873,9 +872,34 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             handleSelectExtraDriver={handleSelectExtraDriver}
             clearExtraDriver={clearExtraDriver}
             setShowExtraDriverAddNew={setShowExtraDriverAddNew}
+            branches={branches}
+            receiveBranchId={receiveBranchId} setReceiveBranchId={setReceiveBranchId}
+            returnBranchId={returnBranchId} setReturnBranchId={setReturnBranchId}
+            setWorkingBranchId={setWorkingBranchId}
+            rentPolicies={rentPolicies}
+            rentPolicyId={rentPolicyId} setRentPolicyId={setRentPolicyId}
+            tajeerEnabled={tajeerEnabled}
+            cancellationPolicies={cancellationPolicies}
+            cancellationPolicyId={cancellationPolicyId} setCancellationPolicyId={setCancellationPolicyId}
+            extensionPolicy={extensionPolicy} setExtensionPolicy={setExtensionPolicy}
+            earlyReturnPolicy={earlyReturnPolicy} setEarlyReturnPolicy={setEarlyReturnPolicy}
+            accidentReportPolicy={accidentReportPolicy} setAccidentReportPolicy={setAccidentReportPolicy}
+            fuelReturnPolicy={fuelReturnPolicy} setFuelReturnPolicy={setFuelReturnPolicy}
+            breakdownReportPolicy={breakdownReportPolicy} setBreakdownReportPolicy={setBreakdownReportPolicy}
+          />
+        )}
+
+        {/* ── Step 1: Add-ons & Handover ──────────────────────────── */}
+        {step === 1 && (
+          <StepAddons
+            ar={ar}
+            car={car}
+            days={days}
+            total={total}
+            branches={branches}
+            receiveBranchId={receiveBranchId}
             backendCars={backendCars}
             availCars={availCars}
-            car={car}
             vehiclesLoading={vehiclesLoading} vehiclesError={vehiclesError}
             carSearch={carSearch} setCarSearch={setCarSearch}
             carStatusTab={carStatusTab} setCarStatusTab={setCarStatusTab}
@@ -889,33 +913,15 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             conditionView={conditionView} setConditionView={setConditionView}
             sketchItems={sketchItems} setSketchItems={setSketchItems}
             rentStatus={rentStatus}
-          />
-        )}
-
-        {/* ── Step 1: Add-ons & Handover ──────────────────────────── */}
-        {step === 1 && (
-          <StepAddons
-            ar={ar}
-            car={car}
-            days={days}
-            total={total}
-            branches={branches}
-            receiveBranchId={receiveBranchId} setReceiveBranchId={setReceiveBranchId}
-            returnBranchId={returnBranchId} setReturnBranchId={setReturnBranchId}
-            setWorkingBranchId={setWorkingBranchId}
             addons={addons} setAddons={setAddons}
             additionalServices={additionalServices}
-            rentPolicies={rentPolicies}
-            rentPolicyId={rentPolicyId} setRentPolicyId={setRentPolicyId}
             tajeerEnabled={tajeerEnabled}
             coverage={{ perDay: coveragePerDay, maxPerDay: coverageMaxPerDay, exceeds: coverageExceedsMax }}
-            cancellationPolicies={cancellationPolicies}
-            cancellationPolicyId={cancellationPolicyId} setCancellationPolicyId={setCancellationPolicyId}
-            extensionPolicy={extensionPolicy} setExtensionPolicy={setExtensionPolicy}
-            earlyReturnPolicy={earlyReturnPolicy} setEarlyReturnPolicy={setEarlyReturnPolicy}
-            accidentReportPolicy={accidentReportPolicy} setAccidentReportPolicy={setAccidentReportPolicy}
-            fuelReturnPolicy={fuelReturnPolicy} setFuelReturnPolicy={setFuelReturnPolicy}
-            breakdownReportPolicy={breakdownReportPolicy} setBreakdownReportPolicy={setBreakdownReportPolicy}
+            pricing={pricing}
+            rentDayCost={rentDayCost}
+            rentHourCost={rentHourCost}
+            isHourlyRental={isHourlyRental}
+            totalHours={totalHours}
           />
         )}
 
@@ -957,6 +963,7 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             setAdvanceCost={setAdvanceCost}
             payMethod={payMethod} setPayMethod={setPayMethod}
             pricing={pricing}
+            additionalServices={additionalServices}
           />
         )}
 
@@ -982,7 +989,12 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             selectedExtraDriver={selectedExtraDriver}
             extraDriverIdNumber={extraDriverIdNumber}
             extraDriverBirthDate={extraDriverBirthDate}
+            authorizationTypeCode={authorizationTypeCode}
+            authorizationCountry={authorizationCountry}
+            authorizationStartDate={authorizationStartDate}
+            authorizationEndDate={authorizationEndDate}
             days={days}
+            totalHours={totalHours}
             pickupDate={pickupDate}
             returnDate={returnDate}
             car={car}
@@ -990,9 +1002,11 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             sketchItems={sketchItems}
             branches={branches}
             rentPolicies={rentPolicies}
+            cancellationPolicies={cancellationPolicies}
             receiveBranchId={receiveBranchId}
             returnBranchId={returnBranchId}
             rentPolicyId={rentPolicyId}
+            cancellationPolicyId={cancellationPolicyId}
             contractTypeCode={contractTypeCode}
             addons={addons}
             additionalServices={additionalServices}
@@ -1001,7 +1015,14 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
             allowedKmPerHour={allowedKmPerHour}
             allowedLateHours={allowedLateHours}
             lateFeePerHour={lateFeePerHour}
+            extensionPolicy={extensionPolicy}
+            earlyReturnPolicy={earlyReturnPolicy}
+            accidentReportPolicy={accidentReportPolicy}
+            fuelReturnPolicy={fuelReturnPolicy}
+            breakdownReportPolicy={breakdownReportPolicy}
             pricing={pricing}
+            rentDayCost={rentDayCost}
+            rentHourCost={rentHourCost}
             fullFuelCost={fullFuelCost}
             discountType={discountType}
             discountPercent={discountPercent}
@@ -1136,7 +1157,9 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         canContinueFromStep0={
           selectedCustomer !== null
           && !CUSTOMER_STATUS_META[getCustomerStatusTag(selectedCustomer)].blocking
-          && car != null
+        }
+        canContinueFromStep1={
+          car != null
           && effectiveCarStatus(car, ar) === "available"
         }
         coverageBlocked={coverageBlocked}

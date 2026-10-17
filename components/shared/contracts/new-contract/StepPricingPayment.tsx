@@ -1,16 +1,17 @@
 "use client";
 
-import { Info, Lock, CreditCard, Wallet, Banknote } from "lucide-react";
-import { Badge, Select } from "@/components/ui";
+import { Info, Lock, CreditCard, Banknote, Tag } from "lucide-react";
+import { Badge, Input, Money, RiyalSymbol, Select, Tabs } from "@/components/ui";
 import type { Car } from "@/lib/data";
 import type { TajeerContractType } from "@/lib/tajeer";
-import type { ContractDiscountRate } from "./useContractLookups";
+import type { ContractAdditionalService, ContractDiscountRate } from "./useContractLookups";
 import {
   T, ADD_ONS,
   SYSTEM_DRIVER_FARE_PER_DAY, SYSTEM_DRIVER_FARE_PER_HOUR,
   SYSTEM_VEHICLE_TRANSFER_COST,
 } from "./constants";
 import type { Pricing } from "./pricing";
+import { PriceBreakdown, type PriceRow } from "./PriceBreakdown";
 import { PriceInputField, PriceInput } from "./PriceInput";
 
 export type StepPricingPaymentProps = {
@@ -47,6 +48,7 @@ export type StepPricingPaymentProps = {
   payMethod: string; setPayMethod: (v: string) => void;
   setAdvanceCost: (v: number) => void;
   pricing: Pricing;
+  additionalServices: ContractAdditionalService[];
 };
 
 export function StepPricingPayment({
@@ -55,22 +57,48 @@ export function StepPricingPayment({
   driverFarePerDay, setDriverFarePerDay, driverFarePerHour, setDriverFarePerHour, vehicleTransferCost, setVehicleTransferCost,
   internationalAuthorizationCost, setInternationalAuthorizationCost,
   allowedKmPerDay, setAllowedKmPerDay, allowedLateHours, setAllowedLateHours, lateFeePerHour, setLateFeePerHour,
-  discountType, discountPercent, discountRates, discountRateId, onDiscountRateChange, payType, setPayType, payMethod, setPayMethod, setAdvanceCost, pricing,
+  discountType, discountPercent, discountRates, discountRateId, onDiscountRateChange, payType, setPayType, payMethod, setPayMethod, setAdvanceCost, pricing, additionalServices,
 }: StepPricingPaymentProps) {
   const {
     base, addonPrices, extraDriverFare, transferFare, authorizationFare,
     discountAmount, subtotal, vat, total, advanceAmount, remaining,
   } = pricing;
+
+  // Breakdown add-on lines — same key normalization as the picker step.
+  const legacySupplementaryKeys = new Set(["fuel", "return_agent"]);
+  const serviceByKey = new Map(additionalServices.map((s) => [s.key.toLowerCase().replace(/[-\s]+/g, "_"), s]));
+  const addOnLines = (basic: boolean): PriceRow[] =>
+    Object.entries(addons)
+      .filter(([k, on]) => on && k !== "driver")
+      .filter(([k]) => { const type = serviceByKey.get(k)?.type; return type != null ? (type === 1) === basic : basic === !legacySupplementaryKeys.has(k); })
+      .map(([k]) => {
+        const s = serviceByKey.get(k);
+        const fallback = ADD_ONS.find((a) => a.k === k);
+        return {
+          key: k,
+          label: ar ? (s?.nameAr || fallback?.nameAr || k) : (s?.nameEn || fallback?.nameEn || k),
+          sub: s ? (ar
+            ? (s.billingUnit === 2 ? "/ يوم" : s.billingUnit === 3 ? "/ كم" : "· مرة واحدة")
+            : (s.billingUnit === 2 ? "/ day" : s.billingUnit === 3 ? "/ Km" : "· once")) : undefined,
+          amount: addonPrices[k] ?? 0,
+        };
+      });
+  const breakdownFees: PriceRow[] = ([
+    extraDriverFare > 0 && { key: "extra_driver", label: T("Extra driver fare", "أجرة السائق الإضافي", ar), amount: extraDriverFare },
+    transferFare > 0 && { key: "transfer", label: T("Delivery to another city", "تسليم السيارة إلى مدن أخرى", ar), amount: transferFare },
+    authorizationFare > 0 && { key: "authorization", label: T("International authorization", "التفويض الدولي", ar), amount: authorizationFare },
+    fullFuelCost > 0 && { key: "fuel", label: T("Full fuel rate (not charged)", "سعر الوقود الممتلئ (غير مفروض)", ar), amount: fullFuelCost, muted: true },
+  ] as const).filter((r): r is PriceRow => Boolean(r));
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-[7fr_5fr] items-start gap-5">
 
       {/* Right column (RTL): Pricing details — its own card, editable per contract nature */}
-      <div className="flex flex-col gap-4">
-        <div className="mk-surface rounded-xl p-4 sm:p-6">
-          <div className="mk-h4 mb-6 text-mk-ink-900">{T("Pricing Details", "تفاصيل أسعار العقد", ar)}</div>
+      <div className="flex flex-col gap-5">
+        <div className="mk-surface rounded-xl p-5">
+          <div className="mk-h4 mb-4 text-mk-ink-900">{T("Pricing Details", "تفاصيل أسعار العقد", ar)}</div>
 
           {/* Rates registered on the vehicle profile */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-6 border-b border-mk-ink-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4">
             {(contractTypeCode === 1 || contractTypeCode === 3) && (
               <PriceInput
                 label={T("Day rate (SAR)", "سعر اليوم", ar)}
@@ -116,7 +144,7 @@ export function StepPricingPayment({
           </div>
 
           {/* Additional contract-specific costs — editable per contract nature */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <PriceInput
               label={T("Full fuel rate (SAR) — not charged", "سعر الوقود الممتلئ — غير مفروض", ar)}
               value={fullFuelCost}
@@ -168,31 +196,34 @@ export function StepPricingPayment({
               cost is snapshotted onto the contract (managed in Pricing settings). */}
           {/* Discount — picked from the tenant's named discount rates
               (managed in Pricing settings); only the percent is sent. */}
+          {/* Discount — options registered by the owner in Pricing settings */}
           <div className="pt-6 mt-6 border-t border-mk-ink-100">
-            <div className="flex items-center justify-between mb-3">
-              <div className="mk-label text-mk-ink-900">{T("Discount", "نسبة الخصم", ar)}</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="mk-label-muted mk-field-label">{T("Discount", "نسبة الخصم", ar)}</div>
               <span className="flex items-center gap-1 mk-overline text-mk-ink-400">
-                <Lock size={11} />{T("Rates managed in Pricing settings", "النسب تُدار من إعدادات الأسعار", ar)}
+                <Lock size={11} />{T("Options set in Pricing settings", "الخيارات مُحدَّدة من إعدادات الأسعار", ar)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Select
-                value={discountRateId != null ? String(discountRateId) : ""}
-                onChange={(e) => onDiscountRateChange(e.target.value ? Number(e.target.value) : null)}
-                className="flex-1"
-              >
-                <option value="">{T("No discount", "بدون خصم", ar)}</option>
-                {discountRates.map((r) => (
-                  <option key={r.id} value={String(r.id)}>
-                    {(ar ? (r.nameAr || r.nameEn) : (r.nameEn || r.nameAr)) || `—`} ({r.percent}%)
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <Select
+              variant="muted"
+              value={discountRateId != null ? String(discountRateId) : ""}
+              onChange={(e) => onDiscountRateChange(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">{T("No discount", "بدون خصم", ar)}</option>
+              {discountRates.map((r) => (
+                <option key={r.id} value={String(r.id)}>
+                  {(ar ? (r.nameAr || r.nameEn) : (r.nameEn || r.nameAr)) || `—`} — %{r.percent}
+                </option>
+              ))}
+            </Select>
             {discountAmount > 0 && (
-              <p className="mk-caption text-mk-blue-500 mt-2">
-                {T(`−${discountAmount.toLocaleString()} SAR (${discountPercent}% off)`, `−${discountAmount.toLocaleString()} ريال (خصم ${discountPercent}٪)`, ar)}
-              </p>
+              <div className="flex items-center gap-2 h-10 px-3 mt-2 rounded-md bg-mk-ink-50 border border-mk-ink-100">
+                <Tag size={13} className="text-mk-ink-400" />
+                <span className="mk-caption text-mk-ink-400">
+                  {T(`${discountPercent}% discount applied — `, `تم تطبيق خصم ${discountPercent}٪ — `, ar)}
+                  {T(`${discountAmount.toLocaleString()} SAR off`, `خصم ${discountAmount.toLocaleString()} ريال`, ar)}
+                </span>
+              </div>
             )}
             {discountRates.length === 0 && (
               <p className="mk-caption text-mk-ink-400 mt-2">
@@ -204,7 +235,7 @@ export function StepPricingPayment({
           {/* Km & delay limits */}
           <div className="pt-6 mt-6 border-t border-mk-ink-100">
             <div className="mk-label mb-3 text-mk-ink-900">{T("Km & delay limits", "حدود الكيلومترات والتأخير", ar)}</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <PriceInput
                 label={T("Free km / day", "عدد الكيلومترات المجانية المسموحة باليوم", ar)}
                 min={0}
@@ -235,147 +266,92 @@ export function StepPricingPayment({
       </div>
 
       {/* Left column (RTL): Payment card + Price breakdown card */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
 
         {/* Payment type & method */}
-        <div className="mk-surface rounded-xl p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-6">
+        <div className="mk-surface rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
             <div className="mk-h4 flex-1 text-mk-ink-900">{T("Payment", "الدفع", ar)}</div>
             <Badge variant="warning" dot>{T("Awaiting capture", "بانتظار الخصم", ar)}</Badge>
           </div>
 
-          <div className="mk-overline mb-1 text-mk-ink-600">
-            {T("Payment type", "نوع الدفع", ar)}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-            {([
-              { k: "full", titleEn: "Full payment", titleAr: "الدفع الكامل", descEn: "Total captured now", descAr: "يُخصم الإجمالي كاملاً الآن", Icon: CreditCard },
-              { k: "advance", titleEn: "Advance payment", titleAr: "دفع مقدم", descEn: "Custom amount · rest on return", descAr: "مبلغ مخصص · الباقي عند الإرجاع", Icon: Wallet },
-            ] as const).map((pt) => {
-              const on = payType === pt.k;
-              return (
-                <button key={pt.k} onClick={() => setPayType(pt.k)}
-                  className={`mk-option ${on ? "mk-option--on" : "mk-surface"} flex flex-col items-center p-3 rounded-lg text-center`}>
-                  <div className={`w-9 h-9 rounded-md mb-2 flex items-center justify-center shrink-0 ${on ? "bg-white" : "bg-mk-blue-50"}`}>
-                    <pt.Icon size={16} className="text-mk-blue-500" />
-                  </div>
-                  <div className={`mk-caption ${on ? "text-mk-blue-500" : "text-mk-ink-900"}`}>{ar ? pt.titleAr : pt.titleEn}</div>
-                  <div className="mk-overline mt-1 text-mk-ink-400">{ar ? pt.descAr : pt.descEn}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {payType === "advance" && (
-            <div className="mb-4">
-              <PriceInput
-                label={T("Advance amount (SAR)", "مبلغ الدفع المقدم", ar)}
-                min={0}
-                max={total}
-                value={advanceAmount}
-                defaultValue={0}
-                onChange={setAdvanceCost}
-                ar={ar}
-                helpText={T("0 = no advance — type any amount up to the total, the rest is collected on return.", "٠ = بدون دفعة مقدمة — أدخل أي مبلغ حتى الإجمالي، والباقي يُحصَّل عند الإرجاع.", ar)}
+          <div className="flex flex-col gap-4">
+            <div>
+              <div className="mk-label-muted mb-1 mk-field-label">{T("Payment type", "نوع الدفع", ar)}</div>
+              <Tabs
+                variant="default"
+                rounded="full"
+                className="w-full! [&>button]:flex-1"
+                value={payType}
+                onChange={(v) => setPayType(v as "full" | "advance")}
+                items={[
+                  { value: "full", label: T("Full payment", "الدفع الكامل", ar) },
+                  { value: "advance", label: T("Advance payment", "دفع مقدم", ar) },
+                ]}
               />
             </div>
-          )}
 
-          <div className="mk-caption mb-3 text-mk-ink-600">
-            {T("Payment method", "طريقة الدفع", ar)}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {[
-              { k: "cash", l: T("Cash", "نقدي", ar), sub: T("Pay cash at counter", "دفع نقدي عند المكتب", ar), Icon: Banknote },
-              { k: "pos", l: T("Point of Sale (POS)", "نقطة بيع", ar), sub: T("Pay via card machine", "دفع عبر جهاز الشبكة", ar), Icon: CreditCard },
-            ].map((p) => {
-              const on = payMethod === p.k;
-              return (
-                <button key={p.k} onClick={() => setPayMethod(p.k)}
-                  className={`mk-option ${on ? "mk-option--on" : "mk-surface"} flex flex-col items-center p-3 rounded-lg text-center`}>
-                  <div className={`w-9 h-9 rounded-md mb-2 flex items-center justify-center shrink-0 ${on ? "bg-white" : "bg-mk-blue-50"}`}>
-                    <p.Icon size={16} className="text-mk-blue-500" />
-                  </div>
-                  <div className={`mk-caption ${on ? "text-mk-blue-500" : "text-mk-ink-900"}`}>{p.l}</div>
-                  <div className="mk-overline mt-1 text-mk-ink-400">{p.sub}</div>
-                </button>
-              );
-            })}
+            {/* Advance amount — defaults to 50%, editable */}
+            {payType === "advance" && (
+              <Input
+                label={T("Advance amount", "قيمة الدفع المقدم", ar)}
+                variant="muted"
+                type="number"
+                min={0}
+                max={total}
+                suffix={<RiyalSymbol size={14} className="text-mk-ink-400" />}
+                value={advanceAmount}
+                onChange={(e) => setAdvanceCost(Math.min(total, Math.max(0, Number(e.target.value) || 0)))}
+                helpText={T(`Remaining ${remaining.toLocaleString()} SAR is collected on return`, `الباقي ${remaining.toLocaleString()} ريال يُحصَّل عند الإرجاع`, ar)}
+              />
+            )}
+
+            <div>
+              <div className="mk-label-muted mb-1 mk-field-label">{T("Payment method", "طريقة الدفع", ar)}</div>
+              <Tabs
+                variant="default"
+                rounded="full"
+                className="w-full! [&>button]:flex-1"
+                value={payMethod}
+                onChange={setPayMethod}
+                items={[
+                  { value: "cash", label: T("Cash", "نقدي", ar), icon: <Banknote size={14} /> },
+                  { value: "pos", label: T("Point of Sale (POS)", "نقطة بيع", ar), icon: <CreditCard size={14} /> },
+                ]}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Price breakdown */}
-        <div className="mk-surface rounded-xl p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-6">
+        {/* Price breakdown — same shared component as the live summary on step 1 */}
+        <div className="mk-surface rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
             <div className="mk-h4 text-mk-ink-900 uppercase tracking-wider">{T("Price Breakdown", "تفاصيل الأسعار", ar)}</div>
           </div>
-          <div className="flex flex-col gap-2.5 mk-caption">
-            <div className="flex justify-between">
-              <span>
-                {(contractTypeCode === 2 || contractTypeCode === 4)
-                  ? T(`Base rent (${totalHours} hours × ${rentHourCost} SAR)`, `الإيجار الأساسي (${totalHours} ساعات × ${rentHourCost} ريال)`, ar)
-                  : T(`Base rent (${days} days × ${rentDayCost || car?.dailyRate || 0} SAR)`, `الإيجار الأساسي (${days} أيام × ${rentDayCost || car?.dailyRate || 0} ريال)`, ar)}
-              </span>
-              <strong>{base.toLocaleString()} {T("SAR", "ريال", ar)}</strong>
-            </div>
-            {Object.entries(addons).filter(([k, v]) => v && ADD_ONS.some(a => a.k === k)).map(([k]) => {
-              const ao = ADD_ONS.find((a) => a.k === k)!;
-              return (
-                <div key={k} className="flex justify-between text-mk-ink-600">
-                  <span>+ {ar ? ao.nameAr : ao.nameEn}</span>
-                  <span>{(addonPrices[k as keyof typeof addonPrices] ?? 0).toLocaleString()} {T("SAR", "ريال", ar)}</span>
-                </div>
-              );
-            })}
-            {extraDriverFare > 0 && (
-              <div className="flex justify-between text-mk-ink-600">
-                <span>+ {T("Extra driver fare", "أجرة السائق الإضافي", ar)}</span>
-                <span>{extraDriverFare.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-              </div>
-            )}
-            {transferFare > 0 && (
-              <div className="flex justify-between text-mk-ink-600">
-                <span>+ {T("Delivery to another city", "تسليم السيارة إلى مدن أخرى", ar)}</span>
-                <span>{transferFare.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-              </div>
-            )}
-            {authorizationFare > 0 && (
-              <div className="flex justify-between text-mk-ink-600">
-                <span>+ {T("International authorization", "التفويض الدولي", ar)}</span>
-                <span>{authorizationFare.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-              </div>
-            )}
-            {fullFuelCost > 0 && (
-              <div className="flex justify-between text-mk-ink-400">
-                <span>{T("Full fuel rate (not charged)", "سعر الوقود الممتلئ (غير مفروض)", ar)}</span>
-                <span>{fullFuelCost.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-              </div>
-            )}
-            {discountAmount > 0 && (
-              <div className="flex justify-between border-t border-mk-ink-100 pt-2.5 mt-1 text-mk-blue-600">
-                <span>{discountType === "percent"
-                  ? T(`Discount (${discountPercent}%)`, `الخصم (${discountPercent}٪)`, ar)
-                  : T("Discount (fixed amount)", "الخصم (مبلغ ثابت)", ar)}</span>
-                <span>-{discountAmount.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-              </div>
-            )}
-            <div className={`flex justify-between pt-2.5 mt-1 text-mk-ink-900 mk-label ${discountAmount > 0 ? "" : "border-t border-mk-ink-100"}`}>
-              <span>{T("Subtotal (before VAT)", "المجموع قبل الضريبة", ar)}</span>
-              <span>{subtotal.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-            </div>
-            <div className="flex justify-between text-mk-ink-500 mk-overline">
-              <span>{T("VAT · 15%", "ضريبة قيمة مضافة · ١٥٪", ar)}</span>
-              <span>{vat.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-            </div>
-            <div className="flex justify-between items-center text-mk-blue-600 border-t border-mk-ink-100 pt-3 mt-1">
-              <span className="mk-h4">{T("Total", "الإجمالي", ar)}</span>
-              <span className="mk-h4">{total.toLocaleString()} {T("SAR", "ريال", ar)}</span>
-            </div>
+          <PriceBreakdown
+            ar={ar}
+            rental={{
+              name: car ? `${car.make} ${car.model}` : undefined,
+              days,
+              dailyRate: rentDayCost || car?.dailyRate || 0,
+              subtotal: base,
+            }}
+            hourly={(contractTypeCode === 2 || contractTypeCode === 4) ? { rate: rentHourCost, hours: totalHours } : undefined}
+            essential={addOnLines(true)}
+            supplementary={addOnLines(false)}
+            fees={breakdownFees}
+            discountAmount={discountAmount}
+            discountLabel={discountType === "percent" ? T(`${discountPercent}% off`, `خصم ${discountPercent}٪`, ar) : undefined}
+            subtotal={subtotal}
+            vatAmount={vat}
+            total={total}
+            totalLabel={T("Total", "الإجمالي", ar)}
+          >
             {payType === "advance" && (
               <div className="border-t border-dashed border-mk-ink-100 pt-2.5 mt-1 flex flex-col gap-2">
                 <div className="flex justify-between">
-                  <span className="mk-label text-mk-blue-500">{T("Advance now", "مقدّم الآن", ar)}</span>
-                  <strong className="text-mk-blue-500">{advanceAmount.toLocaleString()} {T("SAR", "ريال", ar)}</strong>
+                  <span className="mk-label text-mk-ink-900">{T("Advance now", "مقدّم الآن", ar)}</span>
+                  <Money size={14} className="mk-label justify-end text-mk-ink-900">{advanceAmount.toLocaleString()}</Money>
                 </div>
                 <div className="flex justify-between text-mk-ink-400 mk-overline">
                   <span>{T("Remaining on return", "الباقي عند الإرجاع", ar)}</span>
@@ -383,7 +359,7 @@ export function StepPricingPayment({
                 </div>
               </div>
             )}
-          </div>
+          </PriceBreakdown>
         </div>
       </div>
 

@@ -343,6 +343,14 @@ function FleetContent() {
           resetForm();
         }}
         onSubmit={handleSaveVehicle}
+        onShowMap={editingVehicleId ? () => {
+          const c = vehicles.find((v) => v.id === editingVehicleId);
+          if (c) setMapCar(c);
+        } : undefined}
+        onDeleteVehicle={editingVehicleId ? () => {
+          const c = vehicles.find((v) => v.id === editingVehicleId);
+          if (c) setDeleteTarget(c);
+        } : undefined}
       />
     );
   }

@@ -73,10 +73,10 @@ export const RENTAL_POLICY_OPTIONS = {
 } as const;
 
 export const STEPS = [
-  { labelEn: "Customer, dates & vehicle", labelAr: "العميل والتواريخ والمركبة", icon: "user-check" },
-  { labelEn: "Add-ons & handover", labelAr: "الخدمات الإضافية والتسليم", icon: "car" },
-  { labelEn: "Payment", labelAr: "الدفع", icon: "credit-card" },
-  { labelEn: "Verification, signature & issue", labelAr: "التحقق والتوقيع وإصدار العقد", icon: "printer" },
+  { labelEn: "Renter & terms", labelAr: "المستأجر والشروط", icon: "user-check" },
+  { labelEn: "Vehicle & add-ons", labelAr: "المركبة والخدمات", icon: "car" },
+  { labelEn: "Verification & payment", labelAr: "التحقق والدفع", icon: "credit-card" },
+  { labelEn: "Review & issue", labelAr: "المراجعة والإصدار", icon: "printer" },
 ];
 
 // Saudi Arabia's full land neighbors — shown when authorization type is "external"

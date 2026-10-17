@@ -1,18 +1,14 @@
 "use client";
 
-import { useRef, useEffect, type RefObject } from "react";
-import { Search, Check, UserPlus, UserCheck, Shield, Gauge, X, LayoutGrid, List, Map as MapIcon, Loader2 } from "lucide-react";
-import { Avatar, Badge, RiyalSymbol, Input, Select, Button, Chip, IconButton, Tabs, DatePicker, DateTimePicker } from "@/components/ui";
-import type { Car, CarStatus, DriverProfile } from "@/lib/data";
-import { TAJEER_LOOKUPS, type TajeerRentStatus, type SketchItem } from "@/lib/tajeer";
-import { FleetAlertBadgeList, FleetAlertImageOverlay, effectiveCarStatus } from "@/components/employee/FleetAlertBadges";
-import { VehicleTypeIcon } from "@/components/employee/VehicleTypeIcon";
-import { getAvailabilityText } from "@/lib/maps";
-import { T, getCustomerStatusTag, CUSTOMER_STATUS_META, NEIGHBORING_COUNTRIES } from "./constants";
-import { CAR_TYPE_AR } from "./mappers";
+import { useRef, useEffect } from "react";
+import { Search, UserPlus, UserCheck, Shield, X, Loader2 } from "lucide-react";
+import { Avatar, Select, Button, Chip, IconButton, DatePicker, DateTimePicker } from "@/components/ui";
+import type { DriverProfile } from "@/lib/data";
+import { TAJEER_LOOKUPS } from "@/lib/tajeer";
+import { T, getCustomerStatusTag, CUSTOMER_STATUS_META, NEIGHBORING_COUNTRIES, RENTAL_POLICY_OPTIONS } from "./constants";
 import { PersonPicker } from "./PersonPicker";
-import { CarCardCarousel } from "./CarCardCarousel";
-import { VehicleConditionDrawer } from "./VehicleConditionDrawer";
+import type { LookupItem, ContractRentPolicy, ContractCancellationPolicy } from "./useContractLookups";
+import { isTajeerSyncedPolicy } from "./useContractLookups";
 
 export type StepCustomerVehicleProps = {
   ar: boolean;
@@ -28,7 +24,23 @@ export type StepCustomerVehicleProps = {
   returnDateTime: string; setReturnDateTime: (v: string) => void;
   rentalDurationLabel: string;
   isHourlyRental: boolean;
-  days: number;
+  // Handover branches
+  branches: LookupItem[];
+  receiveBranchId: number; setReceiveBranchId: (v: number) => void;
+  returnBranchId: number; setReturnBranchId: (v: number) => void;
+  setWorkingBranchId: (v: number) => void;
+  // Rental & cancellation policies — selecting a rent policy auto-applies the
+  // office's extension/early-return/accident/fuel/breakdown sub-policies.
+  rentPolicies: ContractRentPolicy[];
+  rentPolicyId: number; setRentPolicyId: (v: number) => void;
+  tajeerEnabled?: boolean;
+  cancellationPolicies: ContractCancellationPolicy[];
+  cancellationPolicyId: number; setCancellationPolicyId: (v: number) => void;
+  extensionPolicy: string; setExtensionPolicy: (v: string) => void;
+  earlyReturnPolicy: string; setEarlyReturnPolicy: (v: string) => void;
+  accidentReportPolicy: string; setAccidentReportPolicy: (v: string) => void;
+  fuelReturnPolicy: string; setFuelReturnPolicy: (v: string) => void;
+  breakdownReportPolicy: string; setBreakdownReportPolicy: (v: string) => void;
   // Authorization
   authorizationStartDate: string; setAuthorizationStartDate: (v: string) => void;
   authorizationEndDate: string; setAuthorizationEndDate: (v: string) => void;
@@ -51,40 +63,24 @@ export type StepCustomerVehicleProps = {
   handleSelectExtraDriver: (d: DriverProfile) => void;
   clearExtraDriver: () => void;
   setShowExtraDriverAddNew: (v: boolean) => void;
-  // Vehicles
-  backendCars: Car[];
-  availCars: Car[];
-  car: Car | undefined;
-  vehiclesLoading: boolean; vehiclesError: string;
-  carSearch: string; setCarSearch: (v: string) => void;
-  carStatusTab: "all" | CarStatus; setCarStatusTab: (v: "all" | CarStatus) => void;
-  carStatusCounts: Record<string, number>;
-  viewMode: "card" | "list" | "map"; setViewMode: (v: "card" | "list" | "map") => void;
-  carFilter: string; setCarFilter: (v: string) => void;
-  pickedPlate: string; setPickedPlate: (v: string) => void;
-  carMapRef: RefObject<HTMLDivElement | null>;
-  carMapsLoaded: boolean;
-  // Condition drawer
-  showConditionModal: boolean; setShowConditionModal: (v: boolean) => void;
-  conditionView: "sketch" | "photos"; setConditionView: (v: "sketch" | "photos") => void;
-  sketchItems: SketchItem[]; setSketchItems: (items: SketchItem[]) => void;
-  rentStatus: Partial<TajeerRentStatus>;
 };
 
 export function StepCustomerVehicle({
   ar,
   showCustomerSearch, setShowCustomerSearch, customerQuery, setCustomerQuery, customersLoading, customersError,
   filteredCustomers, selectedCustomer, setSelectedCustomer, setIsNewCustomerOpen,
-  pickupDateTime, setPickupDateTime, returnDateTime, setReturnDateTime, rentalDurationLabel, isHourlyRental, days,
+  pickupDateTime, setPickupDateTime, returnDateTime, setReturnDateTime, rentalDurationLabel, isHourlyRental,
+  branches, receiveBranchId, setReceiveBranchId, returnBranchId, setReturnBranchId, setWorkingBranchId,
+  rentPolicies, rentPolicyId, setRentPolicyId, tajeerEnabled, cancellationPolicies, cancellationPolicyId, setCancellationPolicyId,
+  extensionPolicy, setExtensionPolicy, earlyReturnPolicy, setEarlyReturnPolicy,
+  accidentReportPolicy, setAccidentReportPolicy, fuelReturnPolicy, setFuelReturnPolicy,
+  breakdownReportPolicy, setBreakdownReportPolicy,
   authorizationStartDate, setAuthorizationStartDate, authorizationEndDate, setAuthorizationEndDate,
   authorizationTypeCode, setAuthorizationTypeCode, authorizationCountry, setAuthorizationCountry,
   isRenterDriver, setIsRenterDriver, filteredAuthDrivers, authDriverQuery, setAuthDriverQuery, selectedAuthDriver,
   handleSelectAuthDriver, clearAuthDriver, setShowAuthDriverAddNew, driversLoading, driversError,
   extraDriverEnabled, setExtraDriverEnabled, filteredExtraDrivers, extraDriverQuery, setExtraDriverQuery,
   selectedExtraDriver, handleSelectExtraDriver, clearExtraDriver, setShowExtraDriverAddNew,
-  backendCars, availCars, car, vehiclesLoading, vehiclesError, carSearch, setCarSearch, carStatusTab, setCarStatusTab,
-  carStatusCounts, viewMode, setViewMode, carFilter, setCarFilter, pickedPlate, setPickedPlate, carMapRef, carMapsLoaded,
-  showConditionModal, setShowConditionModal, conditionView, setConditionView, sketchItems, setSketchItems, rentStatus,
 }: StepCustomerVehicleProps) {
   // Close the floating search panels on outside click — same behavior as the
   // designer's page (outside click cancels back to the default answer).
@@ -288,8 +284,52 @@ export function StepCustomerVehicle({
               </div>
             </div>
 
+            {/* Handover branches — chosen up front with the renter/terms, like
+                the designer's step 0 (vehicle picker stays below on this step). */}
+            <div className="mt-5 pt-5 border-t border-mk-ink-100">
+              <div className="mk-label text-mk-ink-900">{T("Handover Branches", "فروع الاستلام والتسليم", ar)}</div>
+              <p className="mk-caption mt-1 mb-4 text-mk-ink-500">
+                {T("Choose where the customer picks up and returns the vehicle.", "اختر أين يستلم العميل المركبة ويسلّمها.", ar)}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label={T("Pickup Branch", "فرع الاستلام", ar)}
+                  variant="muted"
+                  value={String(receiveBranchId)}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setReceiveBranchId(val);
+                    setWorkingBranchId(val);
+                  }}
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {ar ? b.nameAr : b.nameEn}
+                    </option>
+                  ))}
+                </Select>
+
+                <Select
+                  label={T("Return Branch", "فرع التسليم", ar)}
+                  variant="muted"
+                  value={String(returnBranchId)}
+                  onChange={(e) => setReturnBranchId(Number(e.target.value))}
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {ar ? b.nameAr : b.nameEn}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
           </div>
         </div>
+
+        {/* Right column — drivers + rental policy */}
+        <div className="flex flex-col gap-4">
 
         {/* Drivers card */}
         <div className="mk-surface rounded-xl p-4 sm:p-6">
@@ -507,387 +547,56 @@ export function StepCustomerVehicle({
           </div>
 
         </div>
-      </div>
 
-      {/* Vehicle selection — full width; condition & diagram open in a modal per vehicle */}
-      <div className="grid grid-cols-1 gap-4 items-start">
-        {/* 1. VEHICLE SELECTOR CARD */}
+        {/* Rental policy — office-selectable, auto-reflected on the contract */}
         <div className="mk-surface rounded-xl p-4 sm:p-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <div className="flex-1 min-w-[160px]">
-              <div className="mk-h4 text-mk-ink-900">{T("Vehicle Selection", "اختيار المركبة", ar)}</div>
-              <div className="mk-caption mt-1 text-mk-ink-500">
-                {availCars.filter(c => effectiveCarStatus(c, ar) === "available").length} {T("vehicles available for selected dates", "مركبة متاحة للتواريخ المحددة", ar)}
-              </div>
-            </div>
+          <div className="mk-h4 mb-6 text-mk-ink-900">{T("Rental policies", "سياسات التأجير", ar)}</div>
 
-            {/* Search */}
-            <div className="w-full sm:flex-1 sm:min-w-[220px] sm:max-w-[380px]">
-              <Input
-                variant="default"
-                icon={<Search size={14} />}
-                value={carSearch}
-                onChange={(e) => setCarSearch(e.target.value)}
-                placeholder={T("Search by make, model, plate…", "بحث عن ماركة, طراز, لوحة...", ar)}
-              />
-            </div>
-
-            {/* Status filter */}
-            <div className="shrink-0 w-[150px]">
-              <Select
-                value={carStatusTab}
-                onChange={(e) => setCarStatusTab(e.target.value as "all" | CarStatus)}
-                className="!mk-caption !pe-8 !rounded-md !border-mk-ink-200"
-              >
-                {([
-                  { key: "all", labelEn: "All statuses", labelAr: "كل الحالات" },
-                  { key: "available", labelEn: "Available", labelAr: "متاحة" },
-                  { key: "rented", labelEn: "Rented", labelAr: "مؤجرة" },
-                  { key: "overdue", labelEn: "Overdue", labelAr: "متأخر" },
-                  { key: "maintenance", labelEn: "Maintenance", labelAr: "صيانة" },
-                  { key: "reserved", labelEn: "Reserved", labelAr: "محجوزة" },
-                ] as { key: "all" | CarStatus; labelEn: string; labelAr: string }[]).map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {ar ? t.labelAr : t.labelEn}
-                    {t.key !== "all" ? ` (${carStatusCounts[t.key] ?? 0})` : ""}
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="mk-overline mb-2 block text-mk-ink-600">{T("Rental policy", "سياسة التأجير", ar)}</label>
+              <Select value={rentPolicyId} onChange={(e) => {
+                const policy = rentPolicies.find((item) => item.id === Number(e.target.value));
+                if (!policy) return;
+                setRentPolicyId(policy.id);
+                if (policy.extensionPolicy) setExtensionPolicy(RENTAL_POLICY_OPTIONS.extension[policy.extensionPolicy - 1]?.key ?? extensionPolicy);
+                if (policy.earlyReturnPolicy) setEarlyReturnPolicy(RENTAL_POLICY_OPTIONS.earlyReturn[policy.earlyReturnPolicy - 1]?.key ?? earlyReturnPolicy);
+                if (policy.accidentReportPolicy) setAccidentReportPolicy(RENTAL_POLICY_OPTIONS.accidentReport[policy.accidentReportPolicy - 1]?.key ?? accidentReportPolicy);
+                if (policy.fuelReturnPolicy) setFuelReturnPolicy(RENTAL_POLICY_OPTIONS.fuelReturn[policy.fuelReturnPolicy - 1]?.key ?? fuelReturnPolicy);
+                if (policy.breakdownReportPolicy) setBreakdownReportPolicy(RENTAL_POLICY_OPTIONS.breakdownReport[policy.breakdownReportPolicy - 1]?.key ?? breakdownReportPolicy);
+              }}>
+                {rentPolicies.map((policy) => (
+                  <option key={policy.id} value={policy.id}>
+                    {ar ? policy.nameAr : policy.nameEn}{isTajeerSyncedPolicy(policy) ? " · Tajeer ✓" : ""}
                   </option>
                 ))}
               </Select>
-            </div>
-
-            {/* View toggle */}
-            <Tabs
-              variant="default"
-              className="shrink-0"
-              value={viewMode}
-              onChange={(v) => setViewMode(v as typeof viewMode)}
-              items={[
-                { value: "list", icon: <List size={15} />, "aria-label": "List view" },
-                { value: "card", icon: <LayoutGrid size={15} />, "aria-label": "Card view" },
-                { value: "map", icon: <MapIcon size={15} />, "aria-label": "Map view" },
-              ]}
-            />
-          </div>
-
-          {/* Filter chips */}
-          {(() => {
-            const activeFilter = carFilter;
-            const cats = [
-              { k: "all", label: T("All", "الكل", ar) },
-              { k: "Sedan", label: T("Sedan", "سيدان", ar) },
-              { k: "SUV", label: T("SUV", "دفع رباعي", ar) },
-              { k: "Luxury", label: T("Luxury", "فاخرة", ar) },
-              { k: "Economy", label: T("Economy", "اقتصادية", ar) },
-            ];
-            return (
-              <Tabs
-                variant="default"
-                size="sm"
-                className="mb-4"
-                value={activeFilter}
-                onChange={setCarFilter}
-                items={cats.map(({ k, label }) => ({ value: k, label }))}
-              />
-            );
-          })()}
-
-          {/* Vehicle loading/error states */}
-          {vehiclesLoading && (
-            <div className="flex items-center justify-center gap-2 py-16">
-              <Loader2 size={20} className="animate-spin text-mk-blue-500" />
-              <span className="mk-label text-mk-ink-500">{T("Loading vehicles…", "جاري تحميل المركبات…", ar)}</span>
-            </div>
-          )}
-          {vehiclesError && !vehiclesLoading && (
-            <div className="text-center py-12">
-              <div className="mk-label text-mk-danger mb-2">{vehiclesError}</div>
-            </div>
-          )}
-          {!vehiclesLoading && !vehiclesError && backendCars.length === 0 && (
-            <div className="text-center py-12 mk-label text-mk-ink-400">
-              {T("No vehicles available", "لا توجد مركبات متاحة", ar)}
-            </div>
-          )}
-
-          {/* Vehicle cards grid */}
-          {!vehiclesLoading && !vehiclesError && viewMode === "card" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {availCars
-                .map((c) => {
-                  const picked = c.plate === pickedPlate;
-                  const odometer = c.odometerReading ?? 0;
-                  const effStatus = effectiveCarStatus(c, ar);
-                  return (
-                    <div
-                      key={c.plate}
-                      onClick={() => setPickedPlate(c.plate)}
-                      className={`${picked ? "mk-option mk-option--on-glow" : "mk-vehicle-card"} flex flex-col rounded-lg overflow-hidden text-start select-none cursor-pointer`}
-                    >
-                      {/* Car image area */}
-                      <div className="w-full relative">
-                        <CarCardCarousel images={c.imageUrls || []} picked={picked} />
-                        {/* Selected checkmark */}
-                        {picked && (
-                          <span className="absolute top-2 end-2 w-5 h-5 rounded-full flex items-center justify-center bg-mk-blue-500 z-30">
-                            <Check size={11} className="text-white" />
-                          </span>
-                        )}
-                        <FleetAlertImageOverlay car={c} ar={ar} />
-                        {/* View condition & diagram */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPickedPlate(c.plate);
-                            setShowConditionModal(true);
-                          }}
-                          className="absolute bottom-2 end-2 z-30 flex items-center gap-1 px-3 py-2 rounded-full mk-overline bg-black/55 hover:bg-black/70 text-white border-0 cursor-pointer backdrop-blur-sm transition-colors"
-                        >
-                          <Gauge size={12} />
-                          {T("Condition", "حالة السيارة", ar)}
-                        </button>
-                      </div>
-
-                      {/* Details */}
-                      <div className="p-4 flex flex-col justify-between flex-1">
-                        {/* Make + model */}
-                        <div className="flex items-start gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="mk-body text-mk-ink-900 truncate">
-                              {c.make} {c.model}
-                            </div>
-                            <div className="mk-overline mt-1 text-mk-ink-500">
-                              {c.plate} · {T(c.type, CAR_TYPE_AR[c.type] ?? c.type, ar)} · {c.year}
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <Badge
-                              variant={
-                                effStatus === "available" ? "success" :
-                                  effStatus === "rented" ? "info" :
-                                    effStatus === "overdue" ? "danger" : "warning"
-                              }
-                              dot
-                            >
-                              {effStatus === "available" ? T("Free", "متاحة", ar) :
-                                effStatus === "rented" ? T("Rented", "مؤجرة", ar) :
-                                  effStatus === "overdue" ? T("Overdue", "متأخرة", ar) :
-                                    effStatus === "maintenance" ? T("Maintenance", "صيانة", ar) :
-                                    T(effStatus, effStatus, ar)}
-                            </Badge>
-                            {(effStatus === "rented" || effStatus === "overdue") && (
-                              <span className="mk-caption mt-1 text-mk-ink-500 shrink-0">
-                                {getAvailabilityText(effStatus, c.id, ar)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Odometer & Allowed KM */}
-                        <div className="flex items-center gap-2 mk-overline text-mk-ink-500 mt-1">
-                          <div className="flex items-center gap-1">
-                            <Gauge size={11} className="text-mk-violet-500" />
-                            <span>{odometer.toLocaleString()} {T("km", "كم", ar)}</span>
-                          </div>
-                          <div className="w-px h-3 bg-mk-ink-200" />
-                          <div>
-                            {c.kmCap === "Unlimited"
-                              ? T("Unlimited km", "كم غير محدود", ar)
-                              : `${c.kmCap} ${T("km/day", "كم/يوم", ar)}`}
-                          </div>
-                        </div>
-
-                        {/* Divider & Pricing Details */}
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-mk-ink-100">
-                          <div className="flex items-center gap-1">
-                            <RiyalSymbol size={16} className={picked ? "text-mk-blue-500" : "text-mk-ink-900"} />
-                            <span className={`mk-body ${picked ? "text-mk-blue-500" : "text-mk-ink-900"}`}>{c.dailyRate}</span>
-                            <span className="mk-caption text-mk-ink-400">{T("/d", "/يوم", ar)}</span>
-                          </div>
-                          <div className={`text-end ${picked ? "text-mk-blue-500" : "text-mk-ink-900"}`}>
-                            <div className="mk-caption text-mk-ink-400 leading-none">{days} {T("days total", "أيام إجمالي", ar)}</div>
-                            <div className="mk-caption mt-1">{(c.dailyRate * days).toLocaleString()} {T("SAR", "ريال", ar)}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-
-          {/* LIST VIEW */}
-          {!vehiclesLoading && !vehiclesError && viewMode === "list" && (
-            <div className="flex flex-col gap-2">
-              {availCars
-                .map((c) => {
-                  const picked = c.plate === pickedPlate;
-                  const odometer = c.odometerReading ?? 0;
-                  const effStatus = effectiveCarStatus(c, ar);
-                  const statusColor: Record<string, string> = {
-                    available: "var(--color-mk-mint-600)", rented: "var(--color-mk-blue-500)", overdue: "var(--color-mk-danger)",
-                    maintenance: "var(--color-mk-warning)", reserved: "var(--color-mk-violet-500)",
-                  };
-                  return (
-                    <div
-                      key={c.plate}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setPickedPlate(c.plate)}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPickedPlate(c.plate); } }}
-                      className={`mk-option ${picked ? "mk-option--on" : ""} flex items-center gap-3 p-3 rounded-lg text-start w-full border-0 cursor-pointer`}
-                    >
-                      <div className={`w-12 h-12 rounded-md overflow-hidden flex items-center justify-center text-[24px] shrink-0 ${picked ? "bg-mk-blue-500/10" : "bg-white"}`}>
-                        {(() => {
-                          const images = c.imageUrls;
-                          if (images && images.length > 0) {
-                            const src = images[0];
-                            return (
-                              <img
-                                src={src}
-                                alt={c.model}
-                                className="w-full h-full object-cover"
-                              />
-                            );
-                          }
-                          return <VehicleTypeIcon type={c.type} size={20} className="w-full h-full" />;
-                        })()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="mk-body text-mk-ink-900">{c.make} {c.model} · {c.year}</div>
-                          <span className="mk-overline px-2 py-1 rounded-full"
-                            style={{ background: `${statusColor[effStatus] ?? "var(--color-mk-ink-400)"}18`, color: statusColor[effStatus] ?? "var(--color-mk-ink-400)" }}>
-                            {effStatus === "available" ? T("Free", "متاحة", ar) :
-                              effStatus === "rented" ? T("Rented", "مؤجرة", ar) :
-                                effStatus === "overdue" ? T("Overdue", "متأخرة", ar) :
-                                  effStatus === "maintenance" ? T("Maintenance", "صيانة", ar) :
-                                  T(effStatus, effStatus, ar)}
-                          </span>
-                          {(effStatus === "rented" || effStatus === "overdue") && (
-                            <span className="mk-overline text-mk-ink-500">
-                              · {getAvailabilityText(effStatus, c.id, ar)}
-                            </span>
-                          )}
-                          <FleetAlertBadgeList car={c} ar={ar} showEmpty={false} />
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          <span className="mk-caption text-mk-ink-500">{c.plate}</span>
-                          <span className="mk-caption text-mk-ink-500">{T(c.type, CAR_TYPE_AR[c.type] ?? c.type, ar)}</span>
-                          <span className="flex items-center gap-1 mk-caption text-mk-ink-500">
-                            <Gauge size={11} />{odometer.toLocaleString()} {T("km", "كم", ar)}
-                          </span>
-                          <span className="mk-caption text-mk-ink-500">
-                            {c.kmCap === "Unlimited" ? T("Unlimited km", "كم غير محدود", ar) : `${c.kmCap} ${T("km/day", "كم/يوم", ar)}`}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-end shrink-0">
-                        <div className={`${picked ? "text-mk-blue-500" : "text-mk-ink-900"} flex items-center justify-end gap-1`}>
-                          <RiyalSymbol size={16} />
-                          <span className="mk-body">{c.dailyRate}</span>
-                          <span className="mk-caption text-mk-ink-400">{T("/d", "/يوم", ar)}</span>
-                        </div>
-                        <div className="mk-caption mt-1 text-mk-ink-400">
-                          {T("est.", "تقدير", ar)} {(c.dailyRate * days).toLocaleString()} {T("SAR", "ريال", ar)}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPickedPlate(c.plate);
-                          setShowConditionModal(true);
-                        }}
-                        className="flex items-center gap-1 px-3 py-2 rounded-full mk-overline bg-mk-ink-100 hover:bg-mk-ink-200 text-mk-ink-600 border-0 cursor-pointer shrink-0"
-                      >
-                        <Gauge size={12} />
-                        {T("Condition", "حالة السيارة", ar)}
-                      </button>
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${picked ? "bg-mk-blue-500 border-0" : "bg-transparent border-2 border-mk-ink-200"}`}>
-                        {picked && <Check size={11} className="text-white" />}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-
-          {/* MAP VIEW */}
-          {!vehiclesLoading && !vehiclesError && viewMode === "map" && (
-            <div className="relative w-full rounded-md overflow-hidden border border-mk-ink-100 h-[420px]">
-              <div ref={carMapRef} className="w-full h-full" />
-              {!carMapsLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-mk-ink-50 text-mk-ink-500 mk-label">
-                  {T("Loading Google Maps...", "جاري تحميل خريطة جوجل...", ar)}
-                </div>
+              {tajeerEnabled && rentPolicyId > 0 && !isTajeerSyncedPolicy(rentPolicies.find((p) => p.id === rentPolicyId) ?? {}) && (
+                <p className="mk-caption mt-2 flex items-center gap-1.5" style={{ color: "#B45309" }}>
+                  ⚠ {T(
+                    "This policy isn't synced with Tajeer — issuance will fail. Sync policies from Pricing → Sync Tajeer, or pick a Tajeer ✓ policy.",
+                    "هذه السياسة غير مزامنة مع تاجير — سي فشل الإصدار. زامن السياسات من الأسعار ← مزامنة تاجير، أو اختر سياسة Tajeer ✓.",
+                    ar
+                  )}
+                </p>
               )}
-
-              {/* Hint */}
-              <div className="absolute top-3 start-3 end-3 flex justify-center pointer-events-none z-10">
-                <span className="mk-caption px-4 py-2 rounded-full bg-white/90 text-mk-ink-600 shadow-sm border border-mk-ink-100">
-                  {T("Click any car pin to select it", "اضغط على أي سيارة لاختيارها", ar)}
-                </span>
-              </div>
-
-              {/* Legend */}
-              <div className="absolute bottom-3 end-3 flex gap-3 mk-overline border border-mk-ink-200 px-3 py-2 rounded-sm bg-white/90 z-10 shadow-sm">
-                {(ar
-                  ? [["var(--color-mk-mint-600)", "متاحة"], ["var(--color-mk-blue-500)", "مؤجرة"], ["var(--color-mk-danger)", "متأخر"], ["var(--color-mk-warning)", "صيانة"]]
-                  : [["var(--color-mk-mint-600)", "Available"], ["var(--color-mk-blue-500)", "Rented"], ["var(--color-mk-danger)", "Overdue"], ["var(--color-mk-warning)", "Maintenance"]]
-                ).map(([c, l]) => (
-                  <span key={l} className="flex items-center gap-2 text-mk-ink-700">
-                    <span className="w-2 h-2 rounded-full inline-block" style={{ background: c }} />{l}
-                  </span>
+            </div>
+            <div>
+              <label className="mk-overline mb-2 block text-mk-ink-600">{T("Cancellation policy", "سياسة الإلغاء", ar)}</label>
+              <Select value={cancellationPolicyId} onChange={(e) => setCancellationPolicyId(Number(e.target.value))}>
+                {cancellationPolicies.map((policy) => (
+                  <option key={policy.id} value={policy.id}>{ar ? policy.nameAr : policy.nameEn}</option>
                 ))}
-              </div>
-
-              {/* Selected car chip */}
-              {car && (
-                <div className="absolute bottom-3 start-3 flex items-center gap-2 px-3 py-2 rounded-md bg-white/95 border border-mk-ink-100 shadow-sm z-10">
-                  <VehicleTypeIcon type={car.type} size={16} className="w-7 h-7" />
-                  <div>
-                    <div className="mk-label text-mk-ink-900">{car.make} {car.model}</div>
-                    <div className="mk-caption text-mk-ink-400">{car.plate}</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowConditionModal(true)}
-                    className="flex items-center gap-1 px-3 py-2 rounded-full mk-overline bg-mk-ink-100 hover:bg-mk-ink-200 text-mk-ink-600 border-0 cursor-pointer"
-                  >
-                    <Gauge size={12} />
-                    {T("Condition", "حالة السيارة", ar)}
-                  </button>
-                </div>
-              )}
+              </Select>
             </div>
-          )}
-
-          {availCars.length === 0 && viewMode !== "map" && (
-            <div className="text-center py-12 mk-label text-mk-ink-400">
-              {T("No matching vehicles", "لا توجد مركبات مطابقة", ar)}
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* 2. VEHICLE CONDITION DRAWER — opens when a vehicle is clicked */}
-        {car && (
-          <VehicleConditionDrawer
-            ar={ar}
-            car={car}
-            showConditionModal={showConditionModal}
-            setShowConditionModal={setShowConditionModal}
-            conditionView={conditionView}
-            setConditionView={setConditionView}
-            sketchItems={sketchItems}
-            setSketchItems={setSketchItems}
-            rentStatus={rentStatus}
-          />
-        )}
-
-        {/* Prompt removed in favor of sticky footer */}
+        </div>
       </div>
+
+      {/* Vehicle selection moved to step 2 (StepAddons) — vehicle picking now
+          sits next to the add-ons, like the designer's "Vehicle & add-ons" step. */}
     </div>
   );
 }

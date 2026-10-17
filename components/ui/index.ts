@@ -40,6 +40,7 @@ export { ScrollArea } from "./ScrollArea";
 export { KpiCard } from "./KpiCard";
 export { AlertBanner } from "./AlertBanner";
 export { RiyalSymbol } from "./RiyalSymbol";
+export { Money } from "./Money";
 export { HijriDatePicker, HIJRI_MONTHS, HIJRI_YEAR_MIN, HIJRI_YEAR_MAX } from "./HijriDatePicker";
 export { GregorianDateInput } from "./GregorianDateInput";
 export { GregorianDatePicker, GREGORIAN_MONTHS, GREGORIAN_YEAR_MIN } from "./GregorianDatePicker";

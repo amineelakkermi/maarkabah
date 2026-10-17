@@ -52,7 +52,8 @@ export function CarImage({ car, compact = false }: { car: Car; compact?: boolean
           src={src}
           alt={car.name}
           draggable={false}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover px-3 py-2 transition-opacity duration-300
+          pointer-events-none"
           style={{ opacity: i === index ? 1 : 0 }}
         />
       ))}

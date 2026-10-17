@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft, ArrowRight, Car, ShieldCheck, ClockAlert, ChevronDown,
   Camera, X, Loader2, AlertCircle, CheckCircle2, Info, Zap,
-  ArrowLeftRight, Power, History, Gauge, MapPin,
+  ArrowLeftRight, Power, History, Gauge, MapPin, MoreVertical, Trash2,
 } from "lucide-react";
 import * as Types from "@/lib/api-types";
 import {
   Button, Input, Select, SearchableSelect, Toggle, Tabs, Modal,
-  Badge, RiyalSymbol, DatePicker, useToast,
+  Badge, RiyalSymbol, DatePicker, useToast, IconButton,
 } from "@/components/ui";
 import { useAdmin } from "@/contexts/AdminContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -50,6 +50,10 @@ interface VehicleDetailsPageProps {
   onRemoveExistingImage: (fileId: number) => void;
   onBack: () => void;
   onSubmit: (e: React.FormEvent) => void;
+  /** Opens the map modal for the vehicle being edited (edit mode only). */
+  onShowMap?: () => void;
+  /** Opens the delete confirmation for the vehicle being edited (edit mode only). */
+  onDeleteVehicle?: () => void;
 }
 
 /* ── Shared field primitives ──────────────────────────────────── */
@@ -241,6 +245,8 @@ export function VehicleDetailsPage({
   onRemoveExistingImage,
   onBack,
   onSubmit,
+  onShowMap,
+  onDeleteVehicle,
 }: VehicleDetailsPageProps) {
   const { dir } = useAdmin();
   const ar = dir === "rtl";
@@ -249,6 +255,39 @@ export function VehicleDetailsPage({
   // gated on Vehicles.Save — viewers get a read-only form instead of a 403.
   const { hasPermission } = usePermissions();
   const canEdit = hasPermission(Permission.Vehicles.Save);
+  const canDelete = hasPermission(Permission.Vehicles.Delete);
+
+  // Secondary actions live in a quiet "more" menu instead of header buttons.
+  const [showMore, setShowMore] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showMore) return;
+    const close = (e: MouseEvent) => { if (!moreRef.current?.contains(e.target as Node)) setShowMore(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [showMore]);
+
+  // Desktop: the media column (photos, diagram, listing) sticks in view while
+  // the panels scroll with the page. A column taller than the screen sticks by
+  // its bottom edge instead, so the page's own scroll reveals the rest.
+  const mediaRef = useRef<HTMLDivElement>(null);
+  const [mediaH, setMediaH] = useState(0);
+  const [viewportH, setViewportH] = useState(900);
+  useEffect(() => {
+    const el = mediaRef.current;
+    const measure = () => {
+      if (el) setMediaH(el.offsetHeight);
+      setViewportH(window.innerHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (el) ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
 
   const [openPanels, setOpenPanels] = useState<Record<VehicleFieldPanel, boolean>>({
     basic: true,
@@ -411,8 +450,11 @@ export function VehicleDetailsPage({
 
   return (
     <div>
-      {/* ── Header + Actions (top) ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <div className="pb-4 max-lg:contents">
+      {/* ── Header + Actions (top) ──
+          On a phone the title row stays at the top of the screen while the page
+          scrolls, so Save is always reachable (blurred, so nothing reads through it). */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 max-lg:sticky max-lg:top-0 max-lg:z-30 max-lg:-mx-4 max-lg:px-4 max-lg:py-3 max-lg:bg-mk-bg/80 max-lg:backdrop-blur-3xl">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -434,9 +476,39 @@ export function VehicleDetailsPage({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          <Button variant="outline" onClick={onBack} className="flex-1 sm:flex-initial">
-            <X size={14} />{canEdit ? T("Cancel", "إلغاء", ar) : T("Back", "رجوع", ar)}
-          </Button>
+          {editingVehicleId && (onShowMap || (canDelete && onDeleteVehicle)) && (
+            <div className="relative" ref={moreRef}>
+              <IconButton variant={showMore ? "active" : "ghost"} aria-label={T("More actions", "المزيد", ar)} onClick={() => setShowMore((o) => !o)}>
+                <MoreVertical size={16} />
+              </IconButton>
+              <div
+                className={`absolute z-50 w-[200px] max-w-[calc(100vw-2rem)] mk-surface rounded-lg overflow-hidden py-1 mk-shadow-menu mk-menu-motion start-0 sm:start-auto sm:end-0 ${showMore ? "open" : ""}`}
+                style={{ top: "calc(100% + 6px)" }}
+              >
+                {onShowMap && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowMore(false); onShowMap(); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label-muted text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-ink-800 hover:bg-mk-ink-50"
+                  >
+                    <MapPin size={14} />{T("Show on map", "عرض على الخريطة", ar)}
+                  </button>
+                )}
+                {onShowMap && onDeleteVehicle && canDelete && <div className="my-1 border-t border-mk-ink-100" />}
+                {onDeleteVehicle && canDelete && (
+                  <button
+                    type="button"
+                    disabled={statusLockedByContract}
+                    title={statusLockedByContract ? T("A rented or reserved vehicle can't be deleted", "لا يمكن حذف مركبة مؤجرة أو محجوزة", ar) : undefined}
+                    onClick={() => { setShowMore(false); onDeleteVehicle(); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-[9px] mk-label-muted text-start border-0 bg-transparent cursor-pointer transition-colors text-mk-danger hover:bg-mk-danger/6 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 size={14} />{T("Delete vehicle", "حذف المركبة", ar)}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           {canEdit && (
           <Button
             variant="primary"
@@ -454,12 +526,37 @@ export function VehicleDetailsPage({
             )}
           </Button>
           )}
+          <Button variant="secondary" onClick={onBack} className="flex-1 sm:flex-initial">
+            <X size={14} />{canEdit ? T("Cancel", "إلغاء", ar) : T("Back", "رجوع", ar)}
+          </Button>
         </div>
       </div>
 
-      {/* ── Completion bar ── */}
-      <div className="mb-4">
-        <CompletionBar pct={pct} missing={missing} ar={ar} />
+      {/* ── Completion bar + quick facts ──
+          Once the file is 100% complete the bar has nothing left to say, so it disappears. */}
+      <div className="max-lg:mb-4">
+        {pct < 100 && <CompletionBar pct={pct} missing={missing} ar={ar} />}
+
+        {/* Quick facts — a slim one-line strip so it supports the form below
+            instead of competing with it */}
+        <div className={`rounded-xl mk-surface px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 ${pct < 100 ? "mt-4" : ""}`}>
+          {[
+            { icon: RiyalSymbol, label: T("Daily", "يومي", ar), value: form.dailyRate || "—", color: "var(--color-mk-blue-500)" },
+            { icon: MapPin, label: T("Branch", "الفرع", ar), value: branchName || "—", color: "var(--color-mk-mint-600)" },
+            { icon: Gauge, label: T("Odometer", "العداد", ar), value: form.odometerReading ? Number(form.odometerReading).toLocaleString("en-US") : "—", color: "var(--color-mk-danger)" },
+          ].map(({ icon: Icon, label, value, color }, i) => (
+            <div
+              key={label}
+              className={`flex items-center gap-2 min-w-0 ${i > 0 ? "sm:ps-6 sm:border-s sm:border-mk-border" : ""}`}
+            >
+              <Icon size={15} style={{ color }} className="shrink-0" />
+              <span className="mk-caption text-mk-ink-500 whitespace-nowrap">{label}</span>
+              <span className="mk-label text-mk-ink-900 whitespace-nowrap">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       </div>
 
       {/* Read-only mode: a single disabled fieldset turns every native control
@@ -1180,8 +1277,14 @@ export function VehicleDetailsPage({
             </Panel>
           </div>
 
-          {/* ══ RIGHT: media + listing ═════════════════════════════ */}
-          <div className="flex flex-col gap-4">
+          {/* ══ RIGHT: media + listing ═════════════════════════════
+              The only fixed part (desktop): it stays in view while the panels
+              on the other side scroll. */}
+          <div
+            ref={mediaRef}
+            className="flex flex-col gap-4 lg:sticky lg:self-start"
+            style={{ top: Math.min(20, viewportH - mediaH - 20) }}
+          >
 
             {/* Photos / Diagram card */}
             <div className="rounded-xl p-4 mk-surface mk-shadow-10">
@@ -1301,43 +1404,6 @@ export function VehicleDetailsPage({
                   )}
                 </div>
               )}
-            </div>
-
-            {/* Quick stats — real form data only */}
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                {
-                  icon: RiyalSymbol,
-                  label: T("Daily", "يومي", ar),
-                  value: form.dailyRate || "—",
-                  color: "var(--color-mk-blue-500)",
-                  bg: "var(--color-mk-blue-50)",
-                },
-                {
-                  icon: MapPin,
-                  label: T("Branch", "الفرع", ar),
-                  value: branchName || "—",
-                  color: "var(--color-mk-mint-600)",
-                  bg: "var(--color-mk-mint-100)",
-                },
-                {
-                  icon: Gauge,
-                  label: T("Odometer", "العداد", ar),
-                  value: form.odometerReading ? Number(form.odometerReading).toLocaleString("en-US") : "—",
-                  color: "var(--color-mk-danger)",
-                  bg: "var(--color-mk-danger-100)",
-                },
-              ].map(({ icon: Icon, label, value, color, bg }) => (
-                <div
-                  key={label}
-                  className="relative flex flex-col items-center gap-1 p-4 rounded-md"
-                  style={{ background: bg }}
-                >
-                  <Icon size={18} style={{ color }} />
-                  <span className="mk-h4 text-mk-ink-900 mt-1 max-w-full truncate">{value}</span>
-                  <span className="mk-overline text-mk-ink-500 text-center">{label}</span>
-                </div>
-              ))}
             </div>
 
             {/* Listing & Features */}

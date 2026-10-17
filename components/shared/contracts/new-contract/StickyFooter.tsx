@@ -8,7 +8,7 @@ export type ContractStep = "idle" | "saving" | "pending_signature" | "issued" | 
 
 // Sticky bottom navigation bar: Back button, step indicator and the per-step CTA.
 export function StickyFooter({
-  ar, step, onStepChange, contractStep, otpComplete, canContinueFromStep0, coverageBlocked = false,
+  ar, step, onStepChange, contractStep, otpComplete, canContinueFromStep0, canContinueFromStep1 = true, coverageBlocked = false,
   payType, advanceAmount, total, onIssue, onCheckSignature, onRetry,
 }: {
   ar: boolean;
@@ -17,6 +17,8 @@ export function StickyFooter({
   contractStep: ContractStep;
   otpComplete: boolean;
   canContinueFromStep0: boolean;
+  /** A vehicle is picked and available — gates leaving the vehicle & add-ons step. */
+  canContinueFromStep1?: boolean;
   /** Add-ons exceed the Tajeer additional-coverage cap — blocks moving past step 2 and issuing. */
   coverageBlocked?: boolean;
   payType: "full" | "advance";
@@ -75,7 +77,7 @@ export function StickyFooter({
           </Button>
         )}
         {step === 1 && (
-          <Button variant="primary" onClick={() => onStepChange(2)} disabled={coverageBlocked} className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
+          <Button variant="primary" onClick={() => onStepChange(2)} disabled={!canContinueFromStep1 || coverageBlocked} className="shadow-[var(--shadow-glow-blue)] sm:shrink-0 sm:whitespace-nowrap">
             {T("Continue to payment", "متابعة إلى الدفع", ar)}
             {ar ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
           </Button>

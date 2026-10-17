@@ -61,14 +61,10 @@ export function CarCardCarousel({ images, picked }: { images: string[]; picked?:
   const activeFlipped = activeSrc?.endsWith("#flipped");
   const cleanActiveSrc = activeFlipped ? activeSrc.replace("#flipped", "") : activeSrc;
 
-  const bg = picked
-    ? "linear-gradient(135deg, rgba(65,113,226,0.12), rgba(127,67,221,0.12))"
-    : "linear-gradient(135deg, rgba(65,113,226,0.06), rgba(127,67,221,0.06))";
-
   return (
     <div
       className="relative w-full overflow-hidden select-none group cursor-grab active:cursor-grabbing"
-      style={{ height: 170, background: bg }}
+      style={{ height: 170 }}
       onTouchStart={(e) => handleStart(e.touches[0].clientX)}
       onTouchMove={(e) => handleMove(e.touches[0].clientX)}
       onTouchEnd={handleEnd}
@@ -96,7 +92,8 @@ export function CarCardCarousel({ images, picked }: { images: string[]; picked?:
             key={i}
             src={cleanImgSrc}
             alt="Car Photo"
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 pointer-events-none"
+            className="absolute inset-0 mx-auto my-auto w-[60%] h-[100%] object-cover px-3 py-2 transition-opacity duration-300
+            pointer-events-none"
             style={{
               opacity: i === index ? 1 : 0,
               transform: isImgFlipped ? "scaleX(-1)" : "none",
