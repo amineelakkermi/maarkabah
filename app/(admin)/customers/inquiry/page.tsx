@@ -1,10 +1,12 @@
 "use client";
 
-import CustomerInquiryPage from "@/components/shared/customers/CustomerInquiryPage";
+import { RenterVerification } from "@/components/shared/RenterVerification";
 
 export default function AdminCustomerInquiryPage() {
-  const customerProfilePath = (id: string | number | null | undefined) =>
-    `/customers/${id ?? ""}`;
-
-  return <CustomerInquiryPage customerProfilePath={customerProfilePath} />;
+  return (
+    <RenterVerification
+      contractHref={(id) => `/new-contract?clientId=${id}`}
+      profileHref={(id) => `/customers/${id}`}
+    />
+  );
 }

@@ -6,6 +6,13 @@ import { NotificationsDropdown } from "@/components/shared/NotificationsDropdown
 import { useAdmin } from "@/contexts/AdminContext";
 import type { ReactNode } from "react";
 
+/** Small breadcrumb kicker rendered above the page title (e.g. "Operations").
+ * Hides on mobile where vertical space is tight. */
+export function TopbarKicker({ children }: { children?: ReactNode }) {
+  if (!children) return null;
+  return <div className="mk-body-sm mb-1 text-mk-ink-500 hidden sm:block">{children}</div>;
+}
+
 interface TopbarShellProps {
   onOpenSidebar: () => void;
   titleBlock: ReactNode;
@@ -27,28 +34,15 @@ export function TopbarShell({ onOpenSidebar, titleBlock, searchPlaceholder, isDa
         <Menu size={18} />
       </IconButton>
 
-      <div className="min-w-0 mt-3 gap-3 flex flex-col">{titleBlock}</div>
+      <div className="min-w-0 mt-3 gap-3 flex flex-col ">{titleBlock}</div>
 
       <div className="flex-1" />
 
-      {/* Global search collapses to nothing on mobile rather than a dead
-          icon trigger — pages with their own search (e.g. the contracts
-          list) already surface a working mobile trigger for that field,
-          and a second non-functional search icon here was redundant. */}
-      <div className="hidden md:block w-[260px] xl:w-[320px] shrink-0">
-        <Input
-          variant="search"
-          icon={<Search size={14} />}
-          placeholder={searchPlaceholder}
-          suffix={
-            <kbd className="mk-overline normal-case tracking-normal font-mono px-2 py-1 rounded-xs bg-mk-ink-100 text-mk-ink-600 hidden lg:inline shrink-0">
-              ⌘K
-            </kbd>
-          }
-        />
-      </div>
+     
 
       <NotificationsDropdown />
+
+    <div className="flex items-center gap-1 p-1 rounded-pill bg-white shadow-card shrink-0">
 
       <IconButton
         size="md"
@@ -62,6 +56,7 @@ export function TopbarShell({ onOpenSidebar, titleBlock, searchPlaceholder, isDa
       <IconButton size="md" onClick={onToggleDark} title={isDark ? "Light mode" : "Dark mode"}>
         {isDark ? <Sun size={18} /> : <Moon size={18} />}
       </IconButton>
+      </div>
 
       {trailing}
     </div>

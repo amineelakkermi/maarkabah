@@ -7,7 +7,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { blacklistService, customerEvents } from "@/lib/api-services";
 import { formatPhone } from "@/lib/formatting";
 import { VerificationStatus } from "@/lib/api-types";
-import CustomerInquiryPage from "@/components/shared/customers/CustomerInquiryPage";
+import { RenterVerification } from "@/components/shared/RenterVerification";
 
 const T = (en: string, ar: string, isAr: boolean) => (isAr ? ar : en);
 
@@ -194,7 +194,10 @@ export default function BlacklistPage() {
             </div>
           </div>
         </div>
-        <CustomerInquiryPage customerProfilePath={(id) => `/customers/${id ?? ""}`} />
+        <RenterVerification
+          contractHref={(id) => `/new-contract?clientId=${id}`}
+          profileHref={(id) => `/customers/${id}`}
+        />
       </section>
 
       <hr className="border-mk-ink-100" />

@@ -112,6 +112,13 @@ export function Sidebar() {
 
   const handleNavClick = () => setSidebarOpen(false);
 
+  // Longest matching href wins — otherwise nested routes like
+  // /customers/inquiry would light up both "/customers" and itself.
+  const allHrefs = useMemo(() => visibleSections.flatMap((s) => s.items.map((i) => i.href)), [visibleSections]);
+  const activeHref = allHrefs
+    .filter((h) => path === h || path.startsWith(h + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+
   return (
     <SidebarShell
       dir={dir}
@@ -142,7 +149,7 @@ export function Sidebar() {
             {ar ? section.titleAr : section.title}
           </div>
           {section.items.map((item) => {
-            const active = path === item.href || path.startsWith(item.href + "/");
+            const active = item.href === activeHref;
             return (
               <SidebarNavLink
                 key={item.href}
