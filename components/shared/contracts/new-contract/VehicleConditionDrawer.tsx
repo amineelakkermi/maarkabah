@@ -5,7 +5,7 @@ import { Tabs, Drawer, DrawerHeader } from "@/components/ui";
 import type { Car } from "@/lib/data";
 import { TAJEER_LOOKUPS, type TajeerRentStatus, type SketchItem } from "@/lib/tajeer";
 import { SketchComponent } from "@/components/employee/SketchComponent";
-import { T } from "./constants";
+import { T, CONDITION_GRADE_LABELS, WORKING_LABELS, PRESENCE_LABELS, ODOR_LABELS, enumLabel } from "./constants";
 import { CarCardCarousel } from "./CarCardCarousel";
 
 export type VehicleConditionDrawerProps = {
@@ -169,6 +169,26 @@ export function VehicleConditionDrawer({
                 </div>
               );
             })}
+            {/* Vehicle-record statuses with no Tajeer rentStatus code — shown
+                straight from the car fields (also inspected at delivery). */}
+            {([
+              { key: "windshieldStatus" as const, labelAr: "الزجاج الأمامي", labelEn: "Windshield", labels: CONDITION_GRADE_LABELS, Icon: Monitor },
+              { key: "spareKeyStatus" as const, labelAr: "المفتاح الاحتياطي", labelEn: "Spare Key", labels: PRESENCE_LABELS, Icon: KeyRound },
+              { key: "powerOutletStatus" as const, labelAr: "منفذ الكهرباء", labelEn: "Power Outlet", labels: WORKING_LABELS, Icon: Gauge },
+              { key: "smokingOdorStatus" as const, labelAr: "رائحة التدخين", labelEn: "Smoking Odor", labels: ODOR_LABELS, Icon: Wind },
+            ]).map(({ key, labelAr, labelEn, labels, Icon }) => (
+              <div key={key} className="flex items-center gap-3 p-3 select-none">
+                <div className="w-9 h-9 rounded-md bg-mk-blue-500/10 text-mk-blue-500 flex items-center justify-center shrink-0">
+                  <Icon size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="mk-caption text-mk-ink-500 truncate">{ar ? labelAr : labelEn}</div>
+                  <div className="mk-caption text-mk-ink-900 mt-1 truncate">
+                    {enumLabel(labels, car[key], ar)}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

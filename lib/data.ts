@@ -80,6 +80,31 @@ export interface Car {
   isKilometerLimitEnabled?: boolean;
   isListingActive?: boolean;
   branchId?: number;
+
+  // ── Vehicle condition (Maarkbh enums, raw backend values) ──────
+  // ConditionGrade 1-4: airConditionGrade / radioStatus / screenStatus / windshieldStatus
+  // WorkingStatus 0-1:  odometerStatus / keyStatus / powerOutletStatus
+  // Cleanliness  1-2:   seatCleanliness
+  // TireCondition 1-3:  tireCondition / spareTireStatus
+  // PresenceStatus 0-1: fireExtinguisherStatus / firstAidKitStatus /
+  //                     safetyTriangleStatus / tireToolsStatus / spareKeyStatus
+  // OdorStatus 0-1:     smokingOdorStatus
+  airConditionGrade?: number;
+  radioStatus?: number;
+  screenStatus?: number;
+  windshieldStatus?: number;
+  odometerStatus?: number;
+  keyStatus?: number;
+  powerOutletStatus?: number;
+  seatCleanliness?: number;
+  tireCondition?: number;
+  spareTireStatus?: number;
+  fireExtinguisherStatus?: number;
+  firstAidKitStatus?: number;
+  safetyTriangleStatus?: number;
+  tireToolsStatus?: number;
+  spareKeyStatus?: number;
+  smokingOdorStatus?: number;
 }
 
 // ── Booking ─────────────────────────────────────────────────

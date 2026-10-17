@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button, Money, SuccessCard } from "@/components/ui";
 import type { DriverProfile, Car } from "@/lib/data";
 import { TAJEER_LOOKUPS, type TajeerRentStatus, type SketchItem, type TajeerIdType, type TajeerContractType } from "@/lib/tajeer";
-import { T, RENTAL_POLICY_OPTIONS, NEIGHBORING_COUNTRIES } from "./constants";
+import { T, RENTAL_POLICY_OPTIONS, NEIGHBORING_COUNTRIES, CONDITION_GRADE_LABELS, WORKING_LABELS, PRESENCE_LABELS, ODOR_LABELS, enumLabel } from "./constants";
 import type { Pricing } from "./pricing";
 import { PriceBreakdown, type PriceRow } from "./PriceBreakdown";
 import type { ContractAdditionalService, LookupItem } from "./useContractLookups";
@@ -283,6 +283,12 @@ export function StepIssue({
                   { k: T("Safety Triangle", "توفر المثلث العاكس", ar), v: TAJEER_LOOKUPS.availableOptions.find(o => o.code === rentStatus.safetyTriangle)?.[ar ? "ar" : "en"] ?? "—" },
                   { k: T("Fire Extinguisher", "توفر طفاية الحريق", ar), v: TAJEER_LOOKUPS.availableOptions.find(o => o.code === rentStatus.fireExtinguisher)?.[ar ? "ar" : "en"] ?? "—" },
                   { k: T("First Aid Kit", "حالة حقيبة الاسعافات الأولية", ar), v: TAJEER_LOOKUPS.availableOptions.find(o => o.code === rentStatus.firstAidKit)?.[ar ? "ar" : "en"] ?? "—" },
+                  // No Tajeer rentStatus code for these four — they come from
+                  // the vehicle record (vehicleEquipment in the delivery DTO).
+                  { k: T("Windshield", "الزجاج الأمامي", ar), v: enumLabel(CONDITION_GRADE_LABELS, car?.windshieldStatus, ar) },
+                  { k: T("Spare key", "المفتاح الاحتياطي", ar), v: enumLabel(PRESENCE_LABELS, car?.spareKeyStatus, ar) },
+                  { k: T("Power outlet", "منفذ الكهرباء", ar), v: enumLabel(WORKING_LABELS, car?.powerOutletStatus, ar) },
+                  { k: T("Smoking odor", "رائحة التدخين", ar), v: enumLabel(ODOR_LABELS, car?.smokingOdorStatus, ar) },
                   { k: T("Oil change @", "تغيير الزيت عند", ar), v: `${(rentStatus.oilChangeKmDistance ?? 5000).toLocaleString()} ${T("km", "كم", ar)}` },
                   { k: T("Damages marked", "أضرار مسجلة", ar), v: sketchItems.length > 0 ? `${sketchItems.length} ${T("items", "عناصر", ar)}` : T("None", "لا شيء", ar) },
                 ].map(({ k, v }) => (

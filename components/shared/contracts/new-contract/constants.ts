@@ -26,6 +26,24 @@ export const CUSTOMER_STATUS_META: Record<CustomerStatusTag, { labelEn: string; 
 
 export const ID_TYPE_CODES: Record<string, 1 | 2 | 3 | 4> = { "Saudi ID": 1, "Iqama": 2, "Passport": 3, "GCC ID": 4 };
 
+// The vehicle record carries 4 condition fields with no Tajeer rentStatus
+// equivalent (windshield / spareKey / powerOutlet / smokingOdor) — display
+// them straight from the car using the Maarkbh enums.
+export const CONDITION_GRADE_LABELS: Record<number, [string, string]> = {
+  1: ["Excellent", "ممتاز"], 2: ["Good", "جيد"], 3: ["Weak", "ضعيف"], 4: ["Broken", "متعطل"],
+};
+export const WORKING_LABELS: Record<number, [string, string]> = {
+  0: ["Not working", "متعطل"], 1: ["Working", "يعمل"],
+};
+export const PRESENCE_LABELS: Record<number, [string, string]> = {
+  0: ["Not available", "لا يوجد"], 1: ["Available", "متاحة"],
+};
+export const ODOR_LABELS: Record<number, [string, string]> = {
+  0: ["No odor", "لا توجد رائحة"], 1: ["Smoking odor", "رائحة دخان"],
+};
+export const enumLabel = (labels: Record<number, [string, string]>, code: number | undefined, ar: boolean) =>
+  code != null && labels[code] ? labels[code][ar ? 1 : 0] : "—";
+
 // Fallback rate per extra km before a vehicle is selected (overridden by the vehicle's registered rate).
 export const SYSTEM_EXTRA_KM_RATE = 1; // SAR per km
 // System-defined driver fare — matches the "extra driver" add-on default.

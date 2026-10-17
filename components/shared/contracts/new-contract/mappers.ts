@@ -171,6 +171,24 @@ export function mapBackendVehicleToCar(item: any, lookups?: VehicleLookupContext
     isListingActive: pick(tajeer.isListingActive, item.isListingActive),
     branchId: pick(pricing.branchId, item.branchId),
     sketchItems: mapDamagePointsToSketchItems(item.damagePoints),
+    // Condition statuses — nested under tajeerStatus on detail, flat on
+    // search rows. Raw Maarkbh enum values (ConditionGrade/WorkingStatus/…).
+    airConditionGrade: pick(tajeer.airConditionGrade, item.airConditionGrade),
+    radioStatus: pick(tajeer.radioStatus, item.radioStatus),
+    screenStatus: pick(tajeer.screenStatus, item.screenStatus),
+    windshieldStatus: pick(tajeer.windshieldStatus, item.windshieldStatus),
+    odometerStatus: pick(tajeer.odometerStatus, item.odometerStatus),
+    keyStatus: pick(tajeer.keyStatus, item.keyStatus),
+    powerOutletStatus: pick(tajeer.powerOutletStatus, item.powerOutletStatus),
+    seatCleanliness: pick(tajeer.seatCleanliness, item.seatCleanliness),
+    tireCondition: pick(tajeer.tireCondition, item.tireCondition),
+    spareTireStatus: pick(tajeer.spareTireStatus, item.spareTireStatus),
+    fireExtinguisherStatus: pick(tajeer.fireExtinguisherStatus, item.fireExtinguisherStatus),
+    firstAidKitStatus: pick(tajeer.firstAidKitStatus, item.firstAidKitStatus),
+    safetyTriangleStatus: pick(tajeer.safetyTriangleStatus, item.safetyTriangleStatus),
+    tireToolsStatus: pick(tajeer.tireToolsStatus, item.tireToolsStatus),
+    spareKeyStatus: pick(tajeer.spareKeyStatus, item.spareKeyStatus),
+    smokingOdorStatus: pick(tajeer.smokingOdorStatus, item.smokingOdorStatus),
   };
 }
 

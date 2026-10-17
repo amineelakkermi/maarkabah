@@ -301,6 +301,25 @@ export default function NewContractPage({ contractsListPath = "/employee/contrac
         nextOilChangeKm: selectedCar.oilChangeDistance
           ? (selectedCar.lastOilOdometer || selectedCar.odometerReading || 0) + selectedCar.oilChangeDistance
           : undefined,
+        // Sync the vehicle's registered condition into the Tajeer rentStatus
+        // codes so the contract preview reflects the real state, not defaults.
+        // ConditionGrade 1-4 ↔ acOptions 1-4 (direct).
+        ...(selectedCar.airConditionGrade != null && { ac: selectedCar.airConditionGrade }),
+        ...(selectedCar.radioStatus != null && { radioStereo: selectedCar.radioStatus }),
+        ...(selectedCar.screenStatus != null && { screen: selectedCar.screenStatus }),
+        // WorkingStatus 0/1 → workingOptions 4/5.
+        ...(selectedCar.odometerStatus != null && { speedometer: selectedCar.odometerStatus === 1 ? 5 : 4 }),
+        ...(selectedCar.keyStatus != null && { keys: selectedCar.keyStatus === 1 ? 5 : 4 }),
+        // CleanlinessStatus 1/2 → seatsOptions 6/7.
+        ...(selectedCar.seatCleanliness != null && { carSeats: selectedCar.seatCleanliness === 1 ? 6 : 7 }),
+        // TireCondition 1-3 → tiresOptions 1-3 (direct).
+        ...(selectedCar.tireCondition != null && { tires: selectedCar.tireCondition }),
+        ...(selectedCar.spareTireStatus != null && { spareTire: selectedCar.spareTireStatus }),
+        // PresenceStatus 0/1 → availableOptions 9/8.
+        ...(selectedCar.safetyTriangleStatus != null && { safetyTriangle: selectedCar.safetyTriangleStatus === 1 ? 8 : 9 }),
+        ...(selectedCar.fireExtinguisherStatus != null && { fireExtinguisher: selectedCar.fireExtinguisherStatus === 1 ? 8 : 9 }),
+        ...(selectedCar.firstAidKitStatus != null && { firstAidKit: selectedCar.firstAidKitStatus === 1 ? 8 : 9 }),
+        ...(selectedCar.tireToolsStatus != null && { spareTireTools: selectedCar.tireToolsStatus === 1 ? 8 : 9 }),
       }));
 
       // Auto-fill insurance amount from vehicle fleet data
